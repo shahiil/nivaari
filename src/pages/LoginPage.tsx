@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,16 +7,28 @@ import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
 import { auth } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserByUid, saveUser } from '@/utils/localStorage';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { currentUser, userData, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
 
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (!loading && currentUser && userData) {
+      navigate(userData.role === 'admin' ? '/admin' : '/citizen');
+    }
+  }, [currentUser, userData, loading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Login attempt with:', formData);
     
     if (!formData.email || !formData.password) {
       toast.error('Please fill in all fields');
@@ -24,6 +36,7 @@ const LoginPage = () => {
     }
 
     try {
+      console.log('Attempting Firebase sign in...');
       // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -32,22 +45,42 @@ const LoginPage = () => {
       );
 
       const user = userCredential.user;
+      console.log('Firebase sign in successful:', user.uid);
 
-      // Get user data from localStorage
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const userData = users.find((u: any) => u.uid === user.uid);
+      // Get user data from localStorage using utility function
+      console.log('Login - Current user UID:', user.uid);
+      const foundUserData = getUserByUid(user.uid);
+      console.log('Login - Found user data:', foundUserData);
 
-      if (userData) {
+      if (foundUserData) {
         toast.success('Login successful!');
         
         // Role-based redirect
-        if (userData.role === 'admin') {
+        if (foundUserData.role === 'admin') {
+          console.log('Login - Redirecting to admin dashboard');
           navigate('/admin');
         } else {
+          console.log('Login - Redirecting to citizen dashboard');
           navigate('/citizen');
         }
       } else {
-        toast.error('User data not found. Please sign up first.');
+        console.error('Login - User data not found in localStorage for UID:', user.uid);
+        
+        // Create user data if it doesn't exist (recovery mechanism)
+        const newUserData = {
+          uid: user.uid,
+          name: user.displayName || 'User',
+          email: user.email || '',
+          role: 'citizen', // Default role
+          lastLogin: new Date().toISOString()
+        };
+        
+        // Save the new user data
+        saveUser(newUserData);
+        console.log('Login - Created new user data in localStorage:', newUserData);
+        
+        toast.success('Account recovered successfully!');
+        navigate('/citizen');
       }
     } catch (error: any) {
       console.error('Login error:', error);

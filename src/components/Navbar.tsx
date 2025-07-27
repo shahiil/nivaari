@@ -46,17 +46,23 @@ const Navbar = () => {
             <Link to="/" className="text-foreground hover:text-primary transition-colors">
               Home
             </Link>
-            <Link to="/citizen" className="text-foreground hover:text-primary transition-colors">
-              Map
-            </Link>
-            <Link to="/report" className="text-foreground hover:text-primary transition-colors">
-              Report Issue
-            </Link>
+            {currentUser && userData && (
+              <>
+                <Link to="/citizen" className="text-foreground hover:text-primary transition-colors">
+                  Map
+                </Link>
+                <Link to="/report" className="text-foreground hover:text-primary transition-colors">
+                  Report Issue
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Auth Buttons */}
           <div className="flex items-center space-x-3">
-            {!loading && currentUser && userData ? (
+            {loading ? (
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            ) : currentUser && userData ? (
               <>
                 <span className="text-sm text-muted-foreground hidden sm:block">
                   Welcome, {userData.name}

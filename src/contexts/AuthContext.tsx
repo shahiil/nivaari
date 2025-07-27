@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/firebase';
+import { getUserByUid, updateUserLastLogin } from '@/utils/localStorage';
 
 interface UserData {
   uid: string;
@@ -32,14 +33,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('AuthContext - Auth state changed:', user?.uid);
       setCurrentUser(user);
       
       if (user) {
-        // Get user data from localStorage
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const foundUserData = users.find((u: UserData) => u.uid === user.uid);
-        setUserData(foundUserData || null);
+        // Get user data from localStorage using utility function
+        const foundUserData = getUserByUid(user.uid);
+        console.log('AuthContext - Found user data:', foundUserData);
+        
+        if (foundUserData) {
+          // Update last login time
+          updateUserLastLogin(user.uid);
+          setUserData(foundUserData);
+        } else {
+          console.error('AuthContext - User authenticated but no data found in localStorage for UID:', user.uid);
+          setUserData(null);
+        }
       } else {
+        console.log('AuthContext - User not authenticated');
         setUserData(null);
       }
       
@@ -60,4 +71,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-}; 
+};

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import toast from 'react-hot-toast';
 import { auth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveUser } from '@/utils/localStorage';
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const { currentUser, userData, loading } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,8 +21,17 @@ const SignupPage = () => {
     role: ''
   });
 
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (!loading && currentUser && userData) {
+      navigate(userData.role === 'admin' ? '/admin' : '/citizen');
+    }
+  }, [currentUser, userData, loading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Signup attempt with:', formData);
     
     if (!formData.name || !formData.email || !formData.password || !formData.role) {
       toast.error('Please fill in all fields');
@@ -27,6 +39,7 @@ const SignupPage = () => {
     }
 
     try {
+      console.log('Attempting Firebase user creation...');
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -35,19 +48,19 @@ const SignupPage = () => {
       );
 
       const user = userCredential.user;
+      console.log('Firebase user created successfully:', user.uid);
 
-      // Save user data to localStorage
+      // Save user data to localStorage using utility function
       const userData = {
         uid: user.uid,
         name: formData.name,
         email: formData.email,
-        role: formData.role
+        role: formData.role,
+        lastLogin: new Date().toISOString()
       };
-
-      // Get existing users or initialize empty array
-      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      existingUsers.push(userData);
-      localStorage.setItem('users', JSON.stringify(existingUsers));
+      
+      saveUser(userData);
+      console.log('User data saved to localStorage:', userData);
 
       toast.success('Account created successfully!');
       

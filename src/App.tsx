@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster as HotToaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navbar from "./components/Navbar";
+import PrivateRoute from "./components/PrivateRoute";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -26,17 +27,17 @@ const App = () => (
         <HotToaster position="top-right" />
         <BrowserRouter>
           <Navbar />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/citizen" element={<CitizenDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/report" element={<ReportIssuePage />} />
-            <Route path="/alert/:id" element={<AlertDetailsPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+                  <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/citizen" element={<PrivateRoute role="citizen"><CitizenDashboard /></PrivateRoute>} />
+          <Route path="/admin" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
+          <Route path="/report" element={<PrivateRoute><ReportIssuePage /></PrivateRoute>} />
+          <Route path="/alert/:id" element={<PrivateRoute><AlertDetailsPage /></PrivateRoute>} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

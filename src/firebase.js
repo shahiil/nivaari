@@ -14,9 +14,16 @@ const firebaseConfig = {
   measurementId: "G-4TVX68420W"
 };
 
+console.log('Initializing Firebase with config:', firebaseConfig);
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+console.log('Firebase app initialized:', app);
+
 const analytics = getAnalytics(app);
+console.log('Firebase analytics initialized:', analytics);
+
 export const auth = getAuth(app);
+console.log('Firebase auth initialized:', auth);
 
 export default app; 
