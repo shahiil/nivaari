@@ -9,9 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, Clock, AlertTriangle, CheckCircle, XCircle, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import IframeMapView from '@/components/IframeMapView';
 
 const AdminDashboard = () => {
   const [showAddAlert, setShowAddAlert] = useState(false);
+  const [selectedZoneColor, setSelectedZoneColor] = useState('red');
+  const [showZoneDrawer, setShowZoneDrawer] = useState(false);
   const [newAlert, setNewAlert] = useState({
     type: '',
     location: '',
@@ -94,28 +97,69 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle className="text-peacock">Live City Map - Admin View</CardTitle>
               </CardHeader>
-              <CardContent className="p-0 h-full">
-                <div className="h-full bg-gradient-to-br from-indigo-light/20 to-peacock-light/20 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Administrative Map Interface</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Interactive map with zone drawing tools coming with Leaflet.js integration
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                      <Button variant="outline" className="text-sm">
-                        Draw Red Zone
-                      </Button>
-                      <Button variant="outline" className="text-sm">
-                        Draw Yellow Zone
-                      </Button>
-                      <Button variant="outline" className="text-sm">
-                        Mark Safe Zone
-                      </Button>
-                      <Button variant="outline" className="text-sm">
-                        Clear Zones
-                      </Button>
-                    </div>
+              <CardContent className="p-0 h-full relative">
+                <div className="h-full rounded-lg overflow-hidden">
+                  <IframeMapView height="100%" />
+                </div>
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-md shadow-md z-[1000]">
+                  <div className="mb-2">
+                    <Select value={selectedZoneColor} onValueChange={setSelectedZoneColor}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Zone Color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="red">Red Zone (High Risk)</SelectItem>
+                        <SelectItem value="orange">Orange Zone (Medium Risk)</SelectItem>
+                        <SelectItem value="yellow">Yellow Zone (Low Risk)</SelectItem>
+                        <SelectItem value="green">Green Zone (Safe)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs border-emergency-red text-emergency-red hover:bg-emergency-red/10"
+                      onClick={() => {
+                        setSelectedZoneColor('red');
+                        setShowZoneDrawer(true);
+                      }}
+                    >
+                      Draw Red Zone
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs border-emergency-yellow text-emergency-yellow hover:bg-emergency-yellow/10"
+                      onClick={() => {
+                        setSelectedZoneColor('yellow');
+                        setShowZoneDrawer(true);
+                      }}
+                    >
+                      Draw Yellow Zone
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs border-emergency-green text-emergency-green hover:bg-emergency-green/10"
+                      onClick={() => {
+                        setSelectedZoneColor('green');
+                        setShowZoneDrawer(true);
+                      }}
+                    >
+                      Mark Safe Zone
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => {
+                        setShowZoneDrawer(false);
+                        toast.success('Returning to normal map view');
+                      }}
+                    >
+                      Exit Draw Mode
+                    </Button>
                   </div>
                 </div>
               </CardContent>

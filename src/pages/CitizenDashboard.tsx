@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, AlertTriangle, Filter } from 'lucide-react';
+import IframeMapView from '@/components/IframeMapView';
 
 const CitizenDashboard = () => {
   const [filters, setFilters] = useState({
@@ -16,6 +17,14 @@ const CitizenDashboard = () => {
     severity: '',
     officialOnly: false
   });
+
+  // Sample alerts for map display
+  const mapAlerts = [
+    { id: 1, lat: 19.07, lng: 72.88, type: "Accident", status: "red" },
+    { id: 2, lat: 19.06, lng: 72.87, type: "Pothole", status: "green" },
+    { id: 3, lat: 19.08, lng: 72.89, type: "Flood", status: "yellow" },
+    { id: 4, lat: 19.05, lng: 72.86, type: "Power Outage", status: "orange" },
+  ];
 
   // Mock alerts data
   const mockAlerts = [
@@ -87,21 +96,17 @@ const CitizenDashboard = () => {
           <div className="lg:col-span-2">
             <Card className="h-[500px] shadow-card">
               <CardContent className="p-0 h-full">
-                <div className="h-full bg-gradient-to-br from-peacock-light/20 to-indigo-light/20 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Interactive Map</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Map integration with Leaflet.js coming soon
-                    </p>
-                    <div className="flex gap-2 justify-center">
-                      <div className="w-3 h-3 bg-emergency-red rounded-full"></div>
-                      <span className="text-sm text-muted-foreground">High Risk</span>
-                      <div className="w-3 h-3 bg-emergency-yellow rounded-full ml-4"></div>
-                      <span className="text-sm text-muted-foreground">Medium Risk</span>
-                      <div className="w-3 h-3 bg-emergency-green rounded-full ml-4"></div>
-                      <span className="text-sm text-muted-foreground">Safe Zone</span>
-                    </div>
+                <div className="h-full rounded-lg overflow-hidden">
+                  <IframeMapView height="100%" />
+                </div>
+                <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-md shadow-md z-[1000]">
+                  <div className="flex gap-2 items-center">
+                    <div className="w-3 h-3 bg-emergency-red rounded-full"></div>
+                    <span className="text-xs text-foreground">High Risk</span>
+                    <div className="w-3 h-3 bg-emergency-yellow rounded-full ml-2"></div>
+                    <span className="text-xs text-foreground">Medium Risk</span>
+                    <div className="w-3 h-3 bg-emergency-green rounded-full ml-2"></div>
+                    <span className="text-xs text-foreground">Safe Zone</span>
                   </div>
                 </div>
               </CardContent>

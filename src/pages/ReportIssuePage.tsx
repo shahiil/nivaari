@@ -7,13 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, MapPin, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
+import IframeMapView from '@/components/IframeMapView';
 
 const ReportIssuePage = () => {
   const [formData, setFormData] = useState({
     type: '',
     description: '',
     location: '',
-    image: null as File | null
+    image: null as File | null,
+    coordinates: null as { lat: number; lng: number } | null
   });
 
   const issueTypes = [
@@ -39,7 +41,8 @@ const ReportIssuePage = () => {
         type: '',
         description: '',
         location: '',
-        image: null
+        image: null,
+        coordinates: null
       });
     } else {
       toast.error('Please fill in required fields');
@@ -129,14 +132,22 @@ const ReportIssuePage = () => {
                     type="button"
                     variant="outline"
                     className="px-3"
-                    onClick={() => toast.success('Location picker will be available with map integration')}
+                    onClick={() => document.getElementById('map-section')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     <MapPin className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Click the map icon to select location on map (coming soon)
-                </p>
+                <div id="map-section" className="mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    View map location (Mumbai)
+                  </p>
+                  <div className="h-[300px]">
+                    <IframeMapView height="100%" />
+                  </div>
+                  <p className="text-sm mt-2 text-muted-foreground">
+                    Please enter your location manually in the field above
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">
