@@ -17,24 +17,49 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Indian color scheme - Saffron as primary */
+    --primary: 24 85% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Peacock blue as secondary */
+    --secondary: 195 75% 45%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Indigo as accent */
+    --accent: 240 65% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 24 85% 55%;
+
+    /* Custom colors for Nivaari */
+    --saffron: 24 85% 55%;
+    --saffron-light: 24 85% 75%;
+    --indigo: 240 65% 55%;
+    --indigo-light: 240 65% 75%;
+    --peacock: 195 75% 45%;
+    --peacock-light: 195 75% 65%;
+    
+    /* Emergency colors */
+    --emergency-red: 0 85% 60%;
+    --warning-yellow: 45 85% 60%;
+    --safe-green: 120 85% 40%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--saffron)), hsl(var(--peacock)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--indigo)), hsl(var(--peacock)));
+    --gradient-emergency: linear-gradient(135deg, hsl(var(--emergency-red)), hsl(var(--warning-yellow)));
+
+    /* Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.3);
+    --shadow-card: 0 4px 15px -5px hsl(var(--primary) / 0.2);
 
     --radius: 0.5rem;
 

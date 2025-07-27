@@ -52,6 +52,24 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Nivaari custom colors
+				saffron: {
+					DEFAULT: 'hsl(var(--saffron))',
+					light: 'hsl(var(--saffron-light))'
+				},
+				indigo: {
+					DEFAULT: 'hsl(var(--indigo))',
+					light: 'hsl(var(--indigo-light))'
+				},
+				peacock: {
+					DEFAULT: 'hsl(var(--peacock))',
+					light: 'hsl(var(--peacock-light))'
+				},
+				emergency: {
+					red: 'hsl(var(--emergency-red))',
+					yellow: 'hsl(var(--warning-yellow))',
+					green: 'hsl(var(--safe-green))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -67,6 +85,15 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-emergency': 'var(--gradient-emergency)'
+			},
+			boxShadow: {
+				'elegant': 'var(--shadow-elegant)',
+				'card': 'var(--shadow-card)'
 			},
 			keyframes: {
 				'accordion-down': {
