@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import toast from 'react-hot-toast';
+import { auth } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -16,11 +18,37 @@ const SignupPage = () => {
     role: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock signup logic - replace with actual auth later
-    if (formData.name && formData.email && formData.password && formData.role) {
+    if (!formData.name || !formData.email || !formData.password || !formData.role) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      const user = userCredential.user;
+
+      // Save user data to localStorage
+      const userData = {
+        uid: user.uid,
+        name: formData.name,
+        email: formData.email,
+        role: formData.role
+      };
+
+      // Get existing users or initialize empty array
+      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      existingUsers.push(userData);
+      localStorage.setItem('users', JSON.stringify(existingUsers));
+
       toast.success('Account created successfully!');
       
       // Role-based redirect
@@ -29,8 +57,15 @@ const SignupPage = () => {
       } else {
         navigate('/citizen');
       }
-    } else {
-      toast.error('Please fill in all fields');
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('Email already registered. Please use a different email.');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('Password is too weak. Please use a stronger password.');
+      } else {
+        toast.error('Failed to create account. Please try again.');
+      }
     }
   };
 

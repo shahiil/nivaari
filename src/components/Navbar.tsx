@@ -1,8 +1,14 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/firebase';
+import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { currentUser, userData, loading } = useAuth();
   const hideNavbarRoutes = ['/login', '/signup'];
   
   // Hide navbar on login and signup pages
@@ -10,9 +16,16 @@ const Navbar = () => {
     return null;
   }
 
-  // Mock user state - replace with actual auth later
-  const isLoggedIn = false;
-  const userRole: 'citizen' | 'admin' = 'admin'; // Change to 'admin' or 'citizen' to test different views
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast.success('Logged out successfully');
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to logout');
+    }
+  };
 
   return (
     <nav className="bg-white/95 backdrop-blur-sm shadow-card border-b border-border sticky top-0 z-50">
@@ -43,14 +56,17 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="flex items-center space-x-3">
-            {isLoggedIn ? (
+            {!loading && currentUser && userData ? (
               <>
-                <Link to={userRole === 'admin' ? '/admin' : '/citizen'}>
+                <span className="text-sm text-muted-foreground hidden sm:block">
+                  Welcome, {userData.name}
+                </span>
+                <Link to={userData.role === 'admin' ? '/admin' : '/citizen'}>
                   <Button variant="outline" size="sm">
                     Dashboard
                   </Button>
                 </Link>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               </>

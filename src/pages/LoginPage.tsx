@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
+import { auth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -13,21 +15,51 @@ const LoginPage = () => {
     password: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock login logic - replace with actual auth later
-    if (formData.email && formData.password) {
-      toast.success('Login successful!');
-      
-      // Mock role-based redirect
-      if (formData.email.includes('admin')) {
-        navigate('/admin');
-      } else {
-        navigate('/citizen');
-      }
-    } else {
+    if (!formData.email || !formData.password) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      const user = userCredential.user;
+
+      // Get user data from localStorage
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const userData = users.find((u: any) => u.uid === user.uid);
+
+      if (userData) {
+        toast.success('Login successful!');
+        
+        // Role-based redirect
+        if (userData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/citizen');
+        }
+      } else {
+        toast.error('User data not found. Please sign up first.');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.code === 'auth/user-not-found') {
+        toast.error('User not found. Please check your email or sign up.');
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Invalid email format.');
+      } else {
+        toast.error('Login failed. Please try again.');
+      }
     }
   };
 
@@ -100,11 +132,7 @@ const LoginPage = () => {
               </Link>
             </div>
 
-            <div className="mt-4 text-center">
-              <div className="text-xs text-muted-foreground">
-                Demo: Use any email with "admin" for admin access
-              </div>
-            </div>
+
           </CardContent>
         </Card>
       </div>
