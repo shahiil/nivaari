@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from 'react-leaflet';
 import "leaflet/dist/leaflet.css";
 import L from 'leaflet';
 
@@ -51,7 +51,7 @@ function ZoneDrawer({ selectedZoneColor }: ZoneDrawingMapProps) {
   return (
     <div className="w-full h-[500px] rounded-md overflow-hidden">
       <MapContainer 
-        center={[19.0760, 72.8777]} 
+        center={[19.0760, 72.8777] as [number, number]} 
         zoom={13} 
         style={{ height: "100%", width: "100%" }}
       >
@@ -64,9 +64,11 @@ function ZoneDrawer({ selectedZoneColor }: ZoneDrawingMapProps) {
         {zones.map(zone => (
           <CircleMarker
             key={zone.id}
-            center={zone.position}
-            radius={20}
-            pathOptions={{ color: zone.color }}
+            center={[zone.position.lat, zone.position.lng] as [number, number]}
+            pathOptions={{ 
+              color: zone.color,
+              radius: 20
+            }}
           >
             <Popup>
               {zone.color.charAt(0).toUpperCase() + zone.color.slice(1)} Zone

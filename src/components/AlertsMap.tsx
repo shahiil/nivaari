@@ -51,7 +51,7 @@ export default function AlertsMap({ alerts }: AlertsMapProps) {
   return (
     <div className="w-full h-[500px] rounded-md overflow-hidden">
       <MapContainer 
-        center={[19.0760, 72.8777]} 
+        center={[19.0760, 72.8777] as [number, number]} 
         zoom={13} 
         style={{ height: "100%", width: "100%" }}
       >
@@ -63,12 +63,12 @@ export default function AlertsMap({ alerts }: AlertsMapProps) {
         {alerts.map(alert => (
           <CircleMarker
             key={alert.id}
-            center={[alert.lat, alert.lng]}
-            radius={15}
+            center={[alert.lat, alert.lng] as [number, number]}
             pathOptions={{ 
               color: getStatusColor(alert.status),
               fillColor: getStatusColor(alert.status),
-              fillOpacity: 0.7
+              fillOpacity: 0.7,
+              radius: 15
             }}
           >
             <Popup>
