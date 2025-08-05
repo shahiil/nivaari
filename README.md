@@ -1,8 +1,7 @@
-# Welcome to your Lovable project
+# Welcome to your Nivaari project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/7c180ef1-9970-4167-aad4-d73786e1dc9b
 
 ## How can I edit this code?
 
@@ -65,7 +64,6 @@ This project is built with:
 Simply open [Lovable](https://lovable.dev/projects/7c180ef1-9970-4167-aad4-d73786e1dc9b) and click on Share -> Publish.
 
 ## Can I connect a custom domain to my Lovable project?
-
 Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
