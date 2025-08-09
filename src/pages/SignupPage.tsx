@@ -4,12 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import toast from 'react-hot-toast';
-import { auth } from '@/firebase';
+import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveUser } from '@/utils/localStorage';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -18,13 +17,15 @@ const SignupPage = () => {
     name: '',
     email: '',
     password: '',
-    role: ''
+    confirmPassword: '',
   });
 
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      navigate(userData.role === 'admin' ? '/admin' : '/citizen');
+      if (userData.role === 'admin') navigate('/admin-dashboard');
+      else if (userData.role === 'supervisor') navigate('/supervisor-dashboard');
+      else navigate('/citizen-dashboard');
     }
   }, [currentUser, userData, loading, navigate]);
 
@@ -33,8 +34,13 @@ const SignupPage = () => {
     
     console.log('Signup attempt with:', formData);
     
-    if (!formData.name || !formData.email || !formData.password || !formData.role) {
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -50,26 +56,19 @@ const SignupPage = () => {
       const user = userCredential.user;
       console.log('Firebase user created successfully:', user.uid);
 
-      // Save user data to localStorage using utility function
-      const userData = {
+      // Create user profile in Firestore (citizen only)
+      await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         name: formData.name,
         email: formData.email,
-        role: formData.role,
-        lastLogin: new Date().toISOString()
-      };
-      
-      saveUser(userData);
-      console.log('User data saved to localStorage:', userData);
+        role: 'citizen',
+        status: 'online',
+        createdAt: serverTimestamp(),
+      });
 
       toast.success('Account created successfully!');
       
-      // Role-based redirect
-      if (formData.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/citizen');
-      }
+      navigate('/citizen-dashboard');
     } catch (error: any) {
       console.error('Signup error:', error);
       if (error.code === 'auth/email-already-in-use') {
@@ -89,12 +88,7 @@ const SignupPage = () => {
     }));
   };
 
-  const handleRoleChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      role: value
-    }));
-  };
+  // Citizen-only signup; no role selector
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
@@ -156,16 +150,16 @@ const SignupPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select onValueChange={handleRoleChange} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="citizen">Citizen</SelectItem>
-                    <SelectItem value="admin">Government Official / Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <Button 

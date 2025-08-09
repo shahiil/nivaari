@@ -47,7 +47,7 @@ const HomePage = () => {
             Real-time civic emergency alerts and incident reporting for a safer community
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/citizen">
+            <Link to="/citizen-dashboard">
               <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white px-8 py-4 text-lg">
                 Live City Map
               </Button>

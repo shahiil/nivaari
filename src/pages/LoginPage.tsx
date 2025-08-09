@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
-import { auth } from '@/firebase';
+import { auth, db } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserByUid, saveUser } from '@/utils/localStorage';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { currentUser, userData, loading } = useAuth();
+  const { currentUser, userData, loading, logout } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -21,7 +21,9 @@ const LoginPage = () => {
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      navigate(userData.role === 'admin' ? '/admin' : '/citizen');
+      if (userData.role === 'admin') navigate('/admin-dashboard');
+      else if (userData.role === 'supervisor') navigate('/supervisor-dashboard');
+      else navigate('/citizen-dashboard');
     }
   }, [currentUser, userData, loading, navigate]);
 
@@ -47,40 +49,25 @@ const LoginPage = () => {
       const user = userCredential.user;
       console.log('Firebase sign in successful:', user.uid);
 
-      // Get user data from localStorage using utility function
-      console.log('Login - Current user UID:', user.uid);
-      const foundUserData = getUserByUid(user.uid);
-      console.log('Login - Found user data:', foundUserData);
-
-      if (foundUserData) {
-        toast.success('Login successful!');
-        
-        // Role-based redirect
-        if (foundUserData.role === 'admin') {
-          console.log('Login - Redirecting to admin dashboard');
-          navigate('/admin');
-        } else {
-          console.log('Login - Redirecting to citizen dashboard');
-          navigate('/citizen');
-        }
+      // Fetch role from Firestore
+      const profileRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(profileRef);
+      if (!snap.exists()) {
+        toast.error('Account not fully set up. Contact support.');
+        return;
+      }
+      const profile = snap.data() as { role?: string };
+      await updateDoc(profileRef, { status: 'online' });
+      toast.success('Login successful!');
+      if (profile.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (profile.role === 'supervisor') {
+        navigate('/supervisor-dashboard');
+      } else if (profile.role === 'citizen') {
+        navigate('/citizen-dashboard');
       } else {
-        console.error('Login - User data not found in localStorage for UID:', user.uid);
-        
-        // Create user data if it doesn't exist (recovery mechanism)
-        const newUserData = {
-          uid: user.uid,
-          name: user.displayName || 'User',
-          email: user.email || '',
-          role: 'citizen', // Default role
-          lastLogin: new Date().toISOString()
-        };
-        
-        // Save the new user data
-        saveUser(newUserData);
-        console.log('Login - Created new user data in localStorage:', newUserData);
-        
-        toast.success('Account recovered successfully!');
-        navigate('/citizen');
+        toast.error('Unauthorized role. Logging out.');
+        await logout();
       }
     } catch (error: any) {
       console.error('Login error:', error);

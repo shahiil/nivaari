@@ -1,14 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/firebase';
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, userData, loading } = useAuth();
+  const { currentUser, userData, loading, logout } = useAuth();
   const hideNavbarRoutes = ['/login', '/signup'];
   
   // Hide navbar on login and signup pages
@@ -18,7 +16,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await logout();
       toast.success('Logged out successfully');
       navigate('/');
     } catch (error) {
@@ -48,7 +46,7 @@ const Navbar = () => {
             </Link>
             {currentUser && userData && (
               <>
-                <Link to="/citizen" className="text-foreground hover:text-primary transition-colors">
+                <Link to="/citizen-dashboard" className="text-foreground hover:text-primary transition-colors">
                   Map
                 </Link>
                 <Link to="/report" className="text-foreground hover:text-primary transition-colors">
@@ -67,7 +65,7 @@ const Navbar = () => {
                 <span className="text-sm text-muted-foreground hidden sm:block">
                   Welcome, {userData.name}
                 </span>
-                <Link to={userData.role === 'admin' ? '/admin' : '/citizen'}>
+                <Link to={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'supervisor' ? '/supervisor-dashboard' : '/citizen-dashboard'}>
                   <Button variant="outline" size="sm">
                     Dashboard
                   </Button>

@@ -1,29 +1,33 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported as isAnalyticsSupported } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration via environment variables (Vite)
 const firebaseConfig = {
-  apiKey: "AIzaSyClqyfZNBsiiVJIpLzr-GYVQN1txTbbqk4",
-  authDomain: "nivaari-684ec.firebaseapp.com",
-  projectId: "nivaari-684ec",
-  storageBucket: "nivaari-684ec.firebasestorage.app",
-  messagingSenderId: "176372244709",
-  appId: "1:176372244709:web:5cbc694b44fc520d7a740c",
-  measurementId: "G-4TVX68420W"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
-
-console.log('Initializing Firebase with config:', firebaseConfig);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-console.log('Firebase app initialized:', app);
 
-const analytics = getAnalytics(app);
-console.log('Firebase analytics initialized:', analytics);
+// Initialize Analytics only when supported (e.g., browser)
+if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+  isAnalyticsSupported().then((supported) => {
+    if (supported) {
+      getAnalytics(app);
+    }
+  });
+}
 
+// Auth and Firestore exports
 export const auth = getAuth(app);
-console.log('Firebase auth initialized:', auth);
+export const db = getFirestore(app);
 
-export default app; 
+export default app;

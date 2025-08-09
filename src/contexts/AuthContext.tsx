@@ -1,70 +1,96 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/firebase';
-import { getUserByUid, updateUserLastLogin } from '@/utils/localStorage';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { auth, db } from '@/firebase';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
-interface UserData {
+type UserRole = 'citizen' | 'admin' | 'supervisor';
+
+export interface UserProfile {
   uid: string;
-  name: string;
+  name?: string;
   email: string;
-  role: string;
+  role: UserRole;
+  status?: 'online' | 'offline';
+  createdAt?: any;
 }
 
-interface AuthContextType {
+interface AuthContextValue {
   currentUser: User | null;
-  userData: UserData | null;
+  userData: UserProfile | null;
   loading: boolean;
+  setOnlineStatus: (isOnline: boolean) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  userData: null,
-  loading: true,
-});
-
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('AuthContext - Auth state changed:', user?.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
+
       if (user) {
-        // Get user data from localStorage using utility function
-        const foundUserData = getUserByUid(user.uid);
-        console.log('AuthContext - Found user data:', foundUserData);
-        
-        if (foundUserData) {
-          // Update last login time
-          updateUserLastLogin(user.uid);
-          setUserData(foundUserData);
+        const userRef = doc(db, 'users', user.uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data() as UserProfile;
+          setUserData({ ...data, uid: user.uid });
+          // Mark online on session start
+          try {
+            await updateDoc(userRef, { status: 'online' });
+          } catch {}
         } else {
-          console.error('AuthContext - User authenticated but no data found in localStorage for UID:', user.uid);
+          // No profile document found; do not auto-create for security reasons.
           setUserData(null);
         }
       } else {
-        console.log('AuthContext - User not authenticated');
         setUserData(null);
       }
-      
+
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
-  const value = {
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (currentUser) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        // Fire-and-forget; navigator.sendBeacon not used here to keep it simple
+        updateDoc(userRef, { status: 'offline' }).catch(() => {});
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentUser]);
+
+  const setOnlineStatus = async (isOnline: boolean) => {
+    if (!currentUser) return;
+    const userRef = doc(db, 'users', currentUser.uid);
+    await updateDoc(userRef, { status: isOnline ? 'online' : 'offline' });
+  };
+
+  const logout = async () => {
+    if (currentUser) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), { status: 'offline' });
+      } catch {}
+    }
+    await signOut(auth);
+  };
+
+  const value = useMemo<AuthContextValue>(() => ({
     currentUser,
     userData,
     loading,
-  };
+    setOnlineStatus,
+    logout,
+  }), [currentUser, userData, loading]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -72,3 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = (): AuthContextValue => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
+};
+
+// End of file

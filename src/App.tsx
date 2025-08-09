@@ -12,9 +12,12 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import CitizenDashboard from "./pages/CitizenDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import NotFound from "./pages/NotFound";
+import SupervisorDashboard from "./pages/SupervisorDashboard";
+import CreateAdmin from "./pages/CreateAdmin";
+import AdminInviteRegister from "./pages/AdminInviteRegister";
 import ReportIssuePage from "./pages/ReportIssuePage";
 import AlertDetailsPage from "./pages/AlertDetailsPage";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -31,8 +34,12 @@ const App = () => (
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/citizen" element={<PrivateRoute role="citizen"><CitizenDashboard /></PrivateRoute>} />
-          <Route path="/admin" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
+          {/* New dashboard routes */}
+          <Route path="/citizen-dashboard" element={<PrivateRoute role="citizen"><CitizenDashboard /></PrivateRoute>} />
+          <Route path="/admin-dashboard" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
+          <Route path="/supervisor-dashboard" element={<PrivateRoute role="supervisor"><SupervisorDashboard /></PrivateRoute>} />
+          <Route path="/create-admin" element={<PrivateRoute role="supervisor"><CreateAdmin /></PrivateRoute>} />
+          <Route path="/admin-register" element={<AdminInviteRegister />} />
           <Route path="/report" element={<PrivateRoute><ReportIssuePage /></PrivateRoute>} />
           <Route path="/alert/:id" element={<PrivateRoute><AlertDetailsPage /></PrivateRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
