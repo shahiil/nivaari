@@ -17,6 +17,7 @@ const CreateAdmin = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +34,18 @@ const CreateAdmin = () => {
         used: false,
       });
 
-      const baseUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+      const baseUrl = import.meta.env.VITE_PUBLIC_BASE_URL;
+      // Require a valid HTTPS public base URL to ensure links work on other devices
+      try {
+        const u = new URL(baseUrl);
+        if (u.protocol !== 'https:') throw new Error('Base URL must be https');
+      } catch {
+        toast.error('Set VITE_PUBLIC_BASE_URL to your deployed URL (e.g., https://nivaari.netlify.app)');
+        setSending(false);
+        return;
+      }
       const link = `${baseUrl}/admin-register?token=${token}`;
+      setInviteLink(link);
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -47,14 +58,15 @@ const CreateAdmin = () => {
           from_name: 'Nivaari',
           to_name: email,
           reply_to: 'no-reply@nivaari.app',
+          from_email: 'no-reply@nivaari.app',
         }
       );
 
       toast.success('Invitation sent');
-      navigate('/supervisor-dashboard');
+      // Keep the link visible for manual sharing in case email delivery is delayed
     } catch (err) {
       console.error(err);
-      toast.error('Failed to send invite');
+      toast.error('Failed to send invite via email. You can copy the link below and share manually.');
     } finally {
       setSending(false);
     }
@@ -77,6 +89,17 @@ const CreateAdmin = () => {
                 {sending ? 'Sending…' : 'Send Invite'}
               </Button>
             </form>
+            {inviteLink && (
+              <div className="mt-4 space-y-2">
+                <Label>Invite Link (share manually if needed)</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={inviteLink} />
+                  <Button type="button" variant="outline" onClick={() => navigator.clipboard?.writeText(inviteLink).then(() => toast.success('Link copied'))}>
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
