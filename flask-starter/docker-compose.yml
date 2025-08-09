@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    image: flask-starter:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=change-me
