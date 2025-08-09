@@ -55,6 +55,7 @@ const AdminInviteRegister = () => {
         setValid(true);
         setLoading(false);
       } catch (e: any) {
+        console.error('Invite validation error:', e);
         if (e?.code === 'permission-denied' || e?.message?.includes('Missing or insufficient permissions')) {
           try {
             await signInAnonymously(auth);
@@ -81,7 +82,12 @@ const AdminInviteRegister = () => {
             setValid(true);
             setLoading(false);
           } catch (e2: any) {
-            setError('Unable to validate invite. Please try again later.');
+            console.error('Anonymous sign-in or refetch failed:', e2);
+            if (e2?.code === 'auth/operation-not-allowed') {
+              setError('Invite validation blocked: Enable Anonymous Sign-in in Firebase Auth (Authentication → Sign-in method → Anonymous).');
+            } else {
+              setError('Unable to validate invite due to permissions. Update Firestore rules to allow reading adminInvites or enable Anonymous sign-in.');
+            }
             setLoading(false);
           }
         } else {
