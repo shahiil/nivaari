@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '@/firebase';
 import { doc, getDoc, serverTimestamp, updateDoc, setDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInAnonymously, signOut } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,29 +21,74 @@ const AdminInviteRegister = () => {
   const [confirm, setConfirm] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkToken = async () => {
       if (!token) {
+        setError('Missing token');
         setLoading(false);
         return;
       }
       const ref = doc(db, 'adminInvites', token);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
+      try {
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          setError('Invalid invite link');
+          setLoading(false);
+          return;
+        }
+        const data = snap.data() as any;
+        const now = new Date();
+        const expired = data.expiresAt?.toDate?.() ? data.expiresAt.toDate() < now : false;
+        if (data.used) {
+          setError('This invite link has already been used.');
+          setLoading(false);
+          return;
+        }
+        if (expired) {
+          setError('This invite link has expired.');
+          setLoading(false);
+          return;
+        }
+        setEmail(data.email);
+        setValid(true);
         setLoading(false);
-        return;
+      } catch (e: any) {
+        if (e?.code === 'permission-denied' || e?.message?.includes('Missing or insufficient permissions')) {
+          try {
+            await signInAnonymously(auth);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) {
+              setError('Invalid invite link');
+              setLoading(false);
+              return;
+            }
+            const data = snap.data() as any;
+            const now = new Date();
+            const expired = data.expiresAt?.toDate?.() ? data.expiresAt.toDate() < now : false;
+            if (data.used) {
+              setError('This invite link has already been used.');
+              setLoading(false);
+              return;
+            }
+            if (expired) {
+              setError('This invite link has expired.');
+              setLoading(false);
+              return;
+            }
+            setEmail(data.email);
+            setValid(true);
+            setLoading(false);
+          } catch (e2: any) {
+            setError('Unable to validate invite. Please try again later.');
+            setLoading(false);
+          }
+        } else {
+          setError('Unable to validate invite. Please try again later.');
+          setLoading(false);
+        }
       }
-      const data = snap.data() as any;
-      const now = new Date();
-      const expired = data.expiresAt?.toDate?.() ? data.expiresAt.toDate() < now : false;
-      if (data.used || expired) {
-        setLoading(false);
-        return;
-      }
-      setEmail(data.email);
-      setValid(true);
-      setLoading(false);
     };
     checkToken();
   }, [token]);
@@ -53,6 +98,9 @@ const AdminInviteRegister = () => {
     if (!valid) return toast.error('Invalid or expired token');
     if (!password || password !== confirm) return toast.error('Passwords do not match');
     try {
+      if (auth.currentUser?.isAnonymous) {
+        await signOut(auth);
+      }
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateDoc(doc(db, 'adminInvites', token), { used: true });
       await setDoc(doc(db, 'users', cred.user.uid), {
@@ -75,6 +123,10 @@ const AdminInviteRegister = () => {
 
   if (loading) {
     return <div className="min-h-screen grid place-items-center text-foreground">Validating token…</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen grid place-items-center text-foreground">{error}</div>;
   }
 
   if (!valid) {
