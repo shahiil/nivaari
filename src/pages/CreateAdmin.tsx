@@ -34,17 +34,28 @@ const CreateAdmin = () => {
         used: false,
       });
 
-      const baseUrl = import.meta.env.VITE_PUBLIC_BASE_URL;
-      // Require a valid HTTPS public base URL to ensure links work on other devices
+      // Prefer a configured public base URL; fall back to current origin during development
+      let baseUrl = (import.meta.env.VITE_PUBLIC_BASE_URL as string | undefined)?.trim();
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!baseUrl) {
+        baseUrl = window.location.origin;
+        if (!isLocal) {
+          // Non-local without explicit public URL: still proceed, but warn
+          toast.success('Using current origin for invite link. Set VITE_PUBLIC_BASE_URL for production.');
+        }
+      }
       try {
         const u = new URL(baseUrl);
-        if (u.protocol !== 'https:') throw new Error('Base URL must be https');
+        // Enforce https only for non-local hosts
+        if (!isLocal && u.protocol !== 'https:') {
+          throw new Error('Base URL must be https in production');
+        }
       } catch {
-        toast.error('Set VITE_PUBLIC_BASE_URL to your deployed URL (e.g., https://nivaari.netlify.app)');
+        toast.error('Invalid VITE_PUBLIC_BASE_URL. Use a full https URL (e.g., https://nivaari.netlify.app).');
         setSending(false);
         return;
       }
-      const link = `${baseUrl}/admin-register?token=${token}`;
+      const link = `${baseUrl.replace(/\/$/, '')}/admin-register?token=${token}`;
       setInviteLink(link);
 
       await emailjs.send(
