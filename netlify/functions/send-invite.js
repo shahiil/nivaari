@@ -1,18 +1,117 @@
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
 
-// Firebase v9+ uses ES modules, but Netlify Functions use CommonJS
-// We'll use the Firebase Admin SDK instead for server-side
-const admin = require('firebase-admin');
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Initialize Firebase Admin (server-side)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  });
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI not found in environment variables');
 }
 
-const db = admin.firestore();
+// MongoDB connection helper
+let isConnected = false;
+
+const connectToDatabase = async () => {
+  if (isConnected) {
+    return mongoose.connection;
+  }
+
+  try {
+    const connection = await mongoose.connect(MONGODB_URI);
+    isConnected = true;
+    console.log('Connected to MongoDB Atlas');
+    return connection;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
+
+// Admin Invite Schema
+const AdminInviteSchema = new mongoose.Schema(
+  {
+    token: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    role: {
+      type: String,
+      enum: ['admin', 'supervisor'],
+      required: true,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+    },
+    used: {
+      type: Boolean,
+      default: false,
+    },
+    usedAt: {
+      type: Date,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// EmailLog Schema
+const EmailLogSchema = new mongoose.Schema(
+  {
+    recipientEmail: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    recipientUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    emailType: {
+      type: String,
+      enum: ['invitation', 'registration_confirmation', 'password_reset', 'notification'],
+      required: true,
+    },
+    subject: {
+      type: String,
+      required: true,
+    },
+    content: {
+      type: String,
+    },
+    status: {
+      type: String,
+      enum: ['sent', 'failed', 'pending'],
+      default: 'pending',
+    },
+    errorMessage: {
+      type: String,
+    },
+    sentAt: {
+      type: Date,
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const AdminInvite = mongoose.models.AdminInvite || mongoose.model('AdminInvite', AdminInviteSchema);
+const EmailLog = mongoose.models.EmailLog || mongoose.model('EmailLog', EmailLogSchema);
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransporter({
@@ -29,7 +128,7 @@ async function sendRegistrationEmail(toEmail, role, token) {
   const appUrl = process.env.APP_URL || 'https://nivaari.netlify.app';
   const registrationLink = `${appUrl}/admin-register?token=${token}`;
   
-  const subject = `Nivaari ${role === 'admin' ? 'Admin' : 'Moderator'} Invitation`;
+  const subject = `Nivaari ${role === 'admin' ? 'Admin' : 'Supervisor'} Invitation`;
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -40,21 +139,26 @@ async function sendRegistrationEmail(toEmail, role, token) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
       <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #1F2937;">Nivaari ${role === 'admin' ? 'Admin' : 'Moderator'} Invitation</h2>
-        <p>You've been invited to become a ${role === 'admin' ? 'Government Official/Admin' : 'Moderator'} on Nivaari.</p>
-        <p>Click the link below to complete your registration:</p>
+        <h2 style="color: #1F2937;">Nivaari ${role === 'admin' ? 'Admin' : 'Supervisor'} Invitation</h2>
+        <p>Hello,</p>
+        <p>You have been invited to join Nivaari as a${role === 'admin' ? 'n admin' : ' supervisor'}.</p>
+        <p>Please click the link below to complete your registration:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${registrationLink}" 
-             style="background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+             style="background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Complete Registration
           </a>
         </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #3B82F6;">${registrationLink}</p>
+        <p><strong>Note:</strong> This invitation link will expire in 24 hours.</p>
+        <hr style="margin: 30px 0;">
         <p style="font-size: 14px; color: #666;">
-          This link will expire in 24 hours. If you didn't request this invitation, please ignore this email.
+          If you did not expect this invitation, please ignore this email.
         </p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-        <p style="font-size: 12px; color: #999;">
-          Nivaari - Stay Informed. Stay Safe.
+        <p style="font-size: 14px; color: #666;">
+          Best regards,<br>
+          The Nivaari Team
         </p>
       </div>
     </body>
@@ -68,7 +172,14 @@ async function sendRegistrationEmail(toEmail, role, token) {
     html: htmlContent,
   };
 
-  return await transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
 }
 
 exports.handler = async (event, context) => {
@@ -98,50 +209,68 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Connect to MongoDB
+    await connectToDatabase();
+
     // Generate secure token
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Store token in Firestore
-    await db.collection('adminInvites').doc(token).set({
-      email,
-      role,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-      used: false,
+    // Create email log entry
+    const emailLog = new EmailLog({
+      recipientEmail: email,
+      emailType: 'invitation',
+      subject: `Nivaari ${role === 'admin' ? 'Admin' : 'Supervisor'} Invitation`,
+      status: 'pending',
+      metadata: { token, role },
     });
 
-    // Send email
-    await sendRegistrationEmail(email, role, token);
+    try {
+      // Store token in MongoDB
+      const adminInvite = new AdminInvite({
+        token,
+        email,
+        role,
+        expiresAt,
+      });
+      
+      await adminInvite.save();
+      
+      // Send email
+      await sendRegistrationEmail(email, role, token);
+      
+      // Update email log as sent
+      emailLog.status = 'sent';
+      emailLog.sentAt = new Date();
+      await emailLog.save();
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        success: true, 
-        message: 'Invitation sent successfully',
-        token // For debugging - remove in production
-      }),
-    };
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          message: 'Invitation sent successfully',
+        }),
+      };
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      
+      // Update email log as failed
+      emailLog.status = 'failed';
+      emailLog.errorMessage = error.message;
+      await emailLog.save();
+      
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to send invitation' }),
+      };
+    }
   } catch (error) {
-    console.error('Error sending invitation:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      env: {
-        hasEmailUser: !!process.env.EMAIL_USER,
-        hasEmailPass: !!process.env.EMAIL_PASS,
-        hasProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
-        hasAppUrl: !!process.env.APP_URL,
-      }
-    });
+    console.error('Handler error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Failed to send invitation',
-        details: error.message 
-      }),
+      body: JSON.stringify({ error: 'Internal server error' }),
     };
   }
 };
