@@ -1,21 +1,18 @@
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
-const { initializeApp } = require('firebase/app');
-const { getFirestore, doc, setDoc, serverTimestamp } = require('firebase/firestore');
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
-};
+// Firebase v9+ uses ES modules, but Netlify Functions use CommonJS
+// We'll use the Firebase Admin SDK instead for server-side
+const admin = require('firebase-admin');
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Initialize Firebase Admin (server-side)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  });
+}
+
+const db = admin.firestore();
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransporter({
@@ -106,11 +103,11 @@ exports.handler = async (event, context) => {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Store token in Firestore
-    await setDoc(doc(db, 'adminInvites', token), {
+    await db.collection('adminInvites').doc(token).set({
       email,
       role,
-      createdAt: serverTimestamp(),
-      expiresAt,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
       used: false,
     });
 
@@ -128,10 +125,23 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Error sending invitation:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      env: {
+        hasEmailUser: !!process.env.EMAIL_USER,
+        hasEmailPass: !!process.env.EMAIL_PASS,
+        hasProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
+        hasAppUrl: !!process.env.APP_URL,
+      }
+    });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to send invitation' }),
+      body: JSON.stringify({ 
+        error: 'Failed to send invitation',
+        details: error.message 
+      }),
     };
   }
 };
