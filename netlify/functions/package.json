@@ -4,6 +4,8 @@
   "dependencies": {
     "nodemailer": "^6.10.1",
     "uuid": "^9.0.1",
-    "firebase-admin": "^12.0.0"
+    "mongoose": "^8.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0"
   }
 }
