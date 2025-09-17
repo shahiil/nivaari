@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { verifyToken, type JWTPayload } from '../utils/jwt';
 
 export type UserRole = 'citizen' | 'admin' | 'supervisor';
 
@@ -26,7 +25,7 @@ interface AuthContextValue {
 
 const MongoAuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const API_BASE = import.meta.env.VITE_PUBLIC_BASE_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_PUBLIC_BASE_URL || 'https://nivaari.netlify.app';
 
 export const MongoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -38,30 +37,18 @@ export const MongoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const initializeAuth = () => {
       try {
         const savedToken = localStorage.getItem('auth_token');
-        if (savedToken) {
-          const decoded = verifyToken(savedToken);
-          if (decoded) {
-            // Token is valid, but we need to fetch user data
-            // For now, we'll construct a basic user profile from token
-            const userProfile: UserProfile = {
-              _id: decoded.userId,
-              name: '', // We'll need to fetch this
-              email: decoded.email,
-              role: decoded.role as UserRole,
-              status: 'online',
-              createdAt: '',
-              updatedAt: '',
-            };
-            setToken(savedToken);
-            setCurrentUser(userProfile);
-            setUserData(userProfile);
-          } else {
-            localStorage.removeItem('auth_token');
-          }
+        const savedUser = localStorage.getItem('auth_user');
+        
+        if (savedToken && savedUser) {
+          const userProfile: UserProfile = JSON.parse(savedUser);
+          setToken(savedToken);
+          setCurrentUser(userProfile);
+          setUserData(userProfile);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
       }
       setLoading(false);
     };
@@ -86,6 +73,7 @@ export const MongoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCurrentUser(data.user);
         setUserData(data.user);
         localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
         return true;
       } else {
         throw new Error(data.error || 'Login failed');
@@ -113,6 +101,7 @@ export const MongoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCurrentUser(data.user);
         setUserData(data.user);
         localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
         return true;
       } else {
         throw new Error(data.error || 'Signup failed');
@@ -136,6 +125,7 @@ export const MongoAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setCurrentUser(null);
       setUserData(null);
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
     }
   };
 
