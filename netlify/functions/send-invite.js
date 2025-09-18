@@ -1,15 +1,22 @@
-const nodemailer = require('nodemailer');
-const { v4: uuidv4 } = require('uuid');
+const nodemailer = require("nodemailer");
+const { v4: uuidv4 } = require("uuid");
 
 // Firebase v9+ uses ES modules, but Netlify Functions use CommonJS
 // We'll use the Firebase Admin SDK instead for server-side
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
 // Initialize Firebase Admin (server-side) - only in production
 let db;
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   if (!admin.apps.length) {
+    let credential;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      // Parse the service account key from env var
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      credential = admin.credential.cert(serviceAccount);
+    }
     admin.initializeApp({
+      credential,
       projectId: process.env.VITE_FIREBASE_PROJECT_ID,
     });
   }
@@ -18,7 +25,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: parseInt(process.env.SMTP_PORT) || 465,
   secure: true,
   auth: {
@@ -28,11 +35,11 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendRegistrationEmail(toEmail, role, token) {
-  const appUrl = process.env.APP_URL || 'https://nivaari.netlify.app';
+  const appUrl = process.env.APP_URL || "https://nivaari.netlify.app";
   const registrationLink = `${appUrl}/admin-register?token=${token}`;
-  
-  const subject = `Nivaari ${role === 'admin' ? 'Admin' : 'Moderator'} Invitation`;
-  
+
+  const subject = `Nivaari ${role === "admin" ? "Admin" : "Moderator"} Invitation`;
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -42,8 +49,10 @@ async function sendRegistrationEmail(toEmail, role, token) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
       <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #1F2937;">Nivaari ${role === 'admin' ? 'Admin' : 'Moderator'} Invitation</h2>
-        <p>You've been invited to become a ${role === 'admin' ? 'Government Official/Admin' : 'Moderator'} on Nivaari.</p>
+        <h2 style="color: #1F2937;">Nivaari ${role === "admin" ? "Admin" : "Moderator"} Invitation</h2>
+        <p>You've been invited to become a ${
+          role === "admin" ? "Government Official/Admin" : "Moderator"
+        } on Nivaari.</p>
         <p>Click the link below to complete your registration:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${registrationLink}" 
@@ -76,27 +85,27 @@ async function sendRegistrationEmail(toEmail, role, token) {
 exports.handler = async (event, context) => {
   // Handle CORS
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: "" };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
   try {
-    const { email, role = 'admin' } = JSON.parse(event.body);
-    
+    const { email, role = "admin" } = JSON.parse(event.body);
+
     if (!email) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Email is required' }),
+        body: JSON.stringify({ error: "Email is required" }),
       };
     }
 
@@ -105,14 +114,17 @@ exports.handler = async (event, context) => {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Store token in Firestore (skip in development)
-    if (process.env.NODE_ENV === 'production') {
-      await db.collection('adminInvites').doc(token).set({
-        email,
-        role,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-        used: false,
-      });
+    if (process.env.NODE_ENV === "production") {
+      await db
+        .collection("adminInvites")
+        .doc(token)
+        .set({
+          email,
+          role,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+          used: false,
+        });
     }
 
     // Send email
@@ -121,15 +133,15 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        success: true, 
-        message: 'Invitation sent successfully',
-        token // For debugging - remove in production
+      body: JSON.stringify({
+        success: true,
+        message: "Invitation sent successfully",
+        token, // For debugging - remove in production
       }),
     };
   } catch (error) {
-    console.error('Error sending invitation:', error);
-    console.error('Error details:', {
+    console.error("Error sending invitation:", error);
+    console.error("Error details:", {
       message: error.message,
       stack: error.stack,
       env: {
@@ -137,14 +149,14 @@ exports.handler = async (event, context) => {
         hasEmailPass: !!process.env.EMAIL_PASS,
         hasProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
         hasAppUrl: !!process.env.APP_URL,
-      }
+      },
     });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Failed to send invitation',
-        details: error.message 
+      body: JSON.stringify({
+        error: "Failed to send invitation",
+        details: error.message,
       }),
     };
   }
