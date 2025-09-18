@@ -37,7 +37,7 @@ const SupervisorDashboard = () => {
             <p className="text-muted-foreground">Monitor admins and invite new ones</p>
           </div>
           <Link to="/create-admin">
-            <Button className="bg-indigo-600 hover:bg-indigo-600/90">Create Admin Invitation</Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-600/90">Create Moderator Invitation</Button>
           </Link>
         </div>
 
@@ -53,12 +53,12 @@ const SupervisorDashboard = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Active Admins</CardTitle>
+              <CardTitle>Active Moderators</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {admins.length === 0 && (
-                  <div className="text-sm text-muted-foreground">No admins yet</div>
+                  <div className="text-sm text-muted-foreground">No moderators yet</div>
                 )}
                 {admins.map((a) => (
                   <div key={a.uid} className="flex items-center justify-between p-2 rounded border">
