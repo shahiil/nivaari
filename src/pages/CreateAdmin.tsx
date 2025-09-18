@@ -13,34 +13,55 @@ const CreateAdmin = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return toast.error('Email is required');
+    
+    if (!email.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+
+    setSending(true);
 
     try {
-      setSending(true);
-
-      // Call Netlify function to send invitation
       const response = await fetch('/.netlify/functions/send-invite', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           role: 'admin',
         }),
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send invitation');
+      if (response.status === 404) {
+        // Development fallback - Netlify functions not available locally
+        console.log('Netlify function not available locally. In production, this would send an email to:', email.trim());
+        toast.success('Development mode: Invitation would be sent to ' + email.trim());
+        setTimeout(() => {
+          navigate('/supervisor-dashboard');
+        }, 1500);
+        return;
       }
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Failed to send invitation';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
       toast.success('Invitation sent successfully');
       navigate('/supervisor-dashboard');
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || 'Failed to send invitation');
+    } catch (err: unknown) {
+      console.error('Send invitation error:', err);
+      const error = err as { message?: string };
+      toast.error(error.message || 'Failed to send invitation');
     } finally {
       setSending(false);
     }

@@ -5,17 +5,19 @@ const { v4: uuidv4 } = require('uuid');
 // We'll use the Firebase Admin SDK instead for server-side
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin (server-side)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  });
+// Initialize Firebase Admin (server-side) - only in production
+let db;
+if (process.env.NODE_ENV === 'production') {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+    });
+  }
+  db = admin.firestore();
 }
 
-const db = admin.firestore();
-
 // Nodemailer transporter
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT) || 465,
   secure: true,
@@ -102,14 +104,16 @@ exports.handler = async (event, context) => {
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Store token in Firestore
-    await db.collection('adminInvites').doc(token).set({
-      email,
-      role,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-      used: false,
-    });
+    // Store token in Firestore (skip in development)
+    if (process.env.NODE_ENV === 'production') {
+      await db.collection('adminInvites').doc(token).set({
+        email,
+        role,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+        used: false,
+      });
+    }
 
     // Send email
     await sendRegistrationEmail(email, role, token);

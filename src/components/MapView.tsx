@@ -5,7 +5,7 @@ import L from "leaflet";
 
 // Fix for default marker icons in Leaflet with React
 const fixLeafletIcon = () => {
-  // @ts-ignore
+  // @ts-expect-error - Leaflet icon prototype manipulation for React compatibility
   delete L.Icon.Default.prototype._getIconUrl;
   
   L.Icon.Default.mergeOptions({

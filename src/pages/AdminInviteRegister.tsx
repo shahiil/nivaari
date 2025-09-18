@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
 
+interface InviteData {
+  email: string;
+  role: string;
+  expiresAt: { toDate: () => Date } | Date; // Firebase Timestamp or Date
+  used: boolean;
+  token: string;
+}
+
 const useQuery = () => new URLSearchParams(useLocation().search);
 
 const AdminInviteRegister = () => {
@@ -38,9 +46,11 @@ const AdminInviteRegister = () => {
           setLoading(false);
           return;
         }
-        const data = snap.data() as any;
+        const data = snap.data() as InviteData;
         const now = new Date();
-        const expired = data.expiresAt?.toDate?.() ? data.expiresAt.toDate() < now : false;
+        const expired = data.expiresAt && typeof data.expiresAt === 'object' && 'toDate' in data.expiresAt 
+          ? data.expiresAt.toDate() < now 
+          : false;
         if (data.used) {
           setError('This invite link has already been used.');
           setLoading(false);
@@ -54,9 +64,10 @@ const AdminInviteRegister = () => {
         setEmail(data.email);
         setValid(true);
         setLoading(false);
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('Invite validation error:', e);
-        if (e?.code === 'permission-denied' || e?.message?.includes('Missing or insufficient permissions')) {
+        const error = e as { code?: string; message?: string };
+        if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
           try {
             await signInAnonymously(auth);
             const snap = await getDoc(ref);
@@ -65,9 +76,11 @@ const AdminInviteRegister = () => {
               setLoading(false);
               return;
             }
-            const data = snap.data() as any;
+            const data = snap.data() as InviteData;
             const now = new Date();
-            const expired = data.expiresAt?.toDate?.() ? data.expiresAt.toDate() < now : false;
+            const expired = data.expiresAt && typeof data.expiresAt === 'object' && 'toDate' in data.expiresAt 
+              ? data.expiresAt.toDate() < now 
+              : false;
             if (data.used) {
               setError('This invite link has already been used.');
               setLoading(false);
@@ -81,9 +94,10 @@ const AdminInviteRegister = () => {
             setEmail(data.email);
             setValid(true);
             setLoading(false);
-          } catch (e2: any) {
-            console.error('Anonymous sign-in or refetch failed:', e2);
-            if (e2?.code === 'auth/operation-not-allowed') {
+                    } catch (e2: unknown) {
+            console.error('Anonymous sign in error:', e2);
+            const error = e2 as { code?: string };
+            if (error?.code === 'auth/operation-not-allowed') {
               setError('Invite validation blocked: Enable Anonymous Sign-in in Firebase Auth (Authentication → Sign-in method → Anonymous).');
             } else {
               setError('Unable to validate invite due to permissions. Update Firestore rules to allow reading adminInvites or enable Anonymous sign-in.');

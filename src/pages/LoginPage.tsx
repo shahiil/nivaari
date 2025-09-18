@@ -69,13 +69,14 @@ const LoginPage = () => {
         toast.error('Unauthorized role. Logging out.');
         await logout();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
-      if (error.code === 'auth/user-not-found') {
+      const err = error as { code?: string; message?: string };
+      if (err.code === 'auth/user-not-found') {
         toast.error('User not found. Please check your email or sign up.');
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (err.code === 'auth/wrong-password') {
         toast.error('Incorrect password. Please try again.');
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (err.code === 'auth/invalid-email') {
         toast.error('Invalid email format.');
       } else {
         toast.error('Login failed. Please try again.');

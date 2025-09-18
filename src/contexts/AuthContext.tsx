@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, db } from '@/firebase';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
@@ -11,7 +11,7 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   status?: 'online' | 'offline';
-  createdAt?: any;
+  createdAt?: Date | string;
 }
 
 interface AuthContextValue {
@@ -42,7 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Mark online on session start
           try {
             await updateDoc(userRef, { status: 'online' });
-          } catch {}
+          } catch (error) {
+            console.warn('Failed to update online status:', error);
+          }
         } else {
           // No profile document found; do not auto-create for security reasons.
           setUserData(null);
@@ -69,20 +71,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [currentUser]);
 
-  const setOnlineStatus = async (isOnline: boolean) => {
+  const setOnlineStatus = useCallback(async (isOnline: boolean) => {
     if (!currentUser) return;
     const userRef = doc(db, 'users', currentUser.uid);
     await updateDoc(userRef, { status: isOnline ? 'online' : 'offline' });
-  };
+  }, [currentUser]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (currentUser) {
       try {
         await updateDoc(doc(db, 'users', currentUser.uid), { status: 'offline' });
-      } catch {}
+      } catch (error) {
+        console.warn('Failed to update offline status:', error);
+      }
     }
     await signOut(auth);
-  };
+  }, [currentUser]);
 
   const value = useMemo<AuthContextValue>(() => ({
     currentUser,
@@ -90,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     setOnlineStatus,
     logout,
-  }), [currentUser, userData, loading]);
+  }), [currentUser, userData, loading, setOnlineStatus, logout]);
 
   return (
     <AuthContext.Provider value={value}>

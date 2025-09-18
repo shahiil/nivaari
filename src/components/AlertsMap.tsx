@@ -17,7 +17,7 @@ interface AlertsMapProps {
 
 // Fix for default marker icons in Leaflet with React
 const fixLeafletIcon = () => {
-  // @ts-ignore
+  // @ts-expect-error - Leaflet icon prototype manipulation for React compatibility
   delete L.Icon.Default.prototype._getIconUrl;
   
   L.Icon.Default.mergeOptions({
@@ -64,11 +64,11 @@ export default function AlertsMap({ alerts }: AlertsMapProps) {
           <CircleMarker
             key={alert.id}
             center={[alert.lat, alert.lng] as [number, number]}
+            radius={15}
             pathOptions={{ 
               color: getStatusColor(alert.status),
               fillColor: getStatusColor(alert.status),
-              fillOpacity: 0.7,
-              radius: 15
+              fillOpacity: 0.7
             }}
           >
             <Popup>

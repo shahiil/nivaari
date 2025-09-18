@@ -16,7 +16,7 @@ interface Zone {
 
 // Fix for default marker icons in Leaflet with React
 const fixLeafletIcon = () => {
-  // @ts-ignore
+  // @ts-expect-error - Leaflet icon prototype manipulation for React compatibility
   delete L.Icon.Default.prototype._getIconUrl;
   
   L.Icon.Default.mergeOptions({
@@ -65,9 +65,9 @@ function ZoneDrawer({ selectedZoneColor }: ZoneDrawingMapProps) {
           <CircleMarker
             key={zone.id}
             center={[zone.position.lat, zone.position.lng] as [number, number]}
+            radius={20}
             pathOptions={{ 
-              color: zone.color,
-              radius: 20
+              color: zone.color
             }}
           >
             <Popup>
