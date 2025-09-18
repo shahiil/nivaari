@@ -78,7 +78,7 @@ const AdminDashboard = () => {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Admin Control Panel</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Moderator Control Panel</h1>
             <p className="text-muted-foreground">Manage incidents and emergency alerts</p>
           </div>
           <Button 
@@ -95,7 +95,7 @@ const AdminDashboard = () => {
           <div className="lg:col-span-2">
             <Card className="h-[500px] shadow-card">
               <CardHeader>
-                <CardTitle className="text-peacock">Live City Map - Admin View</CardTitle>
+                <CardTitle className="text-peacock">Live City Map - Moderator View</CardTitle>
               </CardHeader>
               <CardContent className="p-0 h-full relative">
                 <div className="h-full rounded-lg overflow-hidden">
