@@ -69,11 +69,12 @@ const SignupPage = () => {
       toast.success('Account created successfully!');
       
       navigate('/citizen-dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
-      if (error.code === 'auth/email-already-in-use') {
+      const err = error as { code?: string };
+      if (err.code === 'auth/email-already-in-use') {
         toast.error('Email already registered. Please use a different email.');
-      } else if (error.code === 'auth/weak-password') {
+      } else if (err.code === 'auth/weak-password') {
         toast.error('Password is too weak. Please use a stronger password.');
       } else {
         toast.error('Failed to create account. Please try again.');
