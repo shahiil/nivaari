@@ -3,7 +3,7 @@
  */
 
 interface UserData {
-  uid: string;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -23,11 +23,11 @@ export const getAllUsers = (): UserData[] => {
 };
 
 /**
- * Get a specific user by UID
+ * Get a specific user by ID
  */
-export const getUserByUid = (uid: string): UserData | null => {
+export const getUserById = (id: string): UserData | null => {
   const users = getAllUsers();
-  return users.find(user => user.uid === uid) || null;
+  return users.find(user => user.id === id) || null;
 };
 
 /**
@@ -36,7 +36,7 @@ export const getUserByUid = (uid: string): UserData | null => {
 export const saveUser = (userData: UserData): void => {
   try {
     const users = getAllUsers();
-    const existingIndex = users.findIndex(user => user.uid === userData.uid);
+    const existingIndex = users.findIndex(user => user.id === userData.id);
     
     if (existingIndex >= 0) {
       // Update existing user
@@ -56,10 +56,10 @@ export const saveUser = (userData: UserData): void => {
 /**
  * Update a user's last login time
  */
-export const updateUserLastLogin = (uid: string): void => {
+export const updateUserLastLogin = (id: string): void => {
   try {
     const users = getAllUsers();
-    const existingIndex = users.findIndex(user => user.uid === uid);
+    const existingIndex = users.findIndex(user => user.id === id);
     
     if (existingIndex >= 0) {
       users[existingIndex] = { 
@@ -67,7 +67,7 @@ export const updateUserLastLogin = (uid: string): void => {
         lastLogin: new Date().toISOString() 
       };
       localStorage.setItem('users', JSON.stringify(users));
-      console.log('User last login updated successfully for UID:', uid);
+      console.log('User last login updated successfully for ID:', id);
     }
   } catch (error) {
     console.error('Error updating user last login:', error);
@@ -77,12 +77,12 @@ export const updateUserLastLogin = (uid: string): void => {
 /**
  * Remove a user from localStorage
  */
-export const removeUser = (uid: string): void => {
+export const removeUser = (id: string): void => {
   try {
     const users = getAllUsers();
-    const filteredUsers = users.filter(user => user.uid !== uid);
+    const filteredUsers = users.filter(user => user.id !== id);
     localStorage.setItem('users', JSON.stringify(filteredUsers));
-    console.log('User removed successfully for UID:', uid);
+    console.log('User removed successfully for ID:', id);
   } catch (error) {
     console.error('Error removing user from localStorage:', error);
   }

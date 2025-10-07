@@ -1,106 +1,175 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { auth, db } from '../firebase';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+'use client';
 
-type UserRole = 'citizen' | 'admin' | 'supervisor';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+export type UserRole = 'citizen' | 'admin' | 'supervisor';
 
 export interface UserProfile {
-  uid: string;
+  id: string;
   name?: string;
   email: string;
   role: UserRole;
   status?: 'online' | 'offline';
-  createdAt?: Date | string;
+  createdAt?: string;
+  lastLoginAt?: string;
 }
 
 interface AuthContextValue {
-  currentUser: User | null;
+  currentUser: UserProfile | null;
   userData: UserProfile | null;
   loading: boolean;
   setOnlineStatus: (isOnline: boolean) => Promise<void>;
   logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-
-      if (user) {
-        const userRef = doc(db, 'users', user.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const data = snap.data() as UserProfile;
-          setUserData({ ...data, uid: user.uid });
-          // Mark online on session start
-          try {
-            await updateDoc(userRef, { status: 'online' });
-          } catch (error) {
-            console.warn('Failed to update online status:', error);
-          }
-        } else {
-          // No profile document found; do not auto-create for security reasons.
-          setUserData(null);
-        }
-      } else {
-        setUserData(null);
-      }
-
-      setLoading(false);
+async function fetchSession(): Promise<UserProfile | null> {
+  try {
+    const response = await fetch('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store',
     });
 
-    return () => unsubscribe();
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.user ?? null;
+  } catch (error) {
+    console.warn('Failed to fetch session:', error);
+    return null;
+  }
+}
+
+async function postStatus(status: 'online' | 'offline'): Promise<boolean> {
+  try {
+    const response = await fetch('/api/auth/status', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.warn('Failed to update status:', error);
+    return false;
+  }
+}
+
+async function postLogout(): Promise<void> {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.warn('Failed to log out:', error);
+  }
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const syncUser = useCallback((user: UserProfile | null) => {
+    setCurrentUser(user);
+    setUserData(user);
   }, []);
 
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    const user = await fetchSession();
+    syncUser(user);
+    setLoading(false);
+  }, [syncUser]);
+
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (currentUser) {
-        const userRef = doc(db, 'users', currentUser.uid);
-        // Fire-and-forget; navigator.sendBeacon not used here to keep it simple
-        updateDoc(userRef, { status: 'offline' }).catch(() => {});
+    let mounted = true;
+
+    const init = async () => {
+      setLoading(true);
+      const user = await fetchSession();
+      if (mounted) {
+        syncUser(user);
+        setLoading(false);
       }
     };
+
+    void init();
+
+    return () => {
+      mounted = false;
+    };
+  }, [syncUser]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    const handleBeforeUnload = () => {
+      try {
+        const payload = JSON.stringify({ status: 'offline' });
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon('/api/auth/status', blob);
+        }
+      } catch (error) {
+        console.warn('Failed to send offline beacon:', error);
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [currentUser]);
 
-  const setOnlineStatus = useCallback(async (isOnline: boolean) => {
-    if (!currentUser) return;
-    const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, { status: isOnline ? 'online' : 'offline' });
-  }, [currentUser]);
+  const setOnlineStatus = useCallback(
+    async (isOnline: boolean) => {
+      if (!currentUser) return;
+
+      const success = await postStatus(isOnline ? 'online' : 'offline');
+      if (success) {
+        const updated: UserProfile = {
+          ...currentUser,
+          status: isOnline ? 'online' : 'offline',
+        };
+        syncUser(updated);
+      }
+    },
+    [currentUser, syncUser]
+  );
 
   const logout = useCallback(async () => {
-    if (currentUser) {
-      try {
-        await updateDoc(doc(db, 'users', currentUser.uid), { status: 'offline' });
-      } catch (error) {
-        console.warn('Failed to update offline status:', error);
-      }
-    }
-    await signOut(auth);
-  }, [currentUser]);
+    await postStatus('offline');
+    await postLogout();
+    syncUser(null);
+  }, [syncUser]);
 
-  const value = useMemo<AuthContextValue>(() => ({
-    currentUser,
-    userData,
-    loading,
-    setOnlineStatus,
-    logout,
-  }), [currentUser, userData, loading, setOnlineStatus, logout]);
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      currentUser,
+      userData,
+      loading,
+      setOnlineStatus,
+      logout,
+      refresh,
+    }),
+    [currentUser, userData, loading, setOnlineStatus, logout, refresh]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextValue => {
@@ -108,5 +177,3 @@ export const useAuth = (): AuthContextValue => {
   if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 };
-
-// End of file

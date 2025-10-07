@@ -27,6 +27,6 @@
     "noUnusedLocals": false,
     "strictNullChecks": false
   },
-  "include": ["next-env.d.ts", "pages", "components", "contexts", "hooks", "lib", "utils", "firebase.js", "styles", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "app", "pages", "components", "contexts", "hooks", "lib", "utils", "styles", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "src"]
 }

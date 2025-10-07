@@ -27,8 +27,6 @@ export default defineConfig(({ mode }) => ({
           'vendor-react': ['react', 'react-dom'],
           'vendor-router': ['react-router-dom'],
           'vendor-query': ['@tanstack/react-query'],
-          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          
           // UI libraries
           'vendor-radix': [
             '@radix-ui/react-accordion',

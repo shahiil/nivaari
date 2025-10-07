@@ -1,55 +1,10 @@
-const nodemailer = require("nodemailer");
-const { v4: uuidv4 } = require("uuid");
+import nodemailer from "nodemailer";
+import { v4 as uuidv4 } from "uuid";
+import { NextResponse } from "next/server";
+import { getInvitesCollection } from "@/lib/mongodb";
 
-// Firebase v9+ uses ES modules, but Netlify Functions use CommonJS
-// We'll use the Firebase Admin SDK instead for server-side
-const admin = require("firebase-admin");
+export const runtime = "nodejs";
 
-let firebaseInitialized = false;
-
-function getFirestore() {
-  if (firebaseInitialized) {
-    return admin.firestore();
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    // Skip initialization during build or local dev when not strictly required
-    return null;
-  }
-
-  try {
-    if (!admin.apps.length) {
-      let credential;
-      const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-      if (serviceAccountKey) {
-        try {
-          const parsedKey = JSON.parse(serviceAccountKey);
-          credential = admin.credential.cert(parsedKey);
-        } catch (parseError) {
-          console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY", parseError);
-        }
-      }
-
-      if (!credential) {
-        console.warn("FIREBASE_SERVICE_ACCOUNT_KEY missing or invalid. Firestore writes will be skipped.");
-      }
-
-      admin.initializeApp({
-        credential,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
-      });
-    }
-
-    firebaseInitialized = true;
-    return admin.firestore();
-  } catch (error) {
-    console.error("Failed to initialize Firebase Admin", error);
-    return null;
-  }
-}
-
-// Nodemailer transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: parseInt(process.env.SMTP_PORT) || 465,
@@ -113,53 +68,40 @@ export async function POST(req) {
     const { email, role = "admin" } = await req.json();
 
     if (!email) {
-      return Response.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // Generate secure token
+    const normalizedRole = ["admin", "supervisor"].includes(role)
+      ? role
+      : "admin";
+
     const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Store token in Firestore (skip in development)
-    if (process.env.NODE_ENV === "production") {
-      const db = getFirestore();
-      if (db) {
-        await db
-          .collection("adminInvites")
-          .doc(token)
-          .set({
-            email,
-            role,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-            used: false,
-          });
-      }
-    }
+    const invites = await getInvitesCollection();
+    await invites.insertOne({
+      token,
+      email: email.toLowerCase(),
+      role: normalizedRole,
+      createdAt: new Date(),
+      expiresAt,
+      used: false,
+    });
 
-    // Send email
-    await sendRegistrationEmail(email, role, token);
+    await sendRegistrationEmail(email, normalizedRole, token);
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       message: "Invitation sent successfully",
-      token, // For debugging - remove in production
     });
   } catch (error) {
     console.error("Error sending invitation:", error);
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-      env: {
-        hasEmailUser: !!process.env.EMAIL_USER,
-        hasEmailPass: !!process.env.EMAIL_PASS,
-        hasProjectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
-        hasAppUrl: !!process.env.APP_URL,
+    return NextResponse.json(
+      {
+        error: "Failed to send invitation",
+        details: error.message,
       },
-    });
-    return Response.json({
-      error: "Failed to send invitation",
-      details: error.message,
-    }, { status: 500 });
+      { status: 500 }
+    );
   }
 }

@@ -8,18 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
-import { auth, db } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { currentUser, userData, loading, logout } = useAuth();
+  const { currentUser, userData, loading, logout, refresh } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -33,59 +31,49 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Login attempt with:', formData);
-    
     if (!formData.email || !formData.password) {
       toast.error('Please fill in all fields');
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      console.log('Attempting Firebase sign in...');
-      // Sign in with Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
 
-      const user = userCredential.user;
-      console.log('Firebase sign in successful:', user.uid);
+      const data = await response.json();
 
-      // Fetch role from Firestore
-      const profileRef = doc(db, 'users', user.uid);
-      const snap = await getDoc(profileRef);
-      if (!snap.exists()) {
-        toast.error('Account not fully set up. Contact support.');
+      if (!response.ok) {
+        const message = data?.error || 'Login failed. Please try again.';
+        toast.error(message);
         return;
       }
-      const profile = snap.data() as { role?: string };
-      await updateDoc(profileRef, { status: 'online' });
+
+      await refresh();
       toast.success('Login successful!');
 
-      // Redirect based on role
-      if (profile.role === 'admin') {
+      const role = data.user?.role;
+
+      if (role === 'admin') {
         router.push('/admin-dashboard');
-      } else if (profile.role === 'supervisor') {
+      } else if (role === 'supervisor') {
         router.push('/supervisor-dashboard');
-      } else if (profile.role === 'citizen') {
+      } else if (role === 'citizen') {
         router.push('/citizen-dashboard');
       } else {
         toast.error('Unauthorized role. Logging out.');
         await logout();
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Login error:', error);
-      const err = error as { code?: string; message?: string };
-      if (err.code === 'auth/user-not-found') {
-        toast.error('User not found. Please check your email or sign up.');
-      } else if (err.code === 'auth/wrong-password') {
-        toast.error('Incorrect password. Please try again.');
-      } else if (err.code === 'auth/invalid-email') {
-        toast.error('Invalid email format.');
-      } else {
-        toast.error('Login failed. Please try again.');
-      }
+      toast.error('Login failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,8 +134,9 @@ export default function LoginPage() {
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary/90"
                 size="lg"
+                disabled={isSubmitting}
               >
-                Sign In
+                {isSubmitting ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
 

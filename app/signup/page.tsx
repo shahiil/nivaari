@@ -8,20 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
-import { auth, db } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { currentUser, userData, loading } = useAuth();
+  const { currentUser, userData, loading, refresh } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -47,41 +45,37 @@ export default function SignupPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      console.log('Attempting Firebase user creation...');
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      const user = userCredential.user;
-      console.log('Firebase user created successfully:', user.uid);
-
-      // Create user profile in Firestore (citizen only)
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        name: formData.name,
-        email: formData.email,
-        role: 'citizen',
-        status: 'online',
-        createdAt: serverTimestamp(),
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
-      toast.success('Account created successfully!');
-      
-      router.push('/citizen-dashboard');
-    } catch (error: unknown) {
-      console.error('Signup error:', error);
-      const err = error as { code?: string };
-      if (err.code === 'auth/email-already-in-use') {
-        toast.error('Email already registered. Please use a different email.');
-      } else if (err.code === 'auth/weak-password') {
-        toast.error('Password is too weak. Please use a stronger password.');
-      } else {
-        toast.error('Failed to create account. Please try again.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data?.error || 'Failed to create account. Please try again.';
+        toast.error(message);
+        return;
       }
+
+      await refresh();
+      toast.success('Account created successfully!');
+
+      router.push('/citizen-dashboard');
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Failed to create account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -170,8 +164,9 @@ export default function SignupPage() {
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary/90"
                 size="lg"
+                disabled={isSubmitting}
               >
-                Create Account
+                {isSubmitting ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
 
