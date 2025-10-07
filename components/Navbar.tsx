@@ -1,16 +1,19 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+'use client';
+
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
+  const router = useRouter();
   const { currentUser, userData, loading, logout } = useAuth();
   const hideNavbarRoutes = ['/login', '/signup'];
   
   // Hide navbar on login and signup pages
-  if (hideNavbarRoutes.includes(location.pathname)) {
+  if (hideNavbarRoutes.includes(pathname)) {
     return null;
   }
 
@@ -18,7 +21,7 @@ const Navbar = () => {
     try {
       await logout();
       toast.success('Logged out successfully');
-      navigate('/');
+      router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Failed to logout');
@@ -30,7 +33,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">N</span>
             </div>
@@ -41,15 +44,15 @@ const Navbar = () => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-foreground hover:text-primary transition-colors">
+            <Link href="/" className="text-foreground hover:text-primary transition-colors">
               Home
             </Link>
             {currentUser && userData && (
               <>
-                <Link to="/citizen-dashboard" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/citizen-dashboard" className="text-foreground hover:text-primary transition-colors">
                   Map
                 </Link>
-                <Link to="/report" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/report" className="text-foreground hover:text-primary transition-colors">
                   Report Issue
                 </Link>
               </>
@@ -65,7 +68,7 @@ const Navbar = () => {
                 <span className="text-sm text-muted-foreground hidden sm:block">
                   Welcome, {userData.name}
                 </span>
-                <Link to={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'supervisor' ? '/supervisor-dashboard' : '/citizen-dashboard'}>
+                <Link href={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'supervisor' ? '/supervisor-dashboard' : '/citizen-dashboard'}>
                   <Button variant="outline" size="sm">
                     Dashboard
                   </Button>
@@ -76,12 +79,12 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link to="/login">
+                <Link href="/login">
                   <Button variant="outline" size="sm">
                     Login
                   </Button>
                 </Link>
-                <Link to="/signup">
+                <Link href="/signup">
                   <Button size="sm" className="bg-primary hover:bg-primary/90">
                     Sign Up
                   </Button>

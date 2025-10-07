@@ -1,17 +1,20 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
-import { auth, db } from '../firebase';
+import { auth, db } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
-const LoginPage = () => {
-  const navigate = useNavigate();
+export default function LoginPage() {
+  const router = useRouter();
   const { currentUser, userData, loading, logout } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -21,11 +24,11 @@ const LoginPage = () => {
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      if (userData.role === 'admin') navigate('/admin-dashboard');
-      else if (userData.role === 'supervisor') navigate('/supervisor-dashboard');
-      else navigate('/citizen-dashboard');
+      if (userData.role === 'admin') router.push('/admin-dashboard');
+      else if (userData.role === 'supervisor') router.push('/supervisor-dashboard');
+      else router.push('/citizen-dashboard');
     }
-  }, [currentUser, userData, loading, navigate]);
+  }, [currentUser, userData, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,12 +62,14 @@ const LoginPage = () => {
       const profile = snap.data() as { role?: string };
       await updateDoc(profileRef, { status: 'online' });
       toast.success('Login successful!');
+
+      // Redirect based on role
       if (profile.role === 'admin') {
-        navigate('/admin-dashboard');
+        router.push('/admin-dashboard');
       } else if (profile.role === 'supervisor') {
-        navigate('/supervisor-dashboard');
+        router.push('/supervisor-dashboard');
       } else if (profile.role === 'citizen') {
-        navigate('/citizen-dashboard');
+        router.push('/citizen-dashboard');
       } else {
         toast.error('Unauthorized role. Logging out.');
         await logout();
@@ -96,7 +101,7 @@ const LoginPage = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
+          <Link href="/" className="inline-flex items-center space-x-2">
             <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
               <span className="text-indigo font-bold text-2xl">N</span>
             </div>
@@ -148,7 +153,7 @@ const LoginPage = () => {
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
+              <Link href="/signup" className="text-primary hover:underline font-medium">
                 Create one here
               </Link>
             </div>
@@ -159,6 +164,4 @@ const LoginPage = () => {
       </div>
     </div>
   );
-};
-
-export default LoginPage;
+}

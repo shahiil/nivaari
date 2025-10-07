@@ -1,17 +1,20 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
-import { auth, db } from '../firebase';
+import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
-const SignupPage = () => {
-  const navigate = useNavigate();
+export default function SignupPage() {
+  const router = useRouter();
   const { currentUser, userData, loading } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -23,11 +26,11 @@ const SignupPage = () => {
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      if (userData.role === 'admin') navigate('/admin-dashboard');
-      else if (userData.role === 'supervisor') navigate('/supervisor-dashboard');
-      else navigate('/citizen-dashboard');
+      if (userData.role === 'admin') router.push('/admin-dashboard');
+      else if (userData.role === 'supervisor') router.push('/supervisor-dashboard');
+      else router.push('/citizen-dashboard');
     }
-  }, [currentUser, userData, loading, navigate]);
+  }, [currentUser, userData, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +71,7 @@ const SignupPage = () => {
 
       toast.success('Account created successfully!');
       
-      navigate('/citizen-dashboard');
+      router.push('/citizen-dashboard');
     } catch (error: unknown) {
       console.error('Signup error:', error);
       const err = error as { code?: string };
@@ -96,7 +99,7 @@ const SignupPage = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
+          <Link href="/" className="inline-flex items-center space-x-2">
             <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
               <span className="text-indigo font-bold text-2xl">N</span>
             </div>
@@ -174,7 +177,7 @@ const SignupPage = () => {
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:underline font-medium">
+              <Link href="/login" className="text-primary hover:underline font-medium">
                 Sign in here
               </Link>
             </div>
@@ -183,6 +186,4 @@ const SignupPage = () => {
       </div>
     </div>
   );
-};
-
-export default SignupPage;
+}

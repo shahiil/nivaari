@@ -1,4 +1,6 @@
-import { Navigate } from 'react-router-dom';
+'use client';
+
+import { redirect } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -27,12 +29,12 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, role }) => {
   }
 
   if (!currentUser || !userData) {
-    return <Navigate to="/login" replace />;
+    redirect('/login');
   }
 
   if (role && userData.role !== role) {
-    const redirectPath = roleToDashboard[userData.role];
-    return <Navigate to={redirectPath} replace />;
+    const redirectPath = roleToDashboard[userData.role as RouteRole];
+    redirect(redirectPath);
   }
 
   return <>{children}</>;
