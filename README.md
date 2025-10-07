@@ -1,4 +1,46 @@
-# Welcome to your Nivaari project
+# Nivaari (Next.js)
+
+This project was migrated from Vite + React to Next.js (Pages Router) to deploy on Vercel. App logic and UI were preserved.
+
+## Develop
+
+- Install deps: `npm install`
+- Run dev: `npm run dev`
+
+## Build
+
+- `npm run build`
+- `npm start`
+
+## Environment variables
+
+Create `.env.local` and copy your values:
+
+- NEXT_PUBLIC_FIREBASE_API_KEY
+- NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+- NEXT_PUBLIC_FIREBASE_PROJECT_ID
+- NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+- NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+- NEXT_PUBLIC_FIREBASE_APP_ID
+- NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID (optional)
+- NEXT_PUBLIC_APP_URL: e.g. https://nivaari.vercel.app
+- FIREBASE_SERVICE_ACCOUNT_KEY: JSON string for server-side (used in /pages/api/send-invite.js)
+
+If you had a `.env` with VITE_ variables, rename them with NEXT_PUBLIC_ and add to Vercel Project Settings -> Environment Variables.
+
+## Deployment (Vercel)
+
+- Import this repo in Vercel
+- Framework Preset: Next.js
+- Build Command: `next build`
+- Output Directory: `.next`
+- Environment variables: add the ones listed above
+
+## Notes
+
+- Static assets moved to `public/` (e.g. `/hero-bg.jpg`)
+- Routing uses Next.js Pages under `pages/`
+- Netlify functions moved to Next API routes under `pages/api/`# Welcome to your Nivaari project
 
 ## Project info
 

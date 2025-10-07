@@ -1,8 +1,10 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+'use client';
+
+import Link from 'next/link';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
 import { MapPin, AlertTriangle, Users, Radio } from 'lucide-react';
-import heroImage from '@/assets/hero-bg.jpg';
+import heroImage from '/hero-bg.jpg';
 
 const HomePage = () => {
   const features = [

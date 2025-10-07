@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '@/firebase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import IframeMapView from '@/components/IframeMapView';
+import { db } from '../firebase';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import IframeMapView from '../components/IframeMapView';
 
 interface AdminRow {
   uid: string;

@@ -17,7 +17,7 @@ if (process.env.NODE_ENV === "production") {
     }
     admin.initializeApp({
       credential,
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
     });
   }
   db = admin.firestore();
@@ -35,7 +35,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendRegistrationEmail(toEmail, role, token) {
-  const appUrl = process.env.APP_URL || "https://nivaari.netlify.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://nivaari.vercel.app";
   const registrationLink = `${appUrl}/admin-register?token=${token}`;
 
   const subject = `Nivaari ${role === "admin" ? "Admin" : "Moderator"} Invitation`;
@@ -82,31 +82,25 @@ async function sendRegistrationEmail(toEmail, role, token) {
   return await transporter.sendMail(mailOptions);
 }
 
-exports.handler = async (event, context) => {
+export default async function handler(req, res) {
   // Handle CORS
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
   }
 
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { email, role = "admin" } = JSON.parse(event.body);
+    const { email, role = "admin" } = req.body;
 
     if (!email) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Email is required" }),
-      };
+      return res.status(400).json({ error: "Email is required" });
     }
 
     // Generate secure token
@@ -130,15 +124,11 @@ exports.handler = async (event, context) => {
     // Send email
     await sendRegistrationEmail(email, role, token);
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        message: "Invitation sent successfully",
-        token, // For debugging - remove in production
-      }),
-    };
+    return res.status(200).json({
+      success: true,
+      message: "Invitation sent successfully",
+      token, // For debugging - remove in production
+    });
   } catch (error) {
     console.error("Error sending invitation:", error);
     console.error("Error details:", {
@@ -151,13 +141,9 @@ exports.handler = async (event, context) => {
         hasAppUrl: !!process.env.APP_URL,
       },
     });
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: "Failed to send invitation",
-        details: error.message,
-      }),
-    };
+    return res.status(500).json({
+      error: "Failed to send invitation",
+      details: error.message,
+    });
   }
-};
+}
