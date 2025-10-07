@@ -50,7 +50,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <Card className="bg-white/60 dark:bg-black/40 backdrop-blur-md shadow-elegant">
           <CardHeader>
-            <CardTitle>Create New Moderator</CardTitle>
+            <CardTitle>Create New Moderators</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Input placeholder="Moderator email" value={email} onChange={(e) => setEmail(e.target.value)} />

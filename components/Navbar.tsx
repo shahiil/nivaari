@@ -52,9 +52,11 @@ const Navbar = () => {
                 <Link href="/citizen-dashboard" className="text-foreground hover:text-primary transition-colors">
                   Map
                 </Link>
-                <Link href="/report" className="text-foreground hover:text-primary transition-colors">
-                  Report Issue
-                </Link>
+                {userData.role === 'citizen' && (
+                  <Link href="/report" className="text-foreground hover:text-primary transition-colors">
+                    Report Issue
+                  </Link>
+                )}
               </>
             )}
           </div>
