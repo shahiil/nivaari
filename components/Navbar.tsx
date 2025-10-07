@@ -68,7 +68,7 @@ const Navbar = () => {
                 <span className="text-sm text-muted-foreground hidden sm:block">
                   Welcome, {userData.name}
                 </span>
-                <Link href={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'supervisor' ? '/supervisor-dashboard' : '/citizen-dashboard'}>
+                <Link href={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'supervisor' ? '/moderator-dashboard' : '/citizen-dashboard'}>
                   <Button variant="outline" size="sm">
                     Dashboard
                   </Button>
