@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import nodemailer from 'nodemailer';
+import twilio from 'twilio';
 import { getInviteTokensCollection } from '@/lib/mongodb';
 
 const createSchema = z.object({
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '';
     const link = `${appUrl}/moderator/register?token=${token}`;
 
-    // Send via email if requested and configured
+  // Send via email if requested and configured
     if (parsed.data.type === 'email' && parsed.data.email && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -55,6 +56,13 @@ export async function POST(req: Request) {
         subject: 'Moderator Invitation',
         html,
       });
+    }
+
+    // Send via SMS if requested and configured
+    if (parsed.data.type === 'sms' && parsed.data.phone && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER) {
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      const text = `Nivaari moderator invite. Complete registration: ${link}. Expires in 15 minutes.`;
+      await client.messages.create({ to: parsed.data.phone, from: process.env.TWILIO_FROM_NUMBER, body: text });
     }
 
     return NextResponse.json({ token, link, expiresAt });

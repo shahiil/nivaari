@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-export type UserRole = 'citizen' | 'admin' | 'supervisor';
+export type UserRole = 'citizen' | 'admin' | 'moderator';
 
 export interface UserProfile {
   id: string;

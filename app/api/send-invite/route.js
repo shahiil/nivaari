@@ -65,13 +65,13 @@ async function sendRegistrationEmail(toEmail, role, token) {
 
 export async function POST(req) {
   try {
-    const { email, role = "admin" } = await req.json();
+  const { email, role = "admin" } = await req.json();
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const normalizedRole = ["admin", "supervisor"].includes(role)
+    const normalizedRole = ["admin", "moderator"].includes(role)
       ? role
       : "admin";
 

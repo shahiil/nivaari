@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
-type RouteRole = 'citizen' | 'admin' | 'supervisor';
+type RouteRole = 'citizen' | 'admin' | 'moderator';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ interface PrivateRouteProps {
 const roleToDashboard: Record<RouteRole, string> = {
   citizen: '/citizen-dashboard',
   admin: '/admin-dashboard',
-  supervisor: '/supervisor-dashboard',
+  moderator: '/moderator-dashboard',
 };
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, role }) => {

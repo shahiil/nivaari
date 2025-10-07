@@ -24,8 +24,8 @@ export default function SignupPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      if (userData.role === 'admin') router.push('/admin-dashboard');
-      else if (userData.role === 'supervisor') router.push('/supervisor-dashboard');
+  if (userData.role === 'admin') router.push('/admin-dashboard');
+  else if (userData.role === 'moderator') router.push('/moderator-dashboard');
       else router.push('/citizen-dashboard');
     }
   }, [currentUser, userData, loading, router]);

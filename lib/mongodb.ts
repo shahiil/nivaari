@@ -32,7 +32,7 @@ function getMongoClient(): Promise<MongoClient> {
   return clientPromise;
 }
 
-export type UserRole = "citizen" | "admin" | "supervisor";
+export type UserRole = "citizen" | "admin" | "moderator";
 
 export interface UserDocument {
   _id?: ObjectId;

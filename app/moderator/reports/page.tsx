@@ -12,22 +12,21 @@ export default function ModeratorReportsPage() {
   const [approved, setApproved] = useState<Unreviewed[]>([]);
   const [rejected, setRejected] = useState<Unreviewed[]>([]);
 
-  const load = async () => {
-    if (filter === 'Unviewed') {
-      const res = await fetch('/api/moderator/reports', { cache: 'no-store' });
-      const data = await res.json();
-      if (res.ok) setUnreviewed(data.reports || []);
-    } else {
-      const res = await fetch('/api/moderator/reports/summary', { cache: 'no-store' });
-      const data = await res.json();
-      if (res.ok) {
-        setApproved(data.approved || []);
-        setRejected(data.rejected || []);
-      }
-    }
-  };
-
-  useEffect(() => { load(); }, [filter]);
+  // Live updates via SSE
+  useEffect(() => {
+    const es = new EventSource('/api/moderator/reports/stream');
+    es.addEventListener('snapshot', (evt: MessageEvent) => {
+      type Snapshot = { unreviewed?: Unreviewed[]; approved?: Unreviewed[]; rejected?: Unreviewed[] };
+      const data: Snapshot = (() => { try { return JSON.parse(evt.data); } catch { return {}; } })();
+      setUnreviewed(data.unreviewed ?? []);
+      setApproved(data.approved ?? []);
+      setRejected(data.rejected ?? []);
+    });
+    es.addEventListener('error', () => {
+      // connection errors are handled by browser's automatic reconnection
+    });
+    return () => es.close();
+  }, []);
 
   const list = useMemo(() => {
     if (filter === 'Unviewed') return unreviewed;
@@ -42,9 +41,7 @@ export default function ModeratorReportsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportId: id, decision }),
     });
-    if (res.ok) {
-      await load();
-    } else {
+    if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       alert(data?.error || 'Failed to update');
     }

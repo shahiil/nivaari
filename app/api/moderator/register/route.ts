@@ -38,11 +38,11 @@ export async function POST(req: Request) {
         name: parsed.data.name,
         email: parsed.data.email,
         password: parsed.data.password,
-          role: 'supervisor', // using 'supervisor' as moderator role per current roles
+          role: 'moderator',
         status: 'online',
       });
       user = { _id: new ObjectId(created.id), email: created.email, passwordHash: '', role: created.role, name: created.name, createdAt: new Date() } as unknown as {
-        _id: ObjectId; email: string; role: 'citizen' | 'admin' | 'supervisor'; name?: string; passwordHash: string; createdAt: Date;
+        _id: ObjectId; email: string; role: 'citizen' | 'admin' | 'moderator'; name?: string; passwordHash: string; createdAt: Date;
       };
     }
 
@@ -67,14 +67,14 @@ export async function POST(req: Request) {
     await tokens.updateOne({ _id: tokenDoc._id }, { $set: { used: true, usedAt: new Date() } });
 
     // Set session cookie
-    await setSessionCookie({ sub: user._id.toString(), email: user.email, role: 'supervisor', name: user.name });
+  await setSessionCookie({ sub: user._id.toString(), email: user.email, role: 'moderator', name: user.name });
 
     // Construct a minimal user doc compatible with mapUser
     const mapped = mapUser({
       _id: user._id,
       email: user.email,
       passwordHash: '',
-      role: 'supervisor' as UserRole,
+  role: 'moderator' as UserRole,
       name: user.name,
       status: 'online',
       createdAt: new Date(),

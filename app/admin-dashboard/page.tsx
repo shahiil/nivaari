@@ -12,6 +12,22 @@ export default function AdminDashboard() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [invites, setInvites] = useState<{ link: string; expiresAt: string }[]>([]);
+  const [moderators, setModerators] = useState<
+    { id?: string; userId: string; name: string; email: string; status: 'online' | 'offline'; createdAt?: string; approvedCount: number; rejectedCount: number }[]
+  >([]);
+  const [unviewedCount, setUnviewedCount] = useState<number>(0);
+
+  // Live moderators list + backlog via SSE
+  useEffect(() => {
+    const es = new EventSource('/api/admin/moderators/stream');
+    es.addEventListener('snapshot', (evt: MessageEvent) => {
+      const data = JSON.parse(evt.data);
+      setModerators(data.moderators || []);
+      setUnviewedCount(data.backlog?.unviewedCount || 0);
+    });
+    es.addEventListener('error', () => {});
+    return () => es.close();
+  }, []);
 
   const createInvite = async (type: 'email' | 'sms') => {
     const res = await fetch('/api/admin/invites', {
@@ -41,8 +57,30 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Moderators (live)</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">No moderators yet. They will appear here as you add them.</p>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-muted-foreground">Unviewed citizen reports: <span className="font-medium text-foreground">{unviewedCount}</span></div>
+            {moderators.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No moderators yet. They will appear here as you add them.</p>
+            ) : (
+              <div className="space-y-3">
+                {moderators.map((m) => (
+                  <div key={m.userId} className="rounded-md border p-3 bg-background/40">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{m.name}</div>
+                        <div className="text-xs text-muted-foreground">{m.email}</div>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded ${m.status === 'online' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{m.status}</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                      <div className="rounded bg-background/60 p-2">Approved: <span className="font-semibold">{m.approvedCount}</span></div>
+                      <div className="rounded bg-background/60 p-2">Rejected: <span className="font-semibold">{m.rejectedCount}</span></div>
+                      <div className="rounded bg-background/60 p-2">Total: <span className="font-semibold">{m.approvedCount + m.rejectedCount}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -22,8 +22,8 @@ export default function LoginPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      if (userData.role === 'admin') router.push('/admin-dashboard');
-      else if (userData.role === 'supervisor') router.push('/moderator-dashboard');
+  if (userData.role === 'admin') router.push('/admin-dashboard');
+  else if (userData.role === 'moderator') router.push('/moderator-dashboard');
       else router.push('/citizen-dashboard');
     }
   }, [currentUser, userData, loading, router]);
@@ -61,7 +61,7 @@ export default function LoginPage() {
 
       if (role === 'admin') {
         router.push('/admin-dashboard');
-      } else if (role === 'supervisor') {
+      } else if (role === 'moderator') {
         router.push('/moderator-dashboard');
       } else if (role === 'citizen') {
         router.push('/citizen-dashboard');

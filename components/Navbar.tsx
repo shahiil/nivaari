@@ -49,9 +49,17 @@ const Navbar = () => {
             </Link>
             {currentUser && userData && (
               <>
-                <Link href="/citizen-dashboard" className="text-foreground hover:text-primary transition-colors">
+                <Link
+                  href={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'moderator' ? '/moderator-dashboard' : '/citizen-dashboard'}
+                  className="text-foreground hover:text-primary transition-colors"
+                >
                   Map
                 </Link>
+                {userData.role === 'moderator' && (
+                  <Link href="/moderator/reports" className="text-foreground hover:text-primary transition-colors">
+                    Reports
+                  </Link>
+                )}
                 {userData.role === 'citizen' && (
                   <Link href="/report" className="text-foreground hover:text-primary transition-colors">
                     Report Issue
@@ -70,7 +78,7 @@ const Navbar = () => {
                 <span className="text-sm text-muted-foreground hidden sm:block">
                   Welcome, {userData.name}
                 </span>
-                <Link href={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'supervisor' ? '/moderator-dashboard' : '/citizen-dashboard'}>
+                <Link href={userData.role === 'admin' ? '/admin-dashboard' : userData.role === 'moderator' ? '/moderator-dashboard' : '/citizen-dashboard'}>
                   <Button variant="outline" size="sm">
                     Dashboard
                   </Button>

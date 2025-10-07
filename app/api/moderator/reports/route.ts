@@ -6,7 +6,7 @@ import { getSession } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
-// List unreviewed citizen reports
+// List unreviewed citizen reports (all submitted that do not have a moderator decision yet)
 export async function GET() {
   try {
     const citizen = await getCitizenReportsCollection();
@@ -15,9 +15,9 @@ export async function GET() {
     const reviewedSet = new Set(reviewedIds.map(r => r.citizenReportId.toString()));
 
     const unreviewed = await citizen
-      .find({})
+      .find({ $or: [{ status: 'submitted' }, { status: { $exists: false } }] })
       .sort({ createdAt: -1 })
-      .limit(200)
+      .limit(500)
       .toArray();
 
     const filtered = unreviewed.filter(r => !reviewedSet.has(r._id?.toString() || ''));
