@@ -52,4 +52,15 @@ Optional:
 - shadcn/ui + Tailwind CSS
 - Nodemailer for transactional email
 
+## Roles and default admin
+
+- Roles supported: `citizen`, `admin`, `supervisor`.
+- Citizens can sign up via the public signup page.
+- Admin and supervisor accounts are created by privileged flows (invites or seeding).
+- A default admin is auto-seeded if missing:
+	- Name: Shahiil Shet
+	- Email: shahiilshet@gmail.com
+	- Password: shahiil@142
+	- Role: admin
+
 

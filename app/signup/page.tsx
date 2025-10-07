@@ -40,6 +40,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -62,7 +67,8 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        const message = data?.error || 'Failed to create account. Please try again.';
+        const fieldErrors = data?.details?.fieldErrors ? Object.values(data.details.fieldErrors).flat() : [];
+        const message = data?.error || fieldErrors.join(' ') || data?.details?.formErrors?.join?.(' ') || 'Failed to create account. Please try again.';
         toast.error(message);
         return;
       }

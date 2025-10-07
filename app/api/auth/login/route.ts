@@ -5,6 +5,7 @@ import {
   mapUser,
   updateUserStatus,
   verifyUserCredentials,
+  ensureDefaultAdmin,
 } from "@/lib/auth-service";
 import { setSessionCookie } from "@/lib/session";
 
@@ -17,6 +18,9 @@ const loginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Ensure default admin exists so they can login immediately
+    await ensureDefaultAdmin();
+
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
 

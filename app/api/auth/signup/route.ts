@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { MongoServerError } from "mongodb";
 import { z } from "zod";
 
-import { createUser, findUserByEmail, updateUserStatus } from "@/lib/auth-service";
+import { createUser, findUserByEmail, updateUserStatus, ensureDefaultAdmin } from "@/lib/auth-service";
 import { setSessionCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -15,6 +15,9 @@ const signupSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Ensure default admin exists
+    await ensureDefaultAdmin();
+
     const body = await request.json();
     const parsed = signupSchema.safeParse(body);
 
@@ -67,8 +70,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ user: newUser });
   } catch (error) {
     console.error("Signup error", error);
+    // If it's a Zod error it was already handled above; otherwise, generic fallback
+    let message = "Failed to create account";
+    if (typeof error === 'object' && error) {
+      const maybeMsg = (error as { message?: unknown }).message;
+      if (typeof maybeMsg === 'string' && maybeMsg.includes('Password must be at least')) {
+        message = maybeMsg;
+      }
+    }
     return NextResponse.json(
-      { error: "Failed to create account" },
+      { error: message },
       { status: 500 }
     );
   }

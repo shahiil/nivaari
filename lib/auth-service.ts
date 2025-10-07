@@ -142,3 +142,37 @@ export async function updateUserStatus(
 }
 
 export { mapUser };
+
+// --- Default admin seeding (for initial bootstrap) ---
+let adminSeedPromise: Promise<void> | null = null;
+
+const DEFAULT_ADMIN = {
+  name: "Shahiil Shet",
+  email: "shahiilshet@gmail.com",
+  password: "shahiil@142",
+} as const;
+
+export async function ensureDefaultAdmin(): Promise<void> {
+  if (adminSeedPromise) return adminSeedPromise;
+
+  adminSeedPromise = (async () => {
+    const users = await getUsersCollection();
+    const existing = await users.findOne({ email: DEFAULT_ADMIN.email.toLowerCase() });
+    if (existing) return;
+
+    const passwordHash = await hashPassword(DEFAULT_ADMIN.password);
+    const now = new Date();
+    await users.insertOne({
+      name: DEFAULT_ADMIN.name,
+      email: DEFAULT_ADMIN.email.toLowerCase(),
+      passwordHash,
+      role: "admin" as UserRole,
+      status: "offline",
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: undefined,
+    } satisfies UserDocument);
+  })();
+
+  return adminSeedPromise;
+}
