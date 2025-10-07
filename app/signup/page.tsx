@@ -67,6 +67,10 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 409) {
+          toast.error(data?.error || 'Email is already registered. Try logging in.');
+          return;
+        }
         const fieldErrors = data?.details?.fieldErrors ? Object.values(data.details.fieldErrors).flat() : [];
         const message = data?.error || fieldErrors.join(' ') || data?.details?.formErrors?.join?.(' ') || 'Failed to create account. Please try again.';
         toast.error(message);

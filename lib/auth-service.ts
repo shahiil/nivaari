@@ -157,21 +157,39 @@ export async function ensureDefaultAdmin(): Promise<void> {
 
   adminSeedPromise = (async () => {
     const users = await getUsersCollection();
-    const existing = await users.findOne({ email: DEFAULT_ADMIN.email.toLowerCase() });
-    if (existing) return;
+    const email = DEFAULT_ADMIN.email.toLowerCase();
+    const existing = await users.findOne({ email });
 
-    const passwordHash = await hashPassword(DEFAULT_ADMIN.password);
     const now = new Date();
-    await users.insertOne({
-      name: DEFAULT_ADMIN.name,
-      email: DEFAULT_ADMIN.email.toLowerCase(),
-      passwordHash,
-      role: "admin" as UserRole,
-      status: "offline",
-      createdAt: now,
-      updatedAt: now,
-      lastLoginAt: undefined,
-    } satisfies UserDocument);
+    const passwordHash = await hashPassword(DEFAULT_ADMIN.password);
+
+    if (!existing) {
+      await users.insertOne({
+        name: DEFAULT_ADMIN.name,
+        email,
+        passwordHash,
+        role: "admin" as UserRole,
+        status: "offline",
+        createdAt: now,
+        updatedAt: now,
+        lastLoginAt: undefined,
+      } satisfies UserDocument);
+      return;
+    }
+
+    // If an account with this email already exists, ensure it has admin role and a known password
+    await users.updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          name: existing.name || DEFAULT_ADMIN.name,
+          role: "admin" as UserRole,
+          passwordHash,
+          updatedAt: now,
+        },
+        $setOnInsert: { createdAt: now },
+      }
+    );
   })();
 
   return adminSeedPromise;

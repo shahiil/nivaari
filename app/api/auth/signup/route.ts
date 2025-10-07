@@ -18,6 +18,14 @@ export async function POST(request: Request) {
     // Ensure default admin exists
     await ensureDefaultAdmin();
 
+    // Pre-check required session secret to avoid creating user then failing to set cookie
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json(
+        { error: "Server misconfigured: JWT_SECRET is not set" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const parsed = signupSchema.safeParse(body);
 

@@ -21,6 +21,13 @@ export async function POST(request: Request) {
     // Ensure default admin exists so they can login immediately
     await ensureDefaultAdmin();
 
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json(
+        { error: "Server misconfigured: JWT_SECRET is not set" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
 
