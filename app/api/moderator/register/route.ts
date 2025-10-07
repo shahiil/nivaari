@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         name: parsed.data.name,
         email: parsed.data.email,
         password: parsed.data.password,
-        role: 'supervisor', // using 'supervisor' as moderator role per current roles
+          role: 'supervisor', // using 'supervisor' as moderator role per current roles
         status: 'online',
       });
       user = { _id: new ObjectId(created.id), email: created.email, passwordHash: '', role: created.role, name: created.name, createdAt: new Date() } as unknown as {
