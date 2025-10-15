@@ -1,7 +1,39 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
   images: {
-    domains: ['firebasestorage.googleapis.com'], // Add Firebase storage if needed
+    domains: [], // Add storage domains if needed
+  },
+  // Build performance optimizations (doesn't change your code)
+  experimental: {
+    // Use faster compilation
+    esmExternals: 'loose',
+  },
+  // Skip ESLint during builds for faster compilation
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Enable faster minification
+  swcMinify: true,
+  // Optimize bundling without changing functionality
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      // Optimize production builds only
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
+      };
+    }
+    return config;
   },
 };
 

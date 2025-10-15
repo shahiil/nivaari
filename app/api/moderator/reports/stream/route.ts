@@ -33,15 +33,27 @@ async function loadSnapshot(): Promise<Snapshot> {
   ]);
 
   const decidedIds = new Set(modAll.map((m) => m.citizenReportId?.toString()));
-  const unreviewed = citizenAll
+  // Map unreviewed and include reporter name when possible
+  const mob = await import('@/lib/mongodb');
+  const usersColl = await mob.getUsersCollection();
+  const unreviewed = await Promise.all(citizenAll
     .filter((r) => !decidedIds.has(r._id?.toString() || ''))
-    .map((r) => ({ id: r._id?.toString(), title: r.title, type: r.type, city: r.city, description: r.description, location: r.location, createdAt: r.createdAt }));
+    .map(async (r) => {
+      let reporterName: string | null = null;
+      try {
+        if (r.createdByUserId) {
+          const u = await usersColl.findOne({ _id: r.createdByUserId as any });
+          reporterName = u?.name || u?.email || null;
+        }
+      } catch {}
+      return { id: r._id?.toString(), title: r.title, type: r.type, city: r.city, description: r.description, location: r.location, createdAt: r.createdAt, reporterName };
+    }));
 
   const approved = modAll
     .filter((m) => m.status === 'approved')
     .sort((a, b) => (b.decidedAt?.getTime?.() || 0) - (a.decidedAt?.getTime?.() || 0))
     .slice(0, 200)
-    .map((m) => ({ id: m._id?.toString(), title: m.title, type: m.type, city: m.city, decidedAt: m.decidedAt }));
+  .map((m) => ({ id: m._id?.toString(), title: m.title, type: m.type, city: m.city, decidedAt: m.decidedAt }));
 
   const rejected = modAll
     .filter((m) => m.status === 'rejected')

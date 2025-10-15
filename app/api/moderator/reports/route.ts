@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
-import { getCitizenReportsCollection, getModeratorReportsCollection } from '@/lib/mongodb';
+import { getCitizenReportsCollection, getModeratorReportsCollection, getUsersCollection } from '@/lib/mongodb';
 import { getSession } from '@/lib/session';
 
 export const runtime = 'nodejs';
@@ -21,16 +21,33 @@ export async function GET() {
       .toArray();
 
     const filtered = unreviewed.filter(r => !reviewedSet.has(r._id?.toString() || ''));
-    return NextResponse.json({ reports: filtered.map(r => ({
-      id: r._id?.toString(),
-      title: r.title,
-      type: r.type,
-      description: r.description,
-      city: r.city,
-      location: r.location,
-      imageUrl: r.imageUrl || null,
-      createdAt: r.createdAt,
-    })) });
+
+    // Enrich with reporter name if available
+    const usersColl = await getUsersCollection();
+    const reports = await Promise.all(filtered.map(async (r) => {
+      let reporterName: string | null = null;
+      try {
+        if (r.createdByUserId) {
+          const u = await usersColl.findOne({ _id: r.createdByUserId as any });
+          reporterName = u?.name || u?.email || null;
+        }
+      } catch {
+        reporterName = null;
+      }
+      return {
+        id: r._id?.toString(),
+        title: r.title,
+        type: r.type,
+        description: r.description,
+        city: r.city,
+        location: r.location,
+        imageUrl: r.imageUrl || null,
+        createdAt: r.createdAt,
+        reporterName,
+      };
+    }));
+
+    return NextResponse.json({ reports });
   } catch (e) {
     console.error('List unreviewed error', e);
     return NextResponse.json({ error: 'Failed to load reports' }, { status: 500 });
