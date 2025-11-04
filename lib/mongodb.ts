@@ -112,6 +112,18 @@ export interface InviteTokenDocument {
   usedAt?: Date;
 }
 
+// Map pins created by moderators/admins and visible to everyone
+export interface MapPinDocument {
+  _id?: ObjectId;
+  label: string; // short title shown on popup
+  typeId: string; // category id (e.g., 'danger')
+  description?: string;
+  location: { lat: number; lng: number };
+  createdByUserId?: ObjectId | null;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 export async function getDb(): Promise<Db> {
   const mongoClient = await getMongoClient();
   return mongoClient.db(dbName);
@@ -161,5 +173,13 @@ export async function getInviteTokensCollection(): Promise<Collection<InviteToke
   const collection = db.collection<InviteTokenDocument>('inviteTokens');
   await collection.createIndex({ token: 1 }, { unique: true });
   await collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  return collection;
+}
+
+export async function getMapPinsCollection(): Promise<Collection<MapPinDocument>> {
+  const db = await getDb();
+  const collection = db.collection<MapPinDocument>('mapPins');
+  await collection.createIndex({ 'location.lat': 1, 'location.lng': 1 });
+  await collection.createIndex({ createdAt: -1 });
   return collection;
 }

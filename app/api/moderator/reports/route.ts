@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import { getCitizenReportsCollection, getModeratorReportsCollection, getUsersCollection } from '@/lib/mongodb';
 import { getSession } from '@/lib/session';
+import { normalizeReportType } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
           moderatorUserId: new ObjectId(session.sub),
           decidedAt: new Date(),
           title: base.title,
-          type: base.type,
+          type: normalizeReportType(base.type),
           city: base.city,
           location: base.location,
         },

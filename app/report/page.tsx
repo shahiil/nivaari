@@ -7,13 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 // Using simple alert messages for now to avoid dependency friction
 
-const issueTypes = ['Road Damage', 'Water Supply', 'Electricity', 'Garbage', 'Healthcare', 'Flooding', 'Other'];
+const issueTypes = [
+  { id: 'potholes', label: 'Road Damage' },
+  { id: 'water', label: 'Water Supply' },
+  { id: 'streetlight', label: 'Electricity' },
+  { id: 'garbage', label: 'Garbage' },
+  { id: 'other', label: 'Healthcare' },
+  { id: 'water', label: 'Flooding' },
+  { id: 'other', label: 'Other' },
+];
 
 export default function ReportIssuePage() {
   const [title, setTitle] = useState('');
   const [type, setType] = useState('');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
+  const [lat, setLat] = useState<number | ''>('');
+  const [lng, setLng] = useState<number | ''>('');
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -26,12 +36,12 @@ export default function ReportIssuePage() {
       const res = await fetch('/api/citizen-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, type, description, location: { address } }),
+        body: JSON.stringify({ title, type, description, location: { address, lat: lat === '' ? undefined : lat, lng: lng === '' ? undefined : lng } }),
       });
       const data = await res.json();
       if (res.ok) {
         window.alert('Report submitted');
-        setTitle(''); setType(''); setDescription(''); setAddress('');
+  setTitle(''); setType(''); setDescription(''); setAddress(''); setLat(''); setLng('');
       } else {
         window.alert(data?.error || 'Failed to submit report');
       }
@@ -51,14 +61,18 @@ export default function ReportIssuePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <select className="border rounded-md h-10 px-3 bg-background/60" value={type} onChange={(e) => setType(e.target.value)}>
               <option value="">Select Issue Type</option>
-              {issueTypes.map((t) => (<option key={t} value={t}>{t}</option>))}
+              {issueTypes.map((t) => (<option key={t.label} value={t.id}>{t.label}</option>))}
             </select>
             <Input placeholder="Address (optional)" value={address} onChange={(e) => setAddress(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input placeholder="Latitude (optional)" value={lat} onChange={(e) => setLat(e.target.value ? Number(e.target.value) : '')} />
+            <Input placeholder="Longitude (optional)" value={lng} onChange={(e) => setLng(e.target.value ? Number(e.target.value) : '')} />
           </div>
           <Textarea placeholder="Describe the issue" value={description} onChange={(e) => setDescription(e.target.value)} />
           <div className="flex gap-3">
             <Button onClick={submit} disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Report'}</Button>
-            <Button variant="outline" onClick={() => navigator.geolocation?.getCurrentPosition((pos) => setAddress(`${pos.coords.latitude}, ${pos.coords.longitude}`))}>Use GPS</Button>
+            <Button variant="outline" onClick={() => navigator.geolocation?.getCurrentPosition((pos) => { setLat(Number(pos.coords.latitude.toFixed(6))); setLng(Number(pos.coords.longitude.toFixed(6))); setAddress(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`); })}>Use GPS</Button>
           </div>
         </CardContent>
       </Card>
