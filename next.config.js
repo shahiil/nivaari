@@ -2,7 +2,13 @@
 const nextConfig = {
   outputFileTracingRoot: __dirname,
   images: {
-    domains: [], // Add storage domains if needed
+    domains: ['i.pravatar.cc'], // Add storage domains if needed
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
+    ],
   },
   // Build performance optimizations (doesn't change your code)
   experimental: {
