@@ -16,22 +16,14 @@ const nextConfig = {
   },
   // Optimize bundling without changing functionality
   webpack: (config, { dev }) => {
-    if (!dev) {
-      // Optimize production builds only
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-            },
-          },
-        },
-      };
-    }
+    // Add DefinePlugin to define 'self' for SSR compatibility
+    config.plugins.push(
+      new (require('webpack')).DefinePlugin({
+        'typeof self': JSON.stringify('undefined'),
+        'self': 'global',
+      })
+    );
+
     return config;
   },
 };

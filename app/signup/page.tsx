@@ -1,10 +1,10 @@
 'use client';
 
 import FlipAuthCard from '@/components/FlipAuthCard';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function SignupPage() {
+function SignupContent() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
 
@@ -16,4 +16,12 @@ export default function SignupPage() {
   }, [from]);
 
   return <FlipAuthCard initialMode="signup" />;
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupContent />
+    </Suspense>
+  );
 }

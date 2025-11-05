@@ -1,6 +1,8 @@
 'use client';
 
-import Iridescence from '@/components/Iridescence';
+import dynamic from 'next/dynamic';
+
+const Iridescence = dynamic(() => import('@/components/Iridescence'), { ssr: false });
 
 /**
  * Demo page showcasing different Iridescence variations

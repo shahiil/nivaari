@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import RotatingText from '@/components/RotatingText';
 import TypeWriter from '@/components/TypeWriter';
 import VoicesOfTheCity from '@/components/VoicesOfTheCity';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, AlertTriangle, Users, Radio, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import Iridescence from '@/components/Iridescence';
+const Iridescence = dynamic(() => import('@/components/Iridescence'), { ssr: false });
 import '@/components/RotatingText.css';
 
 export default function HeroSectionDemo() {
