@@ -248,6 +248,33 @@
               0 0 40px rgba(0, 212, 255, 0.3);
 }
 
+/* Cursor trail shimmer styles */
+.cursor-trail-dot {
+  animation: cursor-trail-shimmer 0.9s ease-out both;
+  box-shadow: 0 0 12px rgba(34,211,238,0.45), 0 0 28px rgba(34,211,238,0.25);
+}
+
+@keyframes cursor-trail-shimmer {
+  0% {
+    transform: scale(1) translateZ(0);
+    filter: blur(6px) saturate(120%);
+    opacity: 0.95;
+    box-shadow: 0 0 6px rgba(255,255,255,0.9), 0 0 18px rgba(34,211,238,0.45);
+  }
+  50% {
+    transform: scale(0.7) translateZ(0);
+    filter: blur(4px) saturate(160%);
+    opacity: 0.8;
+    box-shadow: 0 0 18px rgba(255,255,255,0.95), 0 0 36px rgba(34,211,238,0.6);
+  }
+  100% {
+    transform: scale(0.35) translateZ(0);
+    filter: blur(2px) saturate(120%);
+    opacity: 0;
+    box-shadow: 0 0 6px rgba(255,255,255,0.6), 0 0 12px rgba(34,211,238,0.35);
+  }
+}
+
 /* Iridescence Component Styles */
 .iridescence-container {
   position: absolute;
@@ -333,4 +360,9 @@
 .moderator-avatar-marker div {
   background: transparent !important;
   border: none !important;
+}
+
+/* Hide native cursor when the `hide-cursor` class is present on <html> */
+.hide-cursor, .hide-cursor * {
+  cursor: none !important;
 }
