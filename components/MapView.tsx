@@ -32,6 +32,7 @@ type ModeratorOnMap = {
 interface MapViewProps {
   onDropPin?: (pin: DroppedPin) => void;
   markers?: MapMarker[];
+  reports?: { id?: string; title?: string; type?: string; location?: { lat?: number; lng?: number } }[];
   filters?: { time: 'current'|'incoming'|'past'; types: string[] };
   enableModerationActions?: boolean;
   showModerators?: boolean;
@@ -90,7 +91,7 @@ const createModeratorIcon = (moderator: ModeratorOnMap) => {
   });
 };
 
-export default function MapView({ onDropPin, markers = [], filters = { time: 'current', types: [] }, enableModerationActions = false, showModerators = false, moderators = [] }: MapViewProps) {
+export default function MapView({ onDropPin, markers = [], reports = [], filters = { time: 'current', types: [] }, enableModerationActions = false, showModerators = false, moderators = [] }: MapViewProps) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -103,8 +104,23 @@ export default function MapView({ onDropPin, markers = [], filters = { time: 'cu
     const map = new Map<string, MapMarker>();
     for (const p of remotePins) map.set(p.id, p);
     for (const p of markers) map.set(p.id, p);
+    // include reports passed from callers by converting to MapMarker shape
+    for (const r of (reports || [])) {
+      const lat = r.location?.lat;
+      const lng = r.location?.lng;
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        const id = r.id ?? `${lat}-${lng}-${String(r.title ?? '')}`;
+        map.set(id, {
+          id,
+          lat,
+          lng,
+          typeId: normalizeType(String(r.type || 'other')),
+          label: r.title || 'Report',
+        });
+      }
+    }
     return Array.from(map.values());
-  }, [remotePins, markers]);
+  }, [remotePins, markers, reports]);
 
   return (
     <MapContainer 

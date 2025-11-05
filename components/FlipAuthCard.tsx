@@ -135,32 +135,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
         />
       </div>
 
-      {/* Logo */}
-      <motion.div 
-        className="flip-card-logo"
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <motion.div 
-          className="flip-card-logo-icon"
-          animate={{
-            boxShadow: [
-              '0 0 20px rgba(0,212,255,0.3)',
-              '0 0 40px rgba(0,212,255,0.6)',
-              '0 0 20px rgba(0,212,255,0.3)'
-            ],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        >
-          <Shield className="w-8 h-8 text-cyan-400" />
-        </motion.div>
-        <span className="flip-card-logo-text">Nivaari</span>
-      </motion.div>
+      {/* Logo removed from auth card per request */}
 
       {/* 3D Flip Card */}
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>

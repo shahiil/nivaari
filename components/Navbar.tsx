@@ -21,12 +21,11 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, userData, loading, logout } = useAuth();
-  const hideNavbarRoutes = ['/login', '/signup', '/moderator-dashboard', '/admin-dashboard'];
-  
-  // Hide navbar on login, signup, and moderator dashboard pages
+  const hideNavbarRoutes = ['/login', '/signup', '/moderator-dashboard', '/admin-dashboard', '/auth'];
+
+  // Hide navbar on login, signup, moderator and admin dashboard pages
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const hideNavbarRoutes = ['/login', '/signup', '/auth'];
   
   // Track scroll position for navbar glass effect
   useEffect(() => {
@@ -65,22 +64,25 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <motion.div 
-              className="w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 
-                         flex items-center justify-center shadow-glow group-hover:shadow-glow-lg 
-                         transition-all duration-300"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-            >
-              <Shield className="w-6 h-6 text-white" />
-            </motion.div>
-            <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              Nivaari
-            </span>
+              <motion.div
+                className="flex items-center justify-center transition-all duration-300 mr-3"
+                whileHover={{ scale: 1.05, rotate: 3 }}
+              >
+                {/* Larger emblem for visibility; responsive sizes */}
+                <img src="/logo-emblem.png" alt="Nivaari" className="w-12 h-12 md:w-14 md:h-14 object-contain" />
+              </motion.div>
+
+              <span
+                className="text-2xl md:text-3xl font-extrabold font-serif tracking-tight"
+                style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+              >
+                Nivaari
+              </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-300 hover:text-white transition-colors">
+            <Link href="/" className="text-gray-300 hover:text-white transition-colors nav-link">
               Home
             </Link>
             {currentUser && userData && (
@@ -88,7 +90,7 @@ const Navbar = () => {
                 <Link
                   href={userData.role === 'admin' ? '/admin-dashboard' : 
                         userData.role === 'moderator' ? '/moderator-dashboard' : '/citizen-dashboard'}
-                  className="text-gray-300 hover:text-white transition-colors"
+                  className="text-gray-300 hover:text-white transition-colors nav-link"
                 >
                   <span className="flex items-center gap-2">
                     <LayoutDashboard className="w-4 h-4" />
@@ -96,7 +98,7 @@ const Navbar = () => {
                   </span>
                 </Link>
                 {userData.role === 'moderator' && (
-                  <Link href="/moderator/reports" className="text-gray-300 hover:text-white transition-colors">
+                  <Link href="/moderator/reports" className="text-gray-300 hover:text-white transition-colors nav-link">
                     <span className="flex items-center gap-2">
                       <FileText className="w-4 h-4" />
                       Reports
@@ -104,7 +106,7 @@ const Navbar = () => {
                   </Link>
                 )}
                 {userData.role === 'citizen' && (
-                  <Link href="/report" className="text-gray-300 hover:text-white transition-colors">
+                  <Link href="/report" className="text-gray-300 hover:text-white transition-colors nav-link">
                     <span className="flex items-center gap-2">
                       <AlertCircle className="w-4 h-4" />
                       Report Issue
@@ -185,7 +187,7 @@ const Navbar = () => {
             <div className="container mx-auto px-4 py-4 space-y-4">
               <Link 
                 href="/"
-                className="block text-gray-300 hover:text-white transition-colors"
+                className="block text-gray-300 hover:text-white transition-colors nav-link"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Home
@@ -195,7 +197,7 @@ const Navbar = () => {
                   <Link
                     href={userData.role === 'admin' ? '/admin-dashboard' : 
                           userData.role === 'moderator' ? '/moderator-dashboard' : '/citizen-dashboard'}
-                    className="block text-gray-300 hover:text-white transition-colors"
+                    className="block text-gray-300 hover:text-white transition-colors nav-link"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className="flex items-center gap-2">
@@ -206,7 +208,7 @@ const Navbar = () => {
                   {userData.role === 'moderator' && (
                     <Link
                       href="/moderator/reports"
-                      className="block text-gray-300 hover:text-white transition-colors"
+                      className="block text-gray-300 hover:text-white transition-colors nav-link"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <span className="flex items-center gap-2">
@@ -218,7 +220,7 @@ const Navbar = () => {
                   {userData.role === 'citizen' && (
                     <Link
                       href="/report"
-                      className="block text-gray-300 hover:text-white transition-colors"
+                      className="block text-gray-300 hover:text-white transition-colors nav-link"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <span className="flex items-center gap-2">
