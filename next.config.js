@@ -2,7 +2,7 @@
 const nextConfig = {
   outputFileTracingRoot: __dirname,
   images: {
-    domains: ['i.pravatar.cc'], // Add storage domains if needed
+    domains: ['i.pravatar.cc'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -10,17 +10,10 @@ const nextConfig = {
       },
     ],
   },
-  // Build performance optimizations (doesn't change your code)
-  experimental: {
-    // Use faster compilation
-    esmExternals: 'loose',
-  },
   // Skip ESLint during builds for faster compilation
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Enable faster minification
-  swcMinify: true,
   // Optimize bundling without changing functionality
   webpack: (config, { dev }) => {
     if (!dev) {

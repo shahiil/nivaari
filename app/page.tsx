@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Iridescence from '@/components/Iridescence';
 import RotatingText from '@/components/RotatingText';
 import TypeWriter from '@/components/TypeWriter';
 import VoicesOfTheCity from '@/components/VoicesOfTheCity';
+import CursorTrail from '@/components/CursorTrail';
 import '@/components/RotatingText.css';
 import { 
   MapPin, 
@@ -24,12 +26,30 @@ import {
 export default function HomePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [sectionsVisible, setSectionsVisible] = useState({
+    voices: false,
+    features: false,
+    cta: false
+  });
 
   // Handle initial animation and scroll tracking
   useEffect(() => {
     setIsLoaded(true);
-    const handleScroll = () => setScrollY(window.scrollY);
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setScrollY(scrollPosition);
+
+      // Calculate when sections should appear
+      const windowHeight = window.innerHeight;
+      setSectionsVisible({
+        voices: scrollPosition > windowHeight * 0.3,
+        features: scrollPosition > windowHeight * 0.8,
+        cta: scrollPosition > windowHeight * 1.3
+      });
+    };
+    
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial position
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -62,6 +82,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen overflow-hidden bg-background/80 text-foreground relative">
+      {/* Cursor Trail Effect */}
+      <CursorTrail />
+      
       {/* Full Page Iridescence Background Effect */}
       <div className="fixed inset-0 z-0">
         <Iridescence 
@@ -73,17 +96,11 @@ export default function HomePage() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 pt-20 z-10">
-        <div className="container mx-auto relative z-10">
+      <section className="relative min-h-screen flex flex-col items-center justify-start px-4 pt-32 md:pt-40 z-10">
+        <div className="container mx-auto relative z-10 flex-1 flex flex-col justify-center">
           <div className={`text-center transform transition-all duration-1000 ${
             isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
           }`}>
-            {/* Trust Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 glass-panel rounded-full mb-8 animate-pulse">
-              <Shield className="w-4 h-4 text-primary" />
-              <span className="text-sm text-foreground/90 font-['Montserrat',sans-serif] font-medium">Trusted by 50,000+ citizens</span>
-            </div>
-
             {/* Main Headline with Rotating Text */}
             <h1 className="text-6xl md:text-8xl font-bold mb-6 font-['Playfair_Display',serif]">
               <span className="hero-headline-static">Stay </span>
@@ -110,7 +127,7 @@ export default function HomePage() {
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
               <Link href="/signup">
                 <div className="relative p-[2px] rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-gradient-shift">
                   <Button 
@@ -136,15 +153,51 @@ export default function HomePage() {
               </Link>
             </div>
 
+            {/* Scroll Indicator */}
+            <motion.div
+              className="flex flex-col items-center gap-3 mt-20 cursor-pointer"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2 }}
+              onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+            >
+              {/* Triple chevron cascade */}
+              <div className="relative h-16 flex flex-col items-center justify-center">
+                {[0, 1, 2].map((index) => (
+                  <motion.div
+                    key={index}
+                    animate={{ 
+                      y: [0, 12, 0],
+                      opacity: [0.2, 1, 0.2]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: index * 0.3,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <ChevronRight className="w-8 h-8 text-cyan-400/80 rotate-90" />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
           </div>
         </div>
       </section>
 
       {/* Voices of the City - Testimonials Carousel */}
-      <VoicesOfTheCity />
+      <div className={`transform transition-all duration-1000 ${
+        sectionsVisible.voices ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
+      }`}>
+        <VoicesOfTheCity />
+      </div>
 
       {/* Features Section */}
-      <section className="py-6 relative z-10">
+      <section className={`py-6 relative z-10 transform transition-all duration-1000 ${
+        sectionsVisible.features ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
+      }`}>
         <div className="container mx-auto px-4 relative z-10">
           {/* Section header */}
           <div className="text-center mb-10">
@@ -198,7 +251,9 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-6 relative z-10">
+      <section className={`py-6 relative z-10 transform transition-all duration-1000 ${
+        sectionsVisible.cta ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
+      }`}>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             {/* Content container */}
