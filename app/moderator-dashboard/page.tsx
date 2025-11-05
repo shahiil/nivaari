@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
+import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -49,13 +51,16 @@ export default function ModeratorDashboard() {
   const [draft, setDraft] = useState<{ lat: number; lng: number; typeId: string; label: string } | null>(null);
   const [draftDescription, setDraftDescription] = useState('');
   const router = useRouter();
+  const { userData, logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await logout();
+      toast.success('Logged out successfully');
       router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);
+      toast.error('Failed to logout');
     }
   };
 
@@ -227,8 +232,8 @@ export default function ModeratorDashboard() {
                     <User className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="font-semibold">Moderator</p>
-                    <p className="text-xs opacity-90">moderator@nivaari.com</p>
+                    <p className="font-semibold">{userData?.name || 'Moderator'}</p>
+                    <p className="text-xs opacity-90">{userData?.email || 'moderator@nivaari.com'}</p>
                   </div>
                 </div>
               </div>

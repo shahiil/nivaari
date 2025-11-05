@@ -12,6 +12,8 @@ export type PublicUser = {
   email: string;
   role: UserRole;
   status?: "online" | "offline";
+  phone?: string;
+  profilePhoto?: string;
   createdAt?: string;
   lastLoginAt?: string;
 };
@@ -23,6 +25,8 @@ function mapUser(doc: UserDocument): PublicUser {
     email: doc.email,
     role: doc.role,
     status: doc.status,
+    phone: doc.phone,
+    profilePhoto: doc.profilePhoto,
     createdAt: doc.createdAt?.toISOString?.() ?? undefined,
     lastLoginAt: doc.lastLoginAt?.toISOString?.() ?? undefined,
   };

@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
@@ -19,11 +19,23 @@ type DroppedPin = { lat: number; lng: number; typeId: string; label: string };
 
 type MapMarker = { id: string; lat: number; lng: number; typeId: string; label: string; description?: string; source?: 'current'|'past'|'incoming' };
 
+type ModeratorOnMap = {
+  id?: string;
+  userId: string;
+  name: string;
+  email: string;
+  status: 'online' | 'offline';
+  assignedLocation?: { lat: number; lng: number };
+  profilePhoto?: string;
+};
+
 interface MapViewProps {
   onDropPin?: (pin: DroppedPin) => void;
   markers?: MapMarker[];
   filters?: { time: 'current'|'incoming'|'past'; types: string[] };
   enableModerationActions?: boolean;
+  showModerators?: boolean;
+  moderators?: ModeratorOnMap[];
 }
 
 const colorForType = (typeId: string) => {
@@ -47,7 +59,38 @@ const colorForType = (typeId: string) => {
   }
 };
 
-export default function MapView({ onDropPin, markers = [], filters = { time: 'current', types: [] }, enableModerationActions = false }: MapViewProps) {
+const createModeratorIcon = (moderator: ModeratorOnMap) => {
+  const isOnline = moderator.status === 'online';
+  const initials = moderator.name.charAt(0).toUpperCase();
+  
+  // Create SVG for the avatar
+  const svg = `
+    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.3)"/>
+        </filter>
+      </defs>
+      <circle cx="20" cy="20" r="18" fill="${isOnline ? '#10b981' : '#6b7280'}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+      <circle cx="20" cy="20" r="15" fill="${isOnline ? '#059669' : '#4b5563'}"/>
+      ${moderator.profilePhoto 
+        ? `<image href="${moderator.profilePhoto}" x="5" y="5" width="30" height="30" clip-path="circle(15px at 20px 20px)"/>` 
+        : `<text x="20" y="26" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">${initials}</text>`
+      }
+      ${isOnline ? '<circle cx="32" cy="32" r="4" fill="#10b981" stroke="white" stroke-width="1"/>' : ''}
+    </svg>
+  `;
+
+  return L.divIcon({
+    html: svg,
+    className: 'moderator-avatar-marker',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20],
+  });
+};
+
+export default function MapView({ onDropPin, markers = [], filters = { time: 'current', types: [] }, enableModerationActions = false, showModerators = false, moderators = [] }: MapViewProps) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -87,6 +130,33 @@ export default function MapView({ onDropPin, markers = [], filters = { time: 'cu
                 <MarkerPopupContent marker={m} enableModerationActions={enableModerationActions} afterAction={() => { try { window.dispatchEvent(new CustomEvent('map:refetch')); } catch {} }} />
               </Popup>
         </CircleMarker>
+      ))}
+      
+      {/* Moderator Markers */}
+      {showModerators && moderators.filter(m => m.assignedLocation).map((moderator) => (
+        <Marker
+          key={`moderator-${moderator.userId}`}
+          position={[moderator.assignedLocation!.lat, moderator.assignedLocation!.lng]}
+          icon={createModeratorIcon(moderator)}
+        >
+          <Popup>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${moderator.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                <div>
+                  <div className="font-semibold">{moderator.name}</div>
+                  <div className="text-sm text-gray-600">{moderator.email}</div>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                Status: {moderator.status === 'online' ? 'Online' : 'Offline'}
+              </div>
+              <div className="text-xs text-gray-500">
+                Location: {moderator.assignedLocation!.lat.toFixed(4)}, {moderator.assignedLocation!.lng.toFixed(4)}
+              </div>
+            </div>
+          </Popup>
+        </Marker>
       ))}
     </MapContainer>
   );

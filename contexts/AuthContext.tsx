@@ -17,6 +17,8 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   status?: 'online' | 'offline';
+  phone?: string;
+  profilePhoto?: string;
   createdAt?: string;
   lastLoginAt?: string;
 }
