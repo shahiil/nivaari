@@ -316,3 +316,14 @@
     margin-bottom: 0.2em;
   }
 }
+
+/* Moderator avatar markers on map */
+.moderator-avatar-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.moderator-avatar-marker div {
+  background: transparent !important;
+  border: none !important;
+}

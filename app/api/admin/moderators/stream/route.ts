@@ -18,6 +18,7 @@ type ModeratorListItem = {
   createdAt?: string;
   approvedCount: number;
   rejectedCount: number;
+  assignedLocation?: { lat: number; lng: number };
 };
 
 type ModeratorsSnapshot = { moderators: ModeratorListItem[]; backlog: { unviewedCount: number } };
@@ -31,10 +32,22 @@ async function loadModeratorsSnapshot(): Promise<ModeratorsSnapshot> {
   ]);
 
   const moderators = await moderatorsColl.find({}).sort({ createdAt: -1 }).limit(500).toArray();
+  console.log('🔍 Stream API - Found moderators:', moderators.length);
+  console.log('📍 Stream - Moderators with locations:', moderators.filter(m => m.assignedLocation).map(m => ({ 
+    email: m.email, 
+    location: m.assignedLocation 
+  })));
+  console.log('❌ Stream - Moderators WITHOUT locations:', moderators.filter(m => !m.assignedLocation).map(m => ({ 
+    email: m.email, 
+    userId: m.userId.toString() 
+  })));
+  
   const userIds = moderators.map((m) => m.userId).filter(Boolean) as ObjectId[];
   const users = userIds.length
     ? await usersColl.find({ _id: { $in: userIds } }, { projection: { name: 1, email: 1, status: 1, createdAt: 1 } }).toArray()
     : [];
+  console.log('Found users for moderators:', users.length, users.map(u => ({ name: u.name, email: u.email })));
+  
   const userById = new Map(users.map((u) => [u._id!.toString(), u]));
 
   const countsAgg = await modReportsColl
@@ -64,7 +77,7 @@ async function loadModeratorsSnapshot(): Promise<ModeratorsSnapshot> {
     const u = userById.get(m.userId.toString()) as { name?: string; email: string; status?: 'online' | 'offline'; createdAt?: Date } | undefined;
     const key = m.userId.toString();
     const c = countsByModerator.get(key) || { approved: 0, rejected: 0 };
-    return {
+    const moderatorItem = {
       id: m._id?.toString(),
       userId: m.userId.toString(),
       name: u?.name || m.email?.split('@')[0] || 'Moderator',
@@ -73,7 +86,15 @@ async function loadModeratorsSnapshot(): Promise<ModeratorsSnapshot> {
       createdAt: (u?.createdAt || m.createdAt)?.toISOString?.() ?? undefined,
       approvedCount: c.approved,
       rejectedCount: c.rejected,
+      assignedLocation: m.assignedLocation,
     };
+    
+    // Debug logging for moderators with assigned locations
+    if (m.assignedLocation) {
+      console.log('Moderator with location:', moderatorItem.name, 'at', m.assignedLocation);
+    }
+    
+    return moderatorItem;
   });
 
   return { moderators: list, backlog: { unviewedCount } };
@@ -96,7 +117,13 @@ export async function GET() {
         send('snapshot', snap);
       } catch (e) { send('error', { message: 'initial snapshot failed' }); }
 
-      const hb = setInterval(() => controller.enqueue(encoder.encode(`:\n\n`)), 20000);
+      const hb = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`:\n\n`));
+        } catch (e) {
+          clearInterval(hb);
+        }
+      }, 20000);
 
   let cleanup: (() => void) | null = null;
       try {

@@ -26,6 +26,15 @@ export async function GET() {
     ]);
 
     const moderators = await moderatorsColl.find({}).sort({ createdAt: -1 }).limit(500).toArray();
+    console.log('🔍 Static API - Found moderators:', moderators.length);
+    console.log('📍 Moderators with locations:', moderators.filter(m => m.assignedLocation).map(m => ({ 
+      email: m.email, 
+      location: m.assignedLocation 
+    })));
+    console.log('❌ Moderators WITHOUT locations:', moderators.filter(m => !m.assignedLocation).map(m => ({ 
+      email: m.email, 
+      userId: m.userId.toString() 
+    })));
 
     // Map userId -> user document for names/status
     const userIds = moderators.map((m) => m.userId).filter(Boolean) as ObjectId[];
@@ -34,6 +43,7 @@ export async function GET() {
           .find({ _id: { $in: userIds } }, { projection: { name: 1, email: 1, status: 1, createdAt: 1 } })
           .toArray()
       : [];
+    console.log('Static API - Found users:', users.length, users.map(u => ({ name: u.name, email: u.email })));
     const userById = new Map<string, Pick<UserDocument, 'name' | 'email' | 'status' | 'createdAt'>>(
       users.map((u) => [u._id!.toString(), { name: u.name, email: u.email, status: u.status, createdAt: u.createdAt }])
     );
@@ -90,6 +100,7 @@ export async function GET() {
         createdAt: (u?.createdAt || m.createdAt)?.toISOString?.() ?? undefined,
         approvedCount: c.approved,
         rejectedCount: c.rejected,
+        assignedLocation: m.assignedLocation,
       };
     });
 
