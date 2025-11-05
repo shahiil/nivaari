@@ -9,6 +9,10 @@ const createSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   type: z.enum(['email', 'sms']),
+  assignedLocation: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
 });
 
 export async function POST(req: Request) {
@@ -30,16 +34,27 @@ export async function POST(req: Request) {
     const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
 
     const coll = await getInviteTokensCollection();
-    await coll.insertOne({
+    const inviteDoc = {
       token,
       type: parsed.data.type,
       email: parsed.data.email,
       phone: parsed.data.phone,
-      role: 'moderator',
+      role: 'moderator' as const,
+      assignedLocation: parsed.data.assignedLocation,
       createdAt: now,
       expiresAt,
       used: false,
+    };
+    
+    console.log('💌 Creating invite with location:', {
+      email: parsed.data.email,
+      hasLocation: !!parsed.data.assignedLocation,
+      location: parsed.data.assignedLocation
     });
+    
+    const insertResult = await coll.insertOne(inviteDoc);
+    console.log('✅ Invite saved to database with ID:', insertResult.insertedId);
+    console.log('📍 Saved location data:', inviteDoc.assignedLocation);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '';
     const link = `${appUrl}/moderator/register?token=${token}`;

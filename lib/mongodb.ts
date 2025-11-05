@@ -41,6 +41,8 @@ export interface UserDocument {
   passwordHash: string;
   role: UserRole;
   status?: "online" | "offline";
+  phone?: string;
+  profilePhoto?: string;
   createdAt: Date;
   updatedAt?: Date;
   lastLoginAt?: Date;
@@ -94,6 +96,7 @@ export interface ModeratorDocument {
   email: string;
   mobile?: string;
   status?: 'online' | 'offline';
+  assignedLocation?: { lat: number; lng: number };
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -106,6 +109,7 @@ export interface InviteTokenDocument {
   email?: string;
   phone?: string;
   role: 'moderator';
+  assignedLocation?: { lat: number; lng: number };
   createdAt: Date;
   expiresAt: Date;
   used: boolean;

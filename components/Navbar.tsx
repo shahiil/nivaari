@@ -10,9 +10,9 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, userData, loading, logout } = useAuth();
-  const hideNavbarRoutes = ['/login', '/signup', '/moderator-dashboard'];
+  const hideNavbarRoutes = ['/login', '/signup', '/moderator-dashboard', '/admin-dashboard'];
   
-  // Hide navbar on login, signup, and moderator dashboard pages
+  // Hide navbar on login, signup, moderator dashboard, and admin dashboard pages
   if (hideNavbarRoutes.includes(pathname)) {
     return null;
   }
