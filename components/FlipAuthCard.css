@@ -355,13 +355,16 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .flip-card-container {
-    padding: 1rem;
+    min-height: auto;
+    padding: 2rem 1rem;
+    overflow: visible;
+    justify-content: flex-start;
   }
 
   .flip-card {
     max-width: 100%;
-    height: auto;
-    min-height: 550px;
+    height: 500px;
+    min-height: 500px;
   }
 
   .flip-card-content {
@@ -397,5 +400,10 @@
 
   .flip-card-input {
     padding: 0.625rem 0.875rem !important;
+  }
+
+  .flip-card {
+    height: 450px;
+    min-height: 450px;
   }
 }

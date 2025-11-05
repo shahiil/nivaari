@@ -15,7 +15,23 @@ const fixLeafletIcon = () => {
   });
 };
 
-export default function MapView() {
+interface Report {
+  id?: string;
+  title: string;
+  type: string;
+  city?: string;
+  location?: {
+    lat?: number;
+    lng?: number;
+    address?: string;
+  };
+}
+
+interface MapViewProps {
+  reports?: Report[];
+}
+
+export default function MapView({ reports = [] }: MapViewProps) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -30,9 +46,23 @@ export default function MapView() {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker position={[19.0760, 72.8777]}>
-        <Popup>Mumbai 🚧</Popup>
-      </Marker>
+      {reports.map((report) => {
+        if (report.location?.lat && report.location?.lng) {
+          return (
+            <Marker key={report.id} position={[report.location.lat, report.location.lng]}>
+              <Popup>
+                <div>
+                  <h3 className="font-semibold">{report.title}</h3>
+                  <p className="text-sm">{report.type}</p>
+                  {report.city && <p className="text-sm">{report.city}</p>}
+                  {report.location.address && <p className="text-sm">{report.location.address}</p>}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        }
+        return null;
+      })}
     </MapContainer>
   );
 }
