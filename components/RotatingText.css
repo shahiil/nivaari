@@ -1,0 +1,66 @@
+/* RotatingText Component Styles */
+
+.text-rotate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  overflow: visible;
+  font-weight: 700;
+}
+
+.text-rotate-word {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  position: relative;
+}
+
+.text-rotate-element {
+  display: inline-block;
+  position: relative;
+  transform-origin: center center;
+  perspective: 1000px;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.text-rotate-space {
+  display: inline-block;
+  white-space: pre;
+}
+
+.text-rotate-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  .text-rotate {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+}
+
+@media (min-width: 769px) {
+  .text-rotate {
+    font-size: clamp(3rem, 5vw, 5rem);
+  }
+}
+
+/* Animation-specific styles */
+.text-rotate-element {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure smooth animations */
+* {
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
