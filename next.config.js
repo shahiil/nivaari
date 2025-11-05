@@ -16,14 +16,6 @@ const nextConfig = {
   },
   // Optimize bundling without changing functionality
   webpack: (config, { dev }) => {
-    // Add DefinePlugin to define 'self' for SSR compatibility
-    config.plugins.push(
-      new (require('webpack')).DefinePlugin({
-        'typeof self': JSON.stringify('undefined'),
-        'self': 'global',
-      })
-    );
-
     return config;
   },
 };

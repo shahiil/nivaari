@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-const Iridescence = dynamic(() => import('@/components/Iridescence'), { ssr: false });
+import Iridescence from '@/components/Iridescence';
 import RotatingText from '@/components/RotatingText';
 import TypeWriter from '@/components/TypeWriter';
 import VoicesOfTheCity from '@/components/VoicesOfTheCity';
