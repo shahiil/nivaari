@@ -21,6 +21,9 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, userData, loading, logout } = useAuth();
+  const hideNavbarRoutes = ['/login', '/signup', '/moderator-dashboard'];
+  
+  // Hide navbar on login, signup, and moderator dashboard pages
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const hideNavbarRoutes = ['/login', '/signup', '/auth'];

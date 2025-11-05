@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getCitizenReportsCollection, getModeratorReportsCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { getSession } from '@/lib/session';
+import { normalizeReportType } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
@@ -29,8 +30,31 @@ export async function POST(req: Request) {
 
     const coll = await getCitizenReportsCollection();
     const now = new Date();
+
+    // Normalize/derive location
+    const locIn = parsed.data.location || {};
+    let lat = typeof locIn.lat === 'number' ? locIn.lat : undefined;
+    let lng = typeof locIn.lng === 'number' ? locIn.lng : undefined;
+    const address = locIn.address;
+    if ((lat === undefined || lng === undefined) && typeof address === 'string') {
+      // Try to parse patterns like "12.34, 56.78" from address string
+      const m = address.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
+      if (m) {
+        const pLat = parseFloat(m[1]);
+        const pLng = parseFloat(m[2]);
+        if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+          lat = pLat; lng = pLng;
+        }
+      }
+    }
+
     const doc = {
       ...parsed.data,
+      // normalize type for consistency across dashboards
+      type: normalizeReportType(parsed.data.type),
+      // preserve original as category for reference
+      category: parsed.data.category ?? parsed.data.type,
+      location: { lat, lng, address },
       status: 'submitted' as const,
       createdByUserId: session?.sub && ObjectId.isValid(session.sub) ? new ObjectId(session.sub) : null,
       createdAt: now,
