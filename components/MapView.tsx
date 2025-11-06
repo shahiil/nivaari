@@ -37,6 +37,9 @@ interface MapViewProps {
   enableModerationActions?: boolean;
   showModerators?: boolean;
   moderators?: ModeratorOnMap[];
+  center?: [number, number];
+  zoom?: number;
+  useSatelliteView?: boolean;
 }
 
 const colorForType = (typeId: string) => {
@@ -91,7 +94,7 @@ const createModeratorIcon = (moderator: ModeratorOnMap) => {
   });
 };
 
-export default function MapView({ onDropPin, markers = [], reports = [], filters = { time: 'current', types: [] }, enableModerationActions = false, showModerators = false, moderators = [] }: MapViewProps) {
+export default function MapView({ onDropPin, markers = [], reports = [], filters = { time: 'current', types: [] }, enableModerationActions = false, showModerators = false, moderators = [], center, zoom, useSatelliteView = false }: MapViewProps) {
   useEffect(() => {
     fixLeafletIcon();
   }, []);
@@ -124,17 +127,29 @@ export default function MapView({ onDropPin, markers = [], reports = [], filters
 
   return (
     <MapContainer 
-      center={[19.0760, 72.8777] as [number, number]} 
-      zoom={13} 
+      center={center || [19.0760, 72.8777] as [number, number]} 
+      zoom={zoom || 13} 
       style={{ height: "100%", width: "100%" }}
     >
       <AutoResize />
+      <MapController center={center} zoom={zoom} />
   <Html5DropTarget onDropPin={onDropPin} />
   <ViewportFetchPins onPins={(pins) => setRemotePins(pins)} filters={filters} enableModerationActions={enableModerationActions} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      
+      {/* Conditional Tile Layer - Standard or Satellite */}
+      {useSatelliteView ? (
+        <TileLayer
+          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={19}
+        />
+      ) : (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+      )}
+      
       {mergePins.map((m) => (
         <CircleMarker
           key={m.id}
@@ -196,6 +211,18 @@ function AutoResize() {
       window.removeEventListener('resize', invalidate);
     };
   }, [map]);
+  return null;
+}
+
+function MapController({ center, zoom }: { center?: [number, number]; zoom?: number }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom || map.getZoom(), { animate: true, duration: 1 });
+    }
+  }, [center, zoom, map]);
+  
   return null;
 }
 function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPins: (pins: MapMarker[]) => void; filters: { time: 'current'|'incoming'|'past'; types: string[] }; enableModerationActions?: boolean }) {

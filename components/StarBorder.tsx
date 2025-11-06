@@ -12,38 +12,69 @@ type StarBorderProps<T extends React.ElementType> = React.ComponentPropsWithoutR
 const StarBorder = <T extends React.ElementType = 'button'>({
   as,
   className = '',
-  color = 'white',
+  color = 'cyan',
   speed = '6s',
-  thickness = 1,
+  thickness = 2,
   children,
   ...rest
 }: StarBorderProps<T>) => {
   const Component = as || 'button';
 
+  // Color mapping for Tailwind-friendly gradients
+  const colorMap: Record<string, string> = {
+    cyan: 'rgba(0, 183, 255, 0.8)',
+    blue: 'rgba(59, 130, 246, 0.8)',
+    purple: 'rgba(168, 85, 247, 0.8)',
+    pink: 'rgba(236, 72, 153, 0.8)',
+    green: 'rgba(34, 197, 94, 0.8)',
+    yellow: 'rgba(234, 179, 8, 0.8)',
+    red: 'rgba(239, 68, 68, 0.8)',
+    white: 'rgba(255, 255, 255, 0.8)',
+  };
+
+  const glowColor = colorMap[color] || color;
+
   return (
     <Component
-      className={`relative inline-block overflow-hidden rounded-[20px] transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/50 ${className}`}
+      className={`relative inline-block ${className}`}
       {...(rest as any)}
       style={{
-        padding: `${thickness}px 0`,
+        padding: `${thickness}px`,
         ...(rest as any).style
       }}
     >
-      <div
-        className="absolute w-[300%] h-[50%] opacity-70 bottom-[-11px] right-[-250%] rounded-full animate-star-movement-bottom z-0"
-        style={{
-          background: `radial-gradient(circle, ${color}, transparent 10%)`,
-          animationDuration: speed
-        }}
-      ></div>
-      <div
-        className="absolute w-[300%] h-[50%] opacity-70 top-[-10px] left-[-250%] rounded-full animate-star-movement-top z-0"
-        style={{
-          background: `radial-gradient(circle, ${color}, transparent 10%)`,
-          animationDuration: speed
-        }}
-      ></div>
-      <div className="relative z-1 bg-gradient-to-b from-black/30 to-gray-900/30 backdrop-blur-md border border-gray-800/50 text-white text-center text-[16px] py-[16px] px-[26px] rounded-[20px] transition-colors duration-300 hover:from-gray-900/40 hover:to-black/40">
+      {/* Animated border glow container - stays behind content */}
+      <div 
+        className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none"
+        style={{ padding: 0 }}
+      >
+        {/* Bottom-right moving glow */}
+        <div
+          className="absolute w-[200%] h-[100px] opacity-60 bottom-0 right-[-100%] blur-md animate-star-movement-bottom"
+          style={{
+            background: `radial-gradient(ellipse at center, ${glowColor}, transparent 60%)`,
+            animationDuration: speed,
+          }}
+        />
+        {/* Top-left moving glow */}
+        <div
+          className="absolute w-[200%] h-[100px] opacity-60 top-0 left-[-100%] blur-md animate-star-movement-top"
+          style={{
+            background: `radial-gradient(ellipse at center, ${glowColor}, transparent 60%)`,
+            animationDuration: speed,
+          }}
+        />
+        {/* Subtle static border overlay for definition */}
+        <div 
+          className="absolute inset-0 rounded-[inherit] pointer-events-none"
+          style={{
+            border: `1px solid ${glowColor.replace('0.8', '0.3')}`,
+          }}
+        />
+      </div>
+      
+      {/* Content wrapper - keeps children unaffected */}
+      <div className="relative z-10">
         {children}
       </div>
     </Component>
