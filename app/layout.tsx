@@ -15,13 +15,14 @@ const queryClient = new QueryClient();
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
+  const isCitizenDashboard = pathname === '/citizen-dashboard';
 
   return (
     <>
       <Toaster />
       <Sonner />
       <HotToaster position="top-right" />
-      {!isHomePage && <Navbar />}
+      {!isHomePage && !isCitizenDashboard && <Navbar />}
       {children}
     </>
   );

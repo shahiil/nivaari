@@ -17,6 +17,7 @@ const reportSchema = z.object({
     .object({ lat: z.number().optional(), lng: z.number().optional(), address: z.string().optional() })
     .optional(),
   imageUrl: z.string().url().optional(),
+  image: z.string().optional(), // Base64 encoded image
 });
 
 export async function POST(req: Request) {
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
       // preserve original as category for reference
       category: parsed.data.category ?? parsed.data.type,
       location: { lat, lng, address },
+      image: parsed.data.image, // Store base64 image
       status: 'submitted' as const,
       createdByUserId: session?.sub && ObjectId.isValid(session.sub) ? new ObjectId(session.sub) : null,
       createdAt: now,
