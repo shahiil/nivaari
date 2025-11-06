@@ -1,307 +1,120 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import Iridescence from '@/components/Iridescence';
-import RotatingText from '@/components/RotatingText';
-import TypeWriter from '@/components/TypeWriter';
-import VoicesOfTheCity from '@/components/VoicesOfTheCity';
-import CursorTrail from '@/components/CursorTrail';
-import '@/components/RotatingText.css';
-import { 
-  MapPin, 
-  AlertTriangle, 
-  Users, 
-  Radio, 
-  Shield, 
-  Zap, 
-  Bell, 
-  TrendingUp, 
-  ChevronRight 
-} from 'lucide-react';
+import Image from 'next/image';
+import GridScan from '@/components/GridScan';
+import TextType from '@/components/TextType';
+import StarBorder from '@/components/StarBorder';
+import TargetCursor from '@/components/TargetCursor';
 
 export default function HomePage() {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-  const [sectionsVisible, setSectionsVisible] = useState({
-    voices: false,
-    features: false,
-    cta: false
-  });
-
-  // Handle initial animation and scroll tracking
-  useEffect(() => {
-    setIsLoaded(true);
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setScrollY(scrollPosition);
-
-      // Calculate when sections should appear
-      const windowHeight = window.innerHeight;
-      setSectionsVisible({
-        voices: scrollPosition > windowHeight * 0.3,
-        features: scrollPosition > windowHeight * 0.8,
-        cta: scrollPosition > windowHeight * 1.3
-      });
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial position
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const features = [
-    {
-      icon: MapPin,
-      title: "Live Map Alerts",
-      description: "Real-time updates on incidents and emergencies across your city",
-      gradient: "from-cyan-400 to-blue-500"
-    },
-    {
-      icon: Users,
-      title: "Citizen Reports",
-      description: "Community-driven incident reporting for faster response times",
-      gradient: "from-purple-400 to-pink-500"
-    },
-    {
-      icon: Radio,
-      title: "Emergency Broadcast",
-      description: "Instant notifications for critical safety alerts and updates",
-      gradient: "from-orange-400 to-red-500"
-    },
-    {
-      icon: AlertTriangle,
-      title: "Smart Routing",
-      description: "Avoid danger zones with intelligent route recommendations",
-      gradient: "from-emerald-400 to-teal-500"
-    }
-  ];
+  const containerRef = useRef(null);
 
   return (
-    <div className="min-h-screen overflow-hidden bg-background/80 text-foreground relative">
-      {/* Cursor Trail Effect */}
-      <CursorTrail />
+    <div 
+      ref={containerRef}
+      style={{ width: '100%', height: '100vh', position: 'relative', backgroundColor: '#000000' }}
+    >
+      <TargetCursor 
+        spinDuration={2}
+        hideDefaultCursor={true}
+      />
       
-      {/* Full Page Iridescence Background Effect */}
-      <div className="fixed inset-0 z-0">
-        <Iridescence 
-          color={[0.4, 0.8, 1.0]}
-          amplitude={0.7}
-          speed={0.35}
-          mouseReact={true}
+      <GridScan
+        sensitivity={0.55}
+        lineThickness={1}
+        linesColor="#ffffff"
+        gridScale={0.1}
+        scanColor="#FF9FFC"
+        scanOpacity={0.4}
+        enablePost
+        bloomIntensity={0.6}
+        chromaticAberration={0.002}
+        noiseIntensity={0.01}
+      />
+      
+      {/* Top Left Logo and Brand Name */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: '2rem',
+          left: '2rem',
+          zIndex: 20,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem'
+        }}
+        className="backdrop-blur-md bg-white/5 px-6 py-3 rounded-full border border-white/10 cursor-target"
+      >
+        <Image 
+          src="/logo-emblem.png" 
+          alt="Nivaari Logo" 
+          width={40} 
+          height={40}
+          className="object-contain"
+        />
+        <span className="text-white text-2xl font-bold tracking-wide">
+          Nivaari
+        </span>
+      </div>
+      
+      {/* Top Right Buttons */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: '2rem',
+          right: '2rem',
+          zIndex: 20,
+          display: 'flex',
+          gap: '1rem'
+        }}
+      >
+        <Link href="/login">
+          <StarBorder
+            as="button"
+            color="cyan"
+            speed="5s"
+            className="cursor-pointer cursor-target"
+          >
+            Login
+          </StarBorder>
+        </Link>
+        <Link href="/signup">
+          <StarBorder
+            as="button"
+            color="cyan"
+            speed="5s"
+            className="cursor-pointer cursor-target"
+          >
+            Sign Up
+          </StarBorder>
+        </Link>
+      </div>
+      
+      {/* Centered Text with Typing Effect */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 10,
+          textAlign: 'center',
+          width: '90%',
+          maxWidth: '1200px'
+        }}
+      >
+        <TextType 
+          text={["Stay Informed.", "Stay Protected.", "Community Powered."]}
+          typingSpeed={75}
+          pauseDuration={1500}
+          showCursor={true}
+          cursorCharacter="|"
+          className="text-6xl md:text-8xl font-bold text-white"
+          cursorClassName="text-6xl md:text-8xl text-cyan-400"
         />
       </div>
-
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-start px-4 pt-32 md:pt-40 z-10">
-        <div className="container mx-auto relative z-10 flex-1 flex flex-col justify-center">
-          <div className={`text-center transform transition-all duration-1000 ${
-            isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-          }`}>
-            {/* Main Headline with Rotating Text */}
-            <h1 className="text-6xl md:text-8xl font-bold mb-6 font-['Playfair_Display',serif]">
-              <span className="hero-headline-static">Stay </span>
-              <RotatingText
-                texts={['Informed.', 'Protected.']}
-                rotationInterval={3000}
-                staggerDuration={0.3}
-                staggerFrom="first"
-                splitBy="character"
-                loop={true}
-                auto={true}
-                mainClassName="hero-headline-rotating"
-                elementLevelClassName="hero-headline-char"
-              />
-            </h1>
-            
-            {/* Subheadline */}
-            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto text-foreground/80 font-['Montserrat',sans-serif] font-light">
-              <TypeWriter 
-                text="Real-time civic alerts, emergency reporting, and community-driven safety updates. Powered by your community."
-                speed={30}
-                className="text-white/90 font-light italic font-['Montserrat',sans-serif]"
-              />
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <Link href="/signup">
-                <div className="relative p-[2px] rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 animate-gradient-shift">
-                  <Button 
-                    size="lg" 
-                    className="neon-button group relative px-8 py-6 text-lg font-semibold rounded-xl font-['Montserrat',sans-serif]"
-                  >
-                    <span className="flex items-center gap-2">
-                      Get Started
-                      <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </Button>
-                </div>
-              </Link>
-              <Link href="/login">
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="px-8 py-6 text-lg font-semibold glass-panel rounded-xl
-                           transition-all duration-300 hover:scale-105 font-['Montserrat',sans-serif]"
-                >
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-
-            {/* Scroll Indicator */}
-            <motion.div
-              className="flex flex-col items-center gap-3 mt-20 cursor-pointer"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2 }}
-              onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-            >
-              {/* Triple chevron cascade */}
-              <div className="relative h-16 flex flex-col items-center justify-center">
-                {[0, 1, 2].map((index) => (
-                  <motion.div
-                    key={index}
-                    animate={{ 
-                      y: [0, 12, 0],
-                      opacity: [0.2, 1, 0.2]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      delay: index * 0.3,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <ChevronRight className="w-8 h-8 text-cyan-400/80 rotate-90" />
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* Voices of the City - Testimonials Carousel */}
-      <div className={`transform transition-all duration-1000 ${
-        sectionsVisible.voices ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
-      }`}>
-        <VoicesOfTheCity />
-      </div>
-
-      {/* Features Section */}
-      <section className={`py-6 relative z-10 transform transition-all duration-1000 ${
-        sectionsVisible.features ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
-      }`}>
-        <div className="container mx-auto px-4 relative z-10">
-          {/* Section header */}
-          <div className="text-center mb-10">
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white mix-blend-overlay font-['Playfair_Display',serif]">
-              Why Choose Nivaari?
-            </h2>
-            <p className="text-xl text-white/70 max-w-2xl mx-auto font-['Montserrat',sans-serif] font-light">
-              Built for the future of civic engagement and community safety
-            </p>
-          </div>
-
-          {/* Feature cards grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className={`transform transition-all duration-500 ${
-                  isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-                }`}
-                style={{ transitionDelay: `${index * 100}ms` }}
-              >
-                <Card className="group relative h-full overflow-hidden glass-card">
-                  <CardContent className="p-8 relative z-10">
-                    {/* Icon */}
-                    <div className="w-14 h-14 rounded-xl bg-card p-3 mb-6 
-                                transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                      <feature.icon className="w-full h-full text-foreground/90" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-bold mb-4 text-foreground/90 
-                                group-hover:text-foreground transition-all duration-300 font-['Playfair_Display',serif]">
-                      {feature.title}
-                    </h3>
-                    
-                    <p className="text-muted leading-relaxed group-hover:text-foreground/80 transition-colors font-['Montserrat',sans-serif] font-normal">
-                      {feature.description}
-                    </p>
-
-                    {/* Hover arrow indicator */}
-                    <div className="mt-6 flex items-center text-primary opacity-0 group-hover:opacity-100 
-                                transform translate-x-0 group-hover:translate-x-2 transition-all duration-300">
-                      <span className="text-sm font-semibold font-['Montserrat',sans-serif]">Learn more</span>
-                      <ChevronRight className="w-4 h-4 ml-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className={`py-6 relative z-10 transform transition-all duration-1000 ${
-        sectionsVisible.cta ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
-      }`}>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Content container */}
-            <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-3xl p-12 shadow-2xl">
-              <h2 className="text-4xl md:text-6xl font-bold mb-6 text-white font-['Playfair_Display',serif]">
-                Ready to Make Your City Safer?
-              </h2>
-              
-              <p className="text-xl mb-10 text-white/90 max-w-2xl mx-auto leading-relaxed font-['Montserrat',sans-serif] font-light">
-                Join thousands of citizens who are already using Nivaari to stay informed and help their communities thrive
-              </p>
-
-              {/* Feature pills */}
-              <div className="flex flex-wrap justify-center gap-3 mb-10">
-                {["Free to use", "Real-time updates", "Community driven", "Privacy focused"].map((item, i) => (
-                  <span 
-                    key={i}
-                    className="px-5 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm text-white/90 hover:bg-white/20 transition-all duration-300 font-['Montserrat',sans-serif] font-medium"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-
-              <Link href="/signup">
-                <Button 
-                  size="lg" 
-                  className="group px-12 py-6 text-lg font-semibold 
-                           bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500
-                           text-white rounded-full
-                           hover:from-cyan-500 hover:via-cyan-600 hover:to-blue-600
-                           shadow-lg hover:shadow-xl
-                           transition-all duration-300 hover:scale-105 font-['Montserrat',sans-serif]"
-                >
-                  <span className="flex items-center gap-2">
-                    Get Started Today
-                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </Button>
-              </Link>
-
-              <p className="mt-6 text-sm text-white/80 font-['Montserrat',sans-serif] font-light">
-                No credit card required • Setup in 2 minutes
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
