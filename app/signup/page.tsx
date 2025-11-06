@@ -2,6 +2,7 @@
 
 import FlipAuthCard from '@/components/FlipAuthCard';
 import { useEffect, Suspense } from 'react';
+import CursorTrail from '@/components/CursorTrail';
 import { useSearchParams } from 'next/navigation';
 
 function SignupContent() {
@@ -20,8 +21,11 @@ function SignupContent() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SignupContent />
-    </Suspense>
+    <>
+      <CursorTrail />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SignupContent />
+      </Suspense>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import FlipAuthCard from '@/components/FlipAuthCard';
 import { useEffect, Suspense } from 'react';
+import CursorTrail from '@/components/CursorTrail';
 import { useSearchParams } from 'next/navigation';
 
 function LoginContent() {
@@ -20,8 +21,11 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LoginContent />
-    </Suspense>
+    <>
+      <CursorTrail />
+      <Suspense fallback={<div>Loading...</div>}>
+        <LoginContent />
+      </Suspense>
+    </>
   );
 }

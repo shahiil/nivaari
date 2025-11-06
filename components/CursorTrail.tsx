@@ -15,6 +15,10 @@ export default function CursorTrail() {
 
   useEffect(() => {
     let trailId = 0;
+    // Hide the native cursor while the trail is active
+    try {
+      document.documentElement.classList.add('hide-cursor');
+    } catch {}
 
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
@@ -35,7 +39,12 @@ export default function CursorTrail() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      try {
+        document.documentElement.classList.remove('hide-cursor');
+      } catch {}
+    };
   }, []);
 
   return (
@@ -44,28 +53,28 @@ export default function CursorTrail() {
         {trails.map((trail) => (
           <motion.div
             key={trail.id}
-            initial={{ scale: 1, opacity: 0.6 }}
-            animate={{ scale: 0, opacity: 0 }}
+            initial={{ scale: 1, opacity: 0.8, backgroundColor: 'rgba(34,211,238,0.55)' }}
+            animate={{
+              scale: 0.35,
+              opacity: 0,
+              backgroundColor: [
+                'rgba(34,211,238,0.55)',
+                'rgba(255,255,255,0.95)',
+                'rgba(34,211,238,0.55)'
+              ],
+            }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="absolute w-3 h-3 rounded-full bg-cyan-400/40 blur-sm"
+            transition={{ duration: 0.9, ease: "easeOut" }}
+            className="absolute w-4 h-4 rounded-full blur-md cursor-trail-dot"
             style={{
-              left: trail.x - 6,
-              top: trail.y - 6,
+              left: trail.x - 8,
+              top: trail.y - 8,
+              // Use a soft gradient-like background as fallback for environments
+              background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(34,211,238,0.55))'
             }}
           />
         ))}
       </AnimatePresence>
-      
-      {/* Main cursor dot */}
-      <motion.div
-        className="absolute w-2 h-2 rounded-full bg-cyan-400/60 blur-[2px]"
-        animate={{
-          left: mousePosition.x - 4,
-          top: mousePosition.y - 4,
-        }}
-        transition={{ type: "spring", damping: 30, stiffness: 400 }}
-      />
     </div>
   );
 }
