@@ -36,7 +36,7 @@ const StarBorder = <T extends React.ElementType = 'button'>({
 
   return (
     <Component
-      className={`relative inline-block ${className}`}
+      className={`relative inline-block rounded-full overflow-hidden transition-all duration-300 ${className}`}
       {...(rest as any)}
       style={{
         padding: `${thickness}px`,
@@ -45,7 +45,7 @@ const StarBorder = <T extends React.ElementType = 'button'>({
     >
       {/* Animated border glow container - stays behind content */}
       <div 
-        className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none"
+        className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
         style={{ padding: 0 }}
       >
         {/* Bottom-right moving glow */}
@@ -66,15 +66,15 @@ const StarBorder = <T extends React.ElementType = 'button'>({
         />
         {/* Subtle static border overlay for definition */}
         <div 
-          className="absolute inset-0 rounded-[inherit] pointer-events-none"
+          className="absolute inset-0 rounded-full pointer-events-none"
           style={{
             border: `1px solid ${glowColor.replace('0.8', '0.3')}`,
           }}
         />
       </div>
       
-      {/* Content wrapper - keeps children unaffected */}
-      <div className="relative z-10">
+      {/* Content wrapper with frosty glass effect */}
+      <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-full px-6 py-2.5 text-sm font-medium border border-white/20 hover:bg-white/20 hover:backdrop-blur-lg transition-all duration-300">
         {children}
       </div>
     </Component>

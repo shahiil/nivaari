@@ -26,7 +26,7 @@ export default function HomePage() {
         lineThickness={1}
         linesColor="#ffffff"
         gridScale={0.1}
-        scanColor="#FF9FFC"
+        scanColor="#22b0b5"
         scanOpacity={0.4}
         enablePost
         bloomIntensity={0.6}
@@ -106,7 +106,7 @@ export default function HomePage() {
         }}
       >
         <TextType 
-          text={["Stay Informed.", "Stay Protected.", "Community Powered."]}
+          text={["Community Powered.","Stay Informed."]}
           typingSpeed={75}
           pauseDuration={1500}
           showCursor={true}

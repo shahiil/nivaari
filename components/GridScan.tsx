@@ -307,8 +307,8 @@ export const GridScan = ({
   modelsPath = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights',
   sensitivity = 0.55,
   lineThickness = 1,
-  linesColor = '#392e4e',
-  scanColor = '#FF9FFC',
+  linesColor = '#167070',
+  scanColor = '#22b0b5',
   scanOpacity = 0.4,
   gridScale = 0.1,
   lineStyle = 'solid',
@@ -392,15 +392,14 @@ export const GridScan = ({
     if (!el) return;
     let leaveTimer: NodeJS.Timeout | null = null;
     const onMove = (e: MouseEvent) => {
+      // Grid stays centered, don't update lookTarget based on mouse movement
       if (uiFaceActive) return;
       if (leaveTimer) {
         clearTimeout(leaveTimer);
         leaveTimer = null;
       }
-      const rect = el.getBoundingClientRect();
-      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-      lookTarget.current.set(nx, ny);
+      // Keep grid centered by not updating lookTarget
+      // lookTarget.current.set(0, 0); // Always centered
     };
     const onClick = async () => {
       const nowSec = performance.now() / 1000;

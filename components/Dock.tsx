@@ -71,36 +71,28 @@ function DockItem({
   const size = useSpring(targetSize, spring);
 
   return (
-    <StarBorder
-      as="div"
-      color="cyan"
-      speed="5s"
-      thickness={0}
-      className="rounded-lg"
+    <motion.div
+      ref={ref}
+      style={{
+        width: size,
+        height: size
+      }}
+      onHoverStart={() => isHovered.set(1)}
+      onHoverEnd={() => isHovered.set(0)}
+      onFocus={() => isHovered.set(1)}
+      onBlur={() => isHovered.set(0)}
+      onClick={onClick}
+      className={`relative inline-flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-cyan-400/30 shadow-lg hover:bg-black/70 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,183,255,0.4)] transition-all duration-75 ${className}`}
+      tabIndex={0}
+      role="button"
+      aria-haspopup="true"
     >
-      <motion.div
-        ref={ref}
-        style={{
-          width: size,
-          height: size
-        }}
-        onHoverStart={() => isHovered.set(1)}
-        onHoverEnd={() => isHovered.set(0)}
-        onFocus={() => isHovered.set(1)}
-        onBlur={() => isHovered.set(0)}
-        onClick={onClick}
-        className={`relative inline-flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-xl border-cyan-400/30 border-2 shadow-[0_0_20px_rgba(0,183,255,0.3)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-shadow ${className}`}
-        tabIndex={0}
-        role="button"
-        aria-haspopup="true"
-      >
-        {Children.map(children, child =>
-          React.isValidElement(child)
-            ? cloneElement(child as React.ReactElement<{ isHovered?: MotionValue<number> }>, { isHovered })
-            : child
-        )}
-      </motion.div>
-    </StarBorder>
+      {Children.map(children, child =>
+        React.isValidElement(child)
+          ? cloneElement(child as React.ReactElement<{ isHovered?: MotionValue<number> }>, { isHovered })
+          : child
+      )}
+    </motion.div>
   );
 }
 
@@ -129,7 +121,7 @@ function DockLabel({ children, className = '', isHovered }: DockLabelProps) {
           animate={{ opacity: 1, y: -10 }}
           exit={{ opacity: 0, y: 0 }}
           transition={{ duration: 0.2 }}
-          className={`${className} absolute -top-8 left-1/2 w-fit whitespace-pre rounded-xl border border-cyan-400/30 bg-black/90 backdrop-blur-xl px-3 py-1.5 text-xs text-white shadow-[0_0_20px_rgba(0,183,255,0.3)]`}
+          className={`${className} absolute -top-6 left-1/2 w-fit whitespace-pre rounded-lg border border-white/20 bg-white/10 backdrop-blur-md px-2 py-0.5 text-xs text-white shadow-lg`}
           role="tooltip"
           style={{ x: '-50%' }}
         >
@@ -147,16 +139,16 @@ type DockIconProps = {
 };
 
 function DockIcon({ children, className = '' }: DockIconProps) {
-  return <div className={`flex items-center justify-center text-cyan-400 ${className}`}>{children}</div>;
+  return <div className={`flex items-center justify-center text-gray-400 ${className}`}>{children}</div>;
 }
 
 export default function Dock({
   items,
   className = '',
-  spring = { mass: 0.1, stiffness: 150, damping: 12 },
+  spring = { mass: 0.005, stiffness: 600, damping: 25 },
   magnification = 70,
   distance = 200,
-  panelHeight = 64,
+  panelHeight = 68,
   dockHeight = 256,
   baseItemSize = 50
 }: DockProps) {
@@ -178,7 +170,7 @@ export default function Dock({
           isHovered.set(0);
           mouseX.set(Infinity);
         }}
-        className={`${className} fixed bottom-6 left-1/2 transform -translate-x-1/2 flex items-end w-fit gap-4 rounded-2xl border-cyan-400/30 border-2 pb-2 px-4 bg-black/40 backdrop-blur-xl shadow-[0_0_30px_rgba(0,183,255,0.3)] pointer-events-auto z-[70]`}
+        className={`${className} fixed bottom-2 left-1/2 transform -translate-x-1/2 flex items-end w-fit gap-4 rounded-2xl border border-cyan-400/30 bg-black/60 backdrop-blur-md shadow-[0_0_30px_rgba(0,183,255,0.2)] pb-2 px-4 pointer-events-auto z-[70]`}
         style={{ height: panelHeight }}
         role="toolbar"
         aria-label="Application dock"

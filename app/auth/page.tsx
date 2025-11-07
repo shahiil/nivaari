@@ -31,7 +31,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
           lineThickness={1}
           linesColor="#ffffff"
           gridScale={0.1}
-          scanColor="#FF9FFC"
+          scanColor="#22b0b5"
           scanOpacity={0.4}
           enablePost
           bloomIntensity={0.6}
