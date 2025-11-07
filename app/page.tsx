@@ -3,10 +3,12 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import GridScan from '@/components/GridScan';
-import TextType from '@/components/TextType';
+import dynamic from 'next/dynamic';
 import StarBorder from '@/components/StarBorder';
-import TargetCursor from '@/components/TargetCursor';
+
+const GridScan = dynamic(() => import('@/components/GridScan'), { ssr: false });
+const TextType = dynamic(() => import('@/components/TextType'), { ssr: false });
+const TargetCursor = dynamic(() => import('@/components/TargetCursor'), { ssr: false });
 
 export default function HomePage() {
   const containerRef = useRef(null);

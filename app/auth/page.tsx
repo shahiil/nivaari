@@ -3,9 +3,11 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import GridScan from '@/components/GridScan';
-import TargetCursor from '@/components/TargetCursor';
-import FlipAuthCard from '@/components/FlipAuthCard';
+import dynamic from 'next/dynamic';
+
+const GridScan = dynamic(() => import('@/components/GridScan'), { ssr: false });
+const TargetCursor = dynamic(() => import('@/components/TargetCursor'), { ssr: false });
+const FlipAuthCard = dynamic(() => import('@/components/FlipAuthCard'), { ssr: false });
 
 interface AuthPageProps {
   initialMode?: 'login' | 'signup';

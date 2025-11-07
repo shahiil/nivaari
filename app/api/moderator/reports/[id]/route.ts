@@ -6,14 +6,14 @@ import { getSession } from '@/lib/session';
 export const runtime = 'nodejs';
 
 // DELETE /api/moderator/reports/[id] - Delete a moderator report (moderator only)
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession();
     if (!session || (session.role !== 'moderator' && session.role !== 'admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
@@ -33,14 +33,14 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 }
 
 // PATCH /api/moderator/reports/[id] - Update a moderator report (e.g., mark as fixed)
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession();
     if (!session || (session.role !== 'moderator' && session.role !== 'admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
