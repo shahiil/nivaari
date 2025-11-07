@@ -2,37 +2,20 @@
 const nextConfig = {
   outputFileTracingRoot: __dirname,
   images: {
-    domains: [], // Add storage domains if needed
-  },
-  // Build performance optimizations (doesn't change your code)
-  experimental: {
-    // Use faster compilation
-    esmExternals: 'loose',
+    domains: ['i.pravatar.cc'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
+    ],
   },
   // Skip ESLint during builds for faster compilation
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Enable faster minification
-  swcMinify: true,
   // Optimize bundling without changing functionality
   webpack: (config, { dev }) => {
-    if (!dev) {
-      // Optimize production builds only
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-            },
-          },
-        },
-      };
-    }
     return config;
   },
 };
