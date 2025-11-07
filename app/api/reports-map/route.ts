@@ -5,7 +5,7 @@ import { normalizeReportType } from '@/lib/utils';
 export const runtime = 'nodejs';
 
 // Unified map data endpoint
-// GET /api/reports-map?time=current|past|incoming&types=a,b,c&bbox=minLat,minLng,maxLat,maxLng
+// GET /api/reports-map?time=current|past|incoming&types=a,b,c&bbox=minLat,minLng,maxLat,maxLng&viewed=all|accepted|rejected
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     const typesCsv = searchParams.get('types') || '';
     const types = typesCsv ? typesCsv.split(',').map((s) => s.trim()).filter(Boolean) : [];
     const bbox = searchParams.get('bbox');
+    const viewed = searchParams.get('viewed') || 'all'; // all, accepted, rejected
 
     const bboxFilter: any = {};
     if (bbox) {
@@ -36,21 +37,35 @@ export async function GET(req: Request) {
         typeId: p.typeId,
         description: p.description,
         location: p.location,
+        status: p.status,
       })) });
     }
 
     if (time === 'past') {
       const coll = await getModeratorReportsCollection();
-      const query: any = { status: 'approved', ...bboxFilter };
+      const query: any = { ...bboxFilter };
+      
+      // Apply viewed filter
+      if (viewed === 'accepted') {
+        query.status = { $in: ['approved', 'fixed'] }; // Include both approved and fixed
+      } else if (viewed === 'rejected') {
+        query.status = 'rejected';
+      } else {
+        // 'all' - show approved, fixed, and rejected
+        query.status = { $in: ['approved', 'rejected', 'fixed'] };
+      }
+      
       if (types.length) query.type = { $in: types };
       const rows = await coll.find(query).sort({ decidedAt: -1 }).limit(500).toArray();
-      return NextResponse.json({ items: rows.map((r) => ({
+      return NextResponse.json({ items: rows.map((r: any) => ({
         id: r._id?.toString(),
         source: 'past' as const,
         label: r.title,
         typeId: normalizeReportType(r.type as any),
         description: undefined,
         location: r.location as any,
+        status: r.status, // Include status for frontend (approved, rejected, or fixed)
+        imageUrl: r.imageUrl || r.image, // Support both imageUrl and base64 image field
       })) });
     }
 
@@ -93,6 +108,7 @@ export async function GET(req: Request) {
       typeId: normalizeReportType(r.type),
       description: r.description,
       location: r.location,
+      imageUrl: r.imageUrl || r.image, // Support both imageUrl and base64 image field
     })) });
   } catch (e) {
     console.error('reports-map error', e);

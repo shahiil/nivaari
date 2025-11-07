@@ -79,9 +79,10 @@ export interface CitizenReportDocument {
 export interface ModeratorReportDocument {
   _id?: ObjectId;
   citizenReportId: ObjectId;
-  status: 'approved' | 'rejected';
+  status: 'approved' | 'rejected' | 'fixed';
   moderatorUserId: ObjectId;
   decidedAt: Date;
+  updatedAt?: Date;
   // snapshot for faster reads on citizen dashboard
   title: string;
   type: string;
@@ -123,6 +124,7 @@ export interface MapPinDocument {
   typeId: string; // category id (e.g., 'danger')
   description?: string;
   location: { lat: number; lng: number };
+  status?: string; // e.g., 'active', 'fixed'
   createdByUserId?: ObjectId | null;
   createdAt: Date;
   updatedAt?: Date;
