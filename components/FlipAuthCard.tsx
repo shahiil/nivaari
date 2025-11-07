@@ -125,17 +125,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
 
   return (
     <div className="flip-card-container">
-      {/* Iridescent Background */}
-      <div className="flip-card-background-fixed">
-        <Iridescence 
-          color={[0.4, 0.8, 1.0]}
-          amplitude={0.7}
-          speed={0.35}
-          mouseReact={true}
-        />
-      </div>
-
-      {/* Logo removed from auth card per request */}
+      {/* Background removed - now handled by parent page */}
 
       {/* 3D Flip Card */}
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
@@ -189,7 +179,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
 
                 <Button 
                   type="submit" 
-                  className="flip-card-button"
+                  className="flip-card-button cursor-target"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Signing In...' : 'Sign In'}
@@ -202,7 +192,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
                   Don't have an account?{' '}
                   <button
                     onClick={handleFlip}
-                    className="flip-card-link"
+                    className="flip-card-link cursor-target"
                     type="button"
                   >
                     Create one
@@ -295,7 +285,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
 
                 <Button 
                   type="submit" 
-                  className="flip-card-button"
+                  className="flip-card-button cursor-target"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Creating Account...' : 'Create Account'}
@@ -308,7 +298,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
                   Already have an account?{' '}
                   <button
                     onClick={handleFlip}
-                    className="flip-card-link"
+                    className="flip-card-link cursor-target"
                     type="button"
                   >
                     Sign in
