@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import StarBorder from '@/components/StarBorder';
 import { 
   Menu, 
   X, 
@@ -142,22 +143,24 @@ const Navbar = () => {
             ) : (
               <motion.div className="flex items-center space-x-3" layout>
                 <Link href="/login">
-                  <Button 
-                    variant="outline"
-                    className="glass-panel px-4 py-2 text-sm font-medium hover:bg-white/20"
+                  <StarBorder
+                    as="button"
+                    color="cyan"
+                    speed="5s"
+                    className="hover:scale-110 hover:shadow-glow transition-all duration-300"
                   >
-                    Login
-                  </Button>
+                    <span className="text-white font-medium">Login</span>
+                  </StarBorder>
                 </Link>
                 <Link href="/signup">
-                  <Button 
-                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 
-                             hover:to-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-medium
-                             shadow-glow hover:shadow-glow-lg transition-all duration-300
-                             hover:scale-105"
+                  <StarBorder
+                    as="button"
+                    color="purple"
+                    speed="4s"
+                    className="hover:scale-110 hover:shadow-glow-purple transition-all duration-300"
                   >
-                    Sign Up
-                  </Button>
+                    <span className="text-white font-medium">Sign Up</span>
+                  </StarBorder>
                 </Link>
               </motion.div>
             )}

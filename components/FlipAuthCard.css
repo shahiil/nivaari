@@ -8,7 +8,6 @@
   padding: 2rem;
   position: relative;
   overflow: hidden;
-  background: #0088cc;
 }
 
 /* Fixed Iridescent Background */
@@ -118,11 +117,11 @@
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.05) 25%,
-    rgba(0, 212, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 75%,
-    rgba(138, 43, 226, 0.1) 100%
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(0, 212, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 75%,
+    rgba(138, 43, 226, 0.06) 100%
   );
   background-size: 400% 400%;
   animation: iridescent-shimmer 8s ease-in-out infinite;
@@ -143,28 +142,28 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(10, 25, 41, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
   z-index: 0;
 }
 
 /* Border Glow Effect */
 .flip-card-face {
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 
-    0 0 40px rgba(0, 212, 255, 0.15),
-    0 0 80px rgba(0, 212, 255, 0.1),
-    inset 0 0 60px rgba(0, 212, 255, 0.05);
+    0 8px 32px 0 rgba(0, 212, 255, 0.2),
+    0 0 60px rgba(0, 212, 255, 0.1),
+    inset 0 0 60px rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
 }
 
 .flip-card:hover .flip-card-face {
-  border-color: rgba(0, 212, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 
-    0 0 60px rgba(0, 212, 255, 0.25),
-    0 0 120px rgba(0, 212, 255, 0.15),
-    inset 0 0 80px rgba(0, 212, 255, 0.08);
+    0 8px 32px 0 rgba(0, 212, 255, 0.3),
+    0 0 80px rgba(0, 212, 255, 0.15),
+    inset 0 0 80px rgba(255, 255, 255, 0.08);
 }
 
 /* Front and Back Positioning */

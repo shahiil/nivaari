@@ -2,6 +2,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Mar
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
+import { ImageIcon } from "lucide-react";
 
 // Fix for default marker icons in Leaflet with React
 const fixLeafletIcon = () => {
@@ -17,7 +18,17 @@ const fixLeafletIcon = () => {
 
 type DroppedPin = { lat: number; lng: number; typeId: string; label: string };
 
-type MapMarker = { id: string; lat: number; lng: number; typeId: string; label: string; description?: string; source?: 'current'|'past'|'incoming' };
+type MapMarker = { 
+  id: string; 
+  lat: number; 
+  lng: number; 
+  typeId: string; 
+  label: string; 
+  description?: string; 
+  source?: 'current'|'past'|'incoming';
+  imageUrl?: string;
+  status?: string; // e.g., 'active', 'fixed', 'deleted'
+};
 
 type ModeratorOnMap = {
   id?: string;
@@ -33,10 +44,13 @@ interface MapViewProps {
   onDropPin?: (pin: DroppedPin) => void;
   markers?: MapMarker[];
   reports?: { id?: string; title?: string; type?: string; location?: { lat?: number; lng?: number } }[];
-  filters?: { time: 'current'|'incoming'|'past'; types: string[] };
+  filters?: { time: 'current'|'incoming'|'past'; types: string[]; viewed?: 'all' | 'accepted' | 'rejected' };
   enableModerationActions?: boolean;
   showModerators?: boolean;
   moderators?: ModeratorOnMap[];
+  center?: [number, number];
+  zoom?: number;
+  useSatelliteView?: boolean;
 }
 
 const colorForType = (typeId: string) => {
@@ -91,9 +105,32 @@ const createModeratorIcon = (moderator: ModeratorOnMap) => {
   });
 };
 
-export default function MapView({ onDropPin, markers = [], reports = [], filters = { time: 'current', types: [] }, enableModerationActions = false, showModerators = false, moderators = [] }: MapViewProps) {
+export default function MapView({ onDropPin, markers = [], reports = [], filters = { time: 'current', types: [], viewed: 'all' }, enableModerationActions = false, showModerators = false, moderators = [], center, zoom, useSatelliteView = false }: MapViewProps) {
   useEffect(() => {
     fixLeafletIcon();
+    
+    // Add custom styles for Leaflet popup to remove white padding/background
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .leaflet-popup-content-wrapper {
+        background: transparent !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+      .leaflet-popup-content {
+        margin: 0 !important;
+      }
+      .leaflet-popup-tip {
+        background: rgba(31, 41, 55, 0.6) !important;
+        backdrop-filter: blur(8px) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
 
   const [remotePins, setRemotePins] = useState<MapMarker[]>([]);
@@ -124,17 +161,29 @@ export default function MapView({ onDropPin, markers = [], reports = [], filters
 
   return (
     <MapContainer 
-      center={[19.0760, 72.8777] as [number, number]} 
-      zoom={13} 
+      center={center || [19.0760, 72.8777] as [number, number]} 
+      zoom={zoom || 13} 
       style={{ height: "100%", width: "100%" }}
     >
       <AutoResize />
+      <MapController center={center} zoom={zoom} />
   <Html5DropTarget onDropPin={onDropPin} />
   <ViewportFetchPins onPins={(pins) => setRemotePins(pins)} filters={filters} enableModerationActions={enableModerationActions} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      
+      {/* Conditional Tile Layer - Standard or Satellite */}
+      {useSatelliteView ? (
+        <TileLayer
+          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={19}
+        />
+      ) : (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+      )}
+      
       {mergePins.map((m) => (
         <CircleMarker
           key={m.id}
@@ -198,7 +247,19 @@ function AutoResize() {
   }, [map]);
   return null;
 }
-function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPins: (pins: MapMarker[]) => void; filters: { time: 'current'|'incoming'|'past'; types: string[] }; enableModerationActions?: boolean }) {
+
+function MapController({ center, zoom }: { center?: [number, number]; zoom?: number }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom || map.getZoom(), { animate: true, duration: 1 });
+    }
+  }, [center, zoom, map]);
+  
+  return null;
+}
+function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPins: (pins: MapMarker[]) => void; filters: { time: 'current'|'incoming'|'past'; types: string[]; viewed?: 'all' | 'accepted' | 'rejected' }; enableModerationActions?: boolean }) {
   const map = useMap();
   const abortRef = useRef<AbortController | null>(null);
   const sseRef = useRef<EventSource | null>(null);
@@ -216,6 +277,7 @@ function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPin
       params.set('bbox', bbox);
       params.set('time', filters.time);
       if (filters.types?.length) params.set('types', filters.types.join(','));
+      if (filters.viewed && filters.viewed !== 'all') params.set('viewed', filters.viewed);
       const res = await fetch(`/api/reports-map?${params.toString()}`, { cache: 'no-store', signal: ac.signal });
       const data = await res.json();
       if (res.ok && Array.isArray(data.items)) {
@@ -227,6 +289,8 @@ function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPin
           lat: p.location?.lat,
           lng: p.location?.lng,
           source: p.source,
+          status: p.status,
+          imageUrl: p.imageUrl,
         })).filter((p: any) => typeof p.lat === 'number' && typeof p.lng === 'number');
         onPins(pins);
       }
@@ -239,7 +303,7 @@ function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPin
     // initial fetch after slight delay to ensure layout
     const t = setTimeout(fetchPins, 150);
     return () => clearTimeout(t);
-  }, [filters.time, JSON.stringify(filters.types)]);
+  }, [filters.time, JSON.stringify(filters.types), filters.viewed]);
 
   useMapEvents({
     moveend: fetchPins,
@@ -250,7 +314,7 @@ function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPin
     const handler = () => fetchPins();
     window.addEventListener('map:refetch' as any, handler);
     return () => window.removeEventListener('map:refetch' as any, handler);
-  }, [filters.time, JSON.stringify(filters.types)]);
+  }, [filters.time, JSON.stringify(filters.types), filters.viewed]);
 
   // SSE live updates for incoming reports on moderator
   useEffect(() => {
@@ -321,7 +385,7 @@ function ViewportFetchPins({ onPins, filters, enableModerationActions }: { onPin
       map.off('moveend', onMove);
       map.off('zoomend', onMove);
     };
-  }, [enableModerationActions, filters.time, JSON.stringify(filters.types), map]);
+  }, [enableModerationActions, filters.time, JSON.stringify(filters.types), filters.viewed, map]);
 
   return null;
 }
@@ -348,6 +412,8 @@ function normalizeType(input: string): string {
 
 function MarkerPopupContent({ marker, enableModerationActions, afterAction }: { marker: MapMarker; enableModerationActions: boolean; afterAction?: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  
   const approve = async () => {
     if (!enableModerationActions || marker.source !== 'incoming') return;
     setBusy(true);
@@ -362,6 +428,7 @@ function MarkerPopupContent({ marker, enableModerationActions, afterAction }: { 
       setBusy(false);
     }
   };
+  
   const reject = async () => {
     if (!enableModerationActions || marker.source !== 'incoming') return;
     setBusy(true);
@@ -376,17 +443,162 @@ function MarkerPopupContent({ marker, enableModerationActions, afterAction }: { 
       setBusy(false);
     }
   };
+
+  const deleteMarker = async () => {
+    if (!enableModerationActions || (marker.source !== 'current' && marker.source !== 'past')) return;
+    if (!confirm('Are you sure you want to delete this marker? It will be removed for everyone.')) return;
+    setBusy(true);
+    try {
+      if (marker.source === 'current') {
+        await fetch(`/api/map-pins/${marker.id}`, {
+          method: 'DELETE',
+        });
+      } else if (marker.source === 'past') {
+        // Delete from moderatorReports collection
+        await fetch(`/api/moderator/reports/${marker.id}`, {
+          method: 'DELETE',
+        });
+      }
+      afterAction?.();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const markAsFixed = async () => {
+    if (!enableModerationActions || (marker.source !== 'current' && marker.source !== 'past')) return;
+    setBusy(true);
+    try {
+      if (marker.source === 'current') {
+        await fetch(`/api/map-pins/${marker.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'fixed' }),
+        });
+      } else if (marker.source === 'past') {
+        // Update status in moderatorReports collection
+        await fetch(`/api/moderator/reports/${marker.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'fixed' }),
+        });
+      }
+      afterAction?.();
+    } finally {
+      setBusy(false);
+    }
+  };
+  
   return (
-    <div className="space-y-2">
-      <div className="font-semibold">{marker.label}</div>
-      {marker.description ? <div className="text-sm opacity-90 whitespace-pre-wrap">{marker.description}</div> : null}
-      <div className="text-xs opacity-60">{marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}</div>
-      {enableModerationActions && marker.source === 'incoming' ? (
-        <div className="pt-1 flex gap-2">
-          <button onClick={approve} disabled={busy} className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm disabled:opacity-60">Accept</button>
-          <button onClick={reject} disabled={busy} className="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm disabled:opacity-60">Reject</button>
+    <div className="relative min-w-[280px] max-w-[320px] bg-gray-900/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 shadow-lg">
+      {/* Image Preview Icon */}
+      {marker.imageUrl && (
+        <div 
+          className="absolute top-3 right-3 z-10"
+          onMouseEnter={() => setShowImagePreview(true)}
+          onMouseLeave={() => setShowImagePreview(false)}
+        >
+          <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all hover:scale-110 shadow-md">
+            <ImageIcon className="w-4 h-4 text-white/80" />
+          </div>
+          
+          {/* Image Preview Tooltip */}
+          {showImagePreview && (
+            <div className="absolute top-full right-0 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 z-20">
+              <div className="w-48 h-36 rounded-xl overflow-hidden border-2 border-white/30 shadow-xl bg-black/90">
+                <img 
+                  src={marker.imageUrl} 
+                  alt="Report preview" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
-      ) : null}
+      )}
+      
+      {/* Content */}
+      <div className="space-y-3">
+        <div className="font-bold text-lg text-white pr-10">{marker.label}</div>
+        
+        {marker.status === 'fixed' && (
+          <div className="flex items-center gap-2 text-green-400 text-sm font-semibold bg-green-500/20 border border-green-400/30 rounded-lg px-3 py-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Issue Fixed
+          </div>
+        )}
+        
+        {marker.description && (
+          <div className="text-sm text-gray-200/90 whitespace-pre-wrap leading-relaxed">
+            {marker.description}
+          </div>
+        )}
+        
+        <div className="text-xs text-gray-400 font-mono pt-1 border-t border-white/10">
+          📍 {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}
+        </div>
+        
+        {/* Action Buttons for Incoming Reports */}
+        {enableModerationActions && marker.source === 'incoming' && (
+          <div className="pt-2 flex gap-3 justify-center items-center">
+            <button 
+              onClick={approve} 
+              disabled={busy}
+              className="group relative w-14 h-14 rounded-full bg-green-500/30 backdrop-blur-sm border border-green-400/40 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] hover:bg-green-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-110 active:scale-95"
+              title="Accept Report"
+            >
+              <svg className="w-7 h-7 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+            
+            <button 
+              onClick={reject} 
+              disabled={busy}
+              className="group relative w-14 h-14 rounded-full bg-red-500/30 backdrop-blur-sm border border-red-400/40 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:bg-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-110 active:scale-95"
+              title="Reject Report"
+            >
+              <svg className="w-7 h-7 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Action Buttons for Current Markers (Government Issued) and Past Accepted Reports */}
+        {enableModerationActions && (marker.source === 'current' || marker.source === 'past') && (
+          <div className="pt-2 flex gap-2 justify-center items-center flex-wrap">
+            <button 
+              onClick={markAsFixed} 
+              disabled={busy || marker.status === 'fixed'}
+              className="flex-1 min-w-[100px] px-4 py-2.5 rounded-lg bg-green-500/30 backdrop-blur-sm border border-green-400/40 text-green-300 text-sm font-semibold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] hover:bg-green-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 active:scale-95"
+              title="Mark as Fixed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Fixed
+            </button>
+            
+            <button 
+              onClick={deleteMarker} 
+              disabled={busy}
+              className="flex-1 min-w-[100px] px-4 py-2.5 rounded-lg bg-red-500/30 backdrop-blur-sm border border-red-400/40 text-red-300 text-sm font-semibold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:bg-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 active:scale-95"
+              title="Delete Marker"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

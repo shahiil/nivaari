@@ -24,7 +24,19 @@ export default function ReportIssuePage() {
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState<number | ''>('');
   const [lng, setLng] = useState<number | ''>('');
+  const [image, setImage] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const submit = async () => {
     if (!title || !type || !description) {
@@ -36,12 +48,18 @@ export default function ReportIssuePage() {
       const res = await fetch('/api/citizen-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, type, description, location: { address, lat: lat === '' ? undefined : lat, lng: lng === '' ? undefined : lng } }),
+        body: JSON.stringify({ 
+          title, 
+          type, 
+          description, 
+          location: { address, lat: lat === '' ? undefined : lat, lng: lng === '' ? undefined : lng },
+          image: image || undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         window.alert('Report submitted');
-  setTitle(''); setType(''); setDescription(''); setAddress(''); setLat(''); setLng('');
+        setTitle(''); setType(''); setDescription(''); setAddress(''); setLat(''); setLng(''); setImage('');
       } else {
         window.alert(data?.error || 'Failed to submit report');
       }
@@ -70,6 +88,29 @@ export default function ReportIssuePage() {
             <Input placeholder="Longitude (optional)" value={lng} onChange={(e) => setLng(e.target.value ? Number(e.target.value) : '')} />
           </div>
           <Textarea placeholder="Describe the issue" value={description} onChange={(e) => setDescription(e.target.value)} />
+          
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Attach Image (optional)</label>
+            <Input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageUpload}
+              className="cursor-pointer"
+            />
+            {image && (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-300">
+                <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => setImage('')}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+          
           <div className="flex gap-3">
             <Button onClick={submit} disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Report'}</Button>
             <Button variant="outline" onClick={() => navigator.geolocation?.getCurrentPosition((pos) => { setLat(Number(pos.coords.latitude.toFixed(6))); setLng(Number(pos.coords.longitude.toFixed(6))); setAddress(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`); })}>Use GPS</Button>
