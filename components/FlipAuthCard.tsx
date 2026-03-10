@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Shield, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Key, Shield, Copy, CheckCircle2, ArrowRight, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 const Iridescence = dynamic(() => import('./Iridescence'), { ssr: false });
@@ -21,11 +21,12 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
   const router = useRouter();
   const { currentUser, userData, loading, refresh } = useAuth();
   const [isFlipped, setIsFlipped] = useState(initialMode === 'signup');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+  const [hasGeneratedCredentials, setHasGeneratedCredentials] = useState(false);
+  const [credentials, setCredentials] = useState({ socialId: '', recoveryKey: '', token: '' });
+  
+  const [loginData, setLoginData] = useState({
+    recoveryKey: '',
+    token: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,82 +43,67 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    });
+    setLoginData({ recoveryKey: '', token: '' });
+    setHasGeneratedCredentials(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const generateCredentials = () => {
+    const socialId = 'NIV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const recoveryKey = Array(4).fill(0).map(() => Math.random().toString(36).substr(2, 4)).join('-').toUpperCase();
+    const token = Math.random().toString(36).substr(2, 16);
+    
+    setCredentials({ socialId, recoveryKey, token });
+    setHasGeneratedCredentials(true);
+    toast.success('Anonymous credentials generated!');
+  };
+
+  const handleCopyCredentials = () => {
+    const textToCopy = `Nivaari Social ID: ${credentials.socialId}\nRecovery Key: ${credentials.recoveryKey}\nToken: ${credentials.token}`;
+    navigator.clipboard.writeText(textToCopy);
+    toast.success('Credentials copied to clipboard!');
+  };
+
+  const continueWithGeneratedAccount = () => {
+    // Mock successful login/creation routing since backend is deferred
+    localStorage.setItem('nivaari_anon_token', credentials.token);
+    toast.success('Account created successfully. Requesting permissions...');
+    requestPermissionsAndProceed();
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password) {
-      toast.error('Please fill in all fields');
+    if (!loginData.recoveryKey || !loginData.token) {
+      toast.error('Please enter your Recovery Key and Token');
       return;
     }
 
-    if (!isLogin) {
-      if (!formData.name || !formData.confirmPassword) {
-        toast.error('Please fill in all fields');
-        return;
-      }
-      if (formData.password.length < 8) {
-        toast.error('Password must be at least 8 characters long');
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
-      }
-    }
-
     setIsSubmitting(true);
-
-    try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
-      const body = isLogin 
-        ? { email: formData.email, password: formData.password }
-        : { name: formData.name, email: formData.email, password: formData.password };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          toast.error('Email is already registered. Try logging in.');
-          return;
-        }
-        const message = data?.error || 'Authentication failed. Please try again.';
-        toast.error(message);
-        return;
-      }
-
-      await refresh();
-      toast.success(isLogin ? 'Login successful!' : 'Account created successfully!');
-
-      const role = data.user?.role || 'citizen';
-      if (role === 'admin') router.push('/admin-dashboard');
-      else if (role === 'moderator') router.push('/moderator-dashboard');
-      else router.push('/citizen-dashboard');
-
-    } catch (error) {
-      console.error('Auth error:', error);
-      toast.error(isLogin ? 'Login failed.' : 'Failed to create account.');
-    } finally {
+    
+    // Simulating API call for account recovery
+    setTimeout(() => {
       setIsSubmitting(false);
+      localStorage.setItem('nivaari_anon_token', loginData.token);
+      toast.success('Account recovered successfully!');
+      requestPermissionsAndProceed();
+    }, 1500);
+  };
+  
+  const requestPermissionsAndProceed = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission();
     }
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => console.log("Location access granted"), 
+        (err) => console.log("Location access denied", err)
+      );
+    }
+    router.push('/citizen-dashboard');
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLoginData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
@@ -130,7 +116,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
       {/* 3D Flip Card */}
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
         <div className="flip-card-inner">
-          {/* Front Side - Login */}
+          {/* Front Side - Login (Account Recovery) */}
           <div className="flip-card-face flip-card-front">
             <div className="flip-card-content">
               <motion.div
@@ -138,170 +124,154 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <h2 className="flip-card-title">Welcome Back</h2>
-                <p className="flip-card-subtitle">Sign in to continue your journey</p>
+                <div className="flex justify-center mb-4">
+                  <Shield className="w-12 h-12 text-blue-500" />
+                </div>
+                <h2 className="flip-card-title">Recover Account</h2>
+                <p className="flip-card-subtitle">Enter your anonymous credentials</p>
               </motion.div>
 
-              <form onSubmit={handleSubmit} className="flip-card-form">
+              <form onSubmit={handleLoginSubmit} className="flip-card-form">
                 <div className="flip-card-input-group">
-                  <Label htmlFor="login-email" className="flip-card-label">
-                    <Mail className="w-4 h-4" />
-                    Email
+                  <Label htmlFor="login-recovery-key" className="flip-card-label">
+                    <Key className="w-4 h-4" />
+                    Recovery Key
                   </Label>
                   <Input
-                    id="login-email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="flip-card-input"
+                    id="login-recovery-key"
+                    name="recoveryKey"
+                    type="text"
+                    placeholder="XXXX-XXXX-XXXX-XXXX"
+                    value={loginData.recoveryKey}
+                    onChange={handleLoginChange}
+                    className="flip-card-input font-mono uppercase"
                     required
                   />
                 </div>
                 
                 <div className="flip-card-input-group">
-                  <Label htmlFor="login-password" className="flip-card-label">
+                  <Label htmlFor="login-token" className="flip-card-label">
                     <Lock className="w-4 h-4" />
-                    Password
+                    Token
                   </Label>
                   <Input
-                    id="login-password"
-                    name="password"
+                    id="login-token"
+                    name="token"
                     type="password"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="flip-card-input"
+                    placeholder="Enter your private token"
+                    value={loginData.token}
+                    onChange={handleLoginChange}
+                    className="flip-card-input font-mono"
                     required
                   />
                 </div>
 
                 <Button 
                   type="submit" 
-                  className="flip-card-button cursor-target"
+                  className="flip-card-button cursor-target mt-4"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Signing In...' : 'Sign In'}
+                  {isSubmitting ? 'Recovering...' : 'Access Account'}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </form>
 
-              <div className="flip-card-footer">
+              <div className="flip-card-footer mt-6">
                 <p className="flip-card-footer-text">
-                  Don't have an account?{' '}
+                  New to Nivaari?{' '}
                   <button
                     onClick={handleFlip}
                     className="flip-card-link cursor-target"
                     type="button"
                   >
-                    Create one
+                    Create Anonymous ID
                   </button>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Back Side - Signup */}
+          {/* Back Side - Signup (Create Anonymous Account) */}
           <div className="flip-card-face flip-card-back">
-            <div className="flip-card-content">
+            <div className="flip-card-content min-w-full">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
+                className="mb-8"
               >
-                <h2 className="flip-card-title">Join Nivaari</h2>
-                <p className="flip-card-subtitle">Create your account and stay safe</p>
+                <h2 className="flip-card-title">Create Identity</h2>
+                <p className="flip-card-subtitle">Nivaari uses 100% anonymous identities.</p>
               </motion.div>
 
-              <form onSubmit={handleSubmit} className="flip-card-form">
-                <div className="flip-card-input-group">
-                  <Label htmlFor="signup-name" className="flip-card-label">
-                    <User className="w-4 h-4" />
-                    Full Name
-                  </Label>
-                  <Input
-                    id="signup-name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="flip-card-input"
-                    required
-                  />
+              {!hasGeneratedCredentials ? (
+                <div className="flex flex-col items-center justify-center space-y-6">
+                  <p className="text-sm text-gray-400 text-center mb-4">
+                    We will generate a unique Social ID, Recovery Key, and Token. No email, phone, or name is required.
+                  </p>
+                  <Button 
+                    onClick={generateCredentials}
+                    className="flip-card-button cursor-target w-full"
+                  >
+                    Generate Credentials
+                    <Key className="w-5 h-5 ml-2" />
+                  </Button>
                 </div>
-
-                <div className="flip-card-input-group">
-                  <Label htmlFor="signup-email" className="flip-card-label">
-                    <Mail className="w-4 h-4" />
-                    Email
-                  </Label>
-                  <Input
-                    id="signup-email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="flip-card-input"
-                    required
-                  />
-                </div>
-                
-                <div className="flip-card-input-group">
-                  <Label htmlFor="signup-password" className="flip-card-label">
-                    <Lock className="w-4 h-4" />
-                    Password
-                  </Label>
-                  <Input
-                    id="signup-password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="flip-card-input"
-                    required
-                  />
-                </div>
-
-                <div className="flip-card-input-group">
-                  <Label htmlFor="signup-confirm" className="flip-card-label">
-                    <Lock className="w-4 h-4" />
-                    Confirm Password
-                  </Label>
-                  <Input
-                    id="signup-confirm"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="flip-card-input"
-                    required
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="flip-card-button cursor-target"
-                  disabled={isSubmitting}
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-6"
                 >
-                  {isSubmitting ? 'Creating Account...' : 'Create Account'}
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </form>
+                  <div className="bg-black/30 border border-white/10 p-5 rounded-lg space-y-4">
+                    <div>
+                      <Label className="text-xs text-blue-400 uppercase tracking-wider">Social ID</Label>
+                      <div className="font-mono text-lg text-white font-medium tracking-wide">{credentials.socialId}</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-blue-400 uppercase tracking-wider">Recovery Key</Label>
+                      <div className="font-mono text-lg text-red-300 font-medium tracking-wide">{credentials.recoveryKey}</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-blue-400 uppercase tracking-wider">Token</Label>
+                      <div className="font-mono text-sm text-green-300 break-all">{credentials.token}</div>
+                    </div>
+                  </div>
 
-              <div className="flip-card-footer">
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 text-sm text-red-200">
+                    <strong>Critical:</strong> Please copy these credentials. If lost, your account cannot be recovered.
+                  </div>
+
+                  <div className="flex flex-col space-y-3">
+                    <Button 
+                      onClick={handleCopyCredentials}
+                      variant="outline"
+                      className="w-full border-white/10 hover:bg-white/5 cursor-target flex items-center justify-center py-5"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy to Clipboard
+                    </Button>
+
+                    <Button 
+                      onClick={continueWithGeneratedAccount}
+                      className="flip-card-button cursor-target w-full"
+                    >
+                      I Saved My Credentials
+                      <CheckCircle2 className="w-5 h-5 ml-2" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="flip-card-footer mt-8">
                 <p className="flip-card-footer-text">
-                  Already have an account?{' '}
+                  Already have an identity?{' '}
                   <button
                     onClick={handleFlip}
                     className="flip-card-link cursor-target"
                     type="button"
                   >
-                    Sign in
+                    Recover Account
                   </button>
                 </p>
               </div>

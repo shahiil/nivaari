@@ -34,7 +34,8 @@ import {
   Satellite,
   Edit,
   Camera,
-  Archive
+  Archive,
+  Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -45,8 +46,9 @@ import toast from 'react-hot-toast';
 import Dock from '@/components/Dock';
 import DockSearchBar from '@/components/DockSearchBar';
 
-const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+const CanvasTileMap = dynamic(() => import('@/components/CanvasTileMap'), { ssr: false });
 const LocationSelectionMap = dynamic(() => import('@/components/LocationSelectionMap'), { ssr: false });
+const NivaariChat = dynamic(() => import('@/components/NivaariChat'), { ssr: false });
 
 const reportCategories = [
   { id: 'danger', label: 'Danger', icon: AlertTriangle, color: 'text-red-600' },
@@ -97,6 +99,7 @@ export default function CitizenDashboard() {
   const [reports, setReports] = useState<ApprovedReport[]>([]);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
   const [mapZoom, setMapZoom] = useState<number>(13);
   const [useSatelliteView, setUseSatelliteView] = useState(false);
@@ -407,12 +410,7 @@ export default function CitizenDashboard() {
               )}
             </div>
           ) : (
-            <MapView
-              reports={filteredReports}
-              center={mapCenter}
-              zoom={mapZoom}
-              useSatelliteView={useSatelliteView}
-            />
+            <CanvasTileMap />
           )}
         </div>
       </div>
@@ -567,14 +565,19 @@ export default function CitizenDashboard() {
             </div>
 
             <div className="p-4 space-y-4">
-              {/* Report types */}
+              {/* Map Filter Toggles (Nivaari Specific) */}
               <div>
                 <div className="text-xs font-semibold text-white mb-2 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-gradient-to-b from-cyan-400 to-purple-500 rounded-full shadow-[0_0_10px_rgba(0,183,255,0.5)]"></div>
-                  Report Types
+                  <div className="w-1 h-3 bg-gradient-to-b from-purple-400 to-pink-500 rounded-full shadow-[0_0_10px_rgba(255,0,255,0.5)]"></div>
+                  Tile Overlays & Zones
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {reportCategories.map((c) => {
+                  {[
+                    { id: 'disasters', label: 'Disasters', icon: AlertTriangle, color: 'text-red-500' },
+                    { id: 'emergencies', label: 'Emergencies', icon: Activity, color: 'text-orange-500' },
+                    { id: 'transports', label: 'Transports', icon: Car, color: 'text-blue-500' },
+                    { id: 'zones', label: 'Safety Zones', icon: MapPin, color: 'text-green-500' }
+                  ].map((c) => {
                     const Icon = c.icon;
                     const checked = selectedCategories.includes(c.id);
                     return (
@@ -651,6 +654,26 @@ export default function CitizenDashboard() {
           </div>
         </div>
       )}
+
+      {/* AI Chat Integration */}
+      {/* Floating Action Button for Nivaari AI */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all duration-300 hover:scale-110 z-[55] group overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+          <Sparkles className="w-6 h-6 text-white" />
+        </button>
+      )}
+
+      {/* Render AI Chat Component */}
+      <NivaariChat 
+        isOpen={chatOpen} 
+        onClose={() => setChatOpen(false)} 
+        // passing mock location for now representing "context"
+        contextLocation={{ lat: 19.0760, lng: 72.8777 }} 
+      />
 
       {/* Report Issue Modal */}
       {reportOpen && (
@@ -862,75 +885,70 @@ export default function CitizenDashboard() {
 
       {/* Analytics Modal */}
       {analyticsOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[80]">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setAnalyticsOpen(false)}
-          />
-          <div className="glass-panel bg-black/90 backdrop-blur-xl rounded-3xl shadow-[0_0_40px_rgba(0,183,255,0.4)] border border-cyan-400/30 w-full max-w-3xl mx-4 ring-1 ring-cyan-400/20 relative">
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div className="fixed inset-0 flex items-center justify-center z-[80] p-4 bg-black/40 backdrop-blur-sm">
+          <div className="glass-panel w-full max-w-lg bg-black/90 backdrop-blur-xl rounded-2xl border border-cyan-400/30 p-6 shadow-[0_0_40px_rgba(0,183,255,0.3)]">
+            <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,183,255,0.6)]">
-                    <BarChart3 className="w-5 h-5 text-white" />
-                  </div>
-                  Report Statistics
+                  <BarChart3 className="w-6 h-6 text-cyan-400" />
+                  Area Aggregation
                 </h2>
-                <p className="text-sm text-cyan-300 mt-1">Overview of community reports</p>
+                <p className="text-sm text-gray-400 mt-1">Live overview of your current vicinity</p>
               </div>
-              <button
-                onClick={() => setAnalyticsOpen(false)}
-                className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
+              <button onClick={() => setAnalyticsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Total Reports */}
-                <div className="glass-panel bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-2 border-cyan-400/40 rounded-2xl p-5 shadow-[0_0_20px_rgba(0,183,255,0.3)] hover:shadow-[0_0_30px_rgba(0,183,255,0.5)] transition-all duration-300 hover:scale-105">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,183,255,0.6)]">
-                      <FileText className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-cyan-300 uppercase tracking-wide">Total Reports</div>
-                      <div className="text-3xl font-bold text-white">{totalReports}</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-cyan-200">Approved community reports</div>
+            <div className="space-y-6 animate-in slide-in-from-bottom-4">
+              {/* Mood Index */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-300 font-semibold text-sm uppercase tracking-wider">Citizen Mood Index</span>
+                  <span className="text-green-400 font-bold text-lg">78% Positive</span>
                 </div>
-
-                {/* Infrastructure */}
-                <div className="glass-panel bg-gradient-to-br from-orange-500/20 to-red-500/20 border-2 border-orange-400/40 rounded-2xl p-5 shadow-[0_0_20px_rgba(251,146,60,0.3)] hover:shadow-[0_0_30px_rgba(251,146,60,0.5)] transition-all duration-300 hover:scale-105">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center shadow-[0_0_15px_rgba(251,146,60,0.6)]">
-                      <Construction className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-orange-300 uppercase tracking-wide">Infrastructure</div>
-                      <div className="text-3xl font-bold text-white">{infrastructureReports}</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-orange-200">Roads & utilities</div>
+                <div className="w-full bg-black/50 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div className="bg-gradient-to-r from-yellow-500 to-green-500 h-full rounded-full w-[78%]"></div>
                 </div>
+              </div>
 
-                {/* Health & Safety */}
-                <div className="glass-panel bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-2 border-green-400/40 rounded-2xl p-5 shadow-[0_0_20px_rgba(0,255,157,0.3)] hover:shadow-[0_0_30px_rgba(0,255,157,0.5)] transition-all duration-300 hover:scale-105">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,255,157,0.6)]">
-                      <AlertTriangle className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-green-300 uppercase tracking-wide">Health & Safety</div>
-                      <div className="text-3xl font-bold text-white">{healthReports + safetyReports}</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-green-200">Health & safety issues</div>
+              {/* Satisfaction */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-300 font-semibold text-sm uppercase tracking-wider">Local Government Satisfaction</span>
+                  <span className="text-orange-400 font-bold text-lg">62% Approval</span>
+                </div>
+                <div className="w-full bg-black/50 rounded-full h-3 overflow-hidden shadow-inner flex">
+                  <div className="bg-green-500 h-full w-[62%]"></div>
+                  <div className="bg-red-500 h-full w-[38%]"></div>
+                </div>
+              </div>
+
+              {/* Structural Health */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-300 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
+                    <Construction className="w-4 h-4 text-cyan-400"/> Infrastructure Health
+                  </span>
+                  <span className="text-cyan-400 font-bold text-lg">Good (85%)</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                   <div className="bg-black/40 rounded p-2 text-center text-xs border border-white/5">
+                     <div className="text-gray-500 mb-1">Roads</div>
+                     <div className="text-white font-bold">81%</div>
+                   </div>
+                   <div className="bg-black/40 rounded p-2 text-center text-xs border border-white/5">
+                     <div className="text-gray-500 mb-1">Bridges</div>
+                     <div className="text-white font-bold">92%</div>
+                   </div>
+                   <div className="bg-black/40 rounded p-2 text-center text-xs border border-white/5">
+                     <div className="text-gray-500 mb-1">Utilities</div>
+                     <div className="text-white font-bold">85%</div>
+                   </div>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       )}
@@ -1056,14 +1074,14 @@ export default function CitizenDashboard() {
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
-                <Button 
+                <Button
                   onClick={() => setPasswordVerificationOpen(true)}
                   className="flex-1 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all font-semibold border-0 text-white"
                 >
                   Save Changes
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setProfileEditOpen(false)}
                   className="flex-1 h-12 rounded-xl border-2 border-white/20 hover:bg-white/10 font-semibold transition-all text-white bg-transparent"
                 >
@@ -1107,9 +1125,9 @@ export default function CitizenDashboard() {
               <p className="text-sm text-cyan-300/80">
                 Please enter your current password to save changes
               </p>
-              
+
               <div>
-                <Input 
+                <Input
                   type="password"
                   placeholder="Enter your password"
                   value={verificationPassword}
@@ -1125,7 +1143,7 @@ export default function CitizenDashboard() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <Button 
+                <Button
                   onClick={async () => {
                     const isValid = await verifyPassword(verificationPassword);
                     if (isValid) {
@@ -1148,8 +1166,8 @@ export default function CitizenDashboard() {
                 >
                   Confirm
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setPasswordVerificationOpen(false);
                     setVerificationPassword('');
