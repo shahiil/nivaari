@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNivaariStore, SectorStats } from '@/lib/nivaariStore';
+import { gridSchema } from '@/lib/nivaari/schemas';
 
 function gradeFromHealth(health: number) {
   if (health >= 90) return 'A';
@@ -39,10 +40,8 @@ export default function CityStatsDashboard({
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const obj = JSON.parse(reader.result as string);
-        if (typeof obj === 'object' && obj !== null) {
-          useNivaariStore.setState({ grid: obj });
-        }
+        const parsed = gridSchema.parse(JSON.parse(reader.result as string));
+        useNivaariStore.setState({ grid: parsed });
       } catch (err) {
         console.error('import failed', err);
       }
@@ -137,7 +136,11 @@ export default function CityStatsDashboard({
                 navigator.clipboard.writeText(window.location.href);
                 alert('Link copied to clipboard');
               }
-              try { track('City Shared'); } catch {}
+              try {
+                track('City Shared');
+              } catch (error) {
+                console.warn('Failed to track city share event', error);
+              }
             }}
           >
             Share City

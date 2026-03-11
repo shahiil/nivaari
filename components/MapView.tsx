@@ -153,7 +153,11 @@ function AutoResize() {
   const map = useMap();
   useEffect(() => {
     const invalidate = () => {
-      try { map.invalidateSize(); } catch {}
+      try {
+        map.invalidateSize();
+      } catch (error) {
+        console.warn('Failed to invalidate map size', error);
+      }
     };
     // call a few times after mount to settle layout
     const t1 = setTimeout(invalidate, 100);

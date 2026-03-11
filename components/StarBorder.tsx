@@ -1,24 +1,27 @@
 import React from 'react';
 
-type StarBorderProps<T extends React.ElementType> = React.ComponentPropsWithoutRef<T> & {
-  as?: T;
+type StarBorderProps = {
+  as?: React.ElementType;
   className?: string;
   children?: React.ReactNode;
   color?: string;
   speed?: React.CSSProperties['animationDuration'];
   thickness?: number;
+  style?: React.CSSProperties;
+  onClick?: React.MouseEventHandler<HTMLElement>;
 };
 
-const StarBorder = <T extends React.ElementType = 'button'>({
+const StarBorder = ({
   as,
   className = '',
   color = 'cyan',
   speed = '6s',
   thickness = 2,
   children,
+  style,
   ...rest
-}: StarBorderProps<T>) => {
-  const Component = as || 'button';
+}: StarBorderProps) => {
+  const Component = (as || 'button') as React.ElementType;
 
   // Color mapping for Tailwind-friendly gradients
   const colorMap: Record<string, string> = {
@@ -34,15 +37,17 @@ const StarBorder = <T extends React.ElementType = 'button'>({
 
   const glowColor = colorMap[color] || color;
 
-  return (
-    <Component
-      className={`relative inline-block rounded-full overflow-hidden transition-all duration-300 ${className}`}
-      {...(rest as any)}
-      style={{
+  return React.createElement(
+    Component,
+    {
+      className: `relative inline-block rounded-full overflow-hidden transition-all duration-300 ${className}`,
+      style: {
         padding: `${thickness}px`,
-        ...(rest as any).style
-      }}
-    >
+        ...style,
+      },
+      ...rest,
+    },
+    <>
       {/* Animated border glow container - stays behind content */}
       <div 
         className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
@@ -77,7 +82,7 @@ const StarBorder = <T extends React.ElementType = 'button'>({
       <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-full px-6 py-2.5 text-sm font-medium border border-white/20 hover:bg-white/20 hover:backdrop-blur-lg transition-all duration-300">
         {children}
       </div>
-    </Component>
+    </>
   );
 };
 

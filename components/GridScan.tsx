@@ -387,16 +387,19 @@ export const GridScan = ({
     const onClick = async () => {
       const nowSec = performance.now() / 1000;
       if (scanOnClick) pushScan(nowSec);
+      const orientationEvent = DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+        requestPermission?: () => Promise<'granted' | 'denied'>;
+      };
       if (
         enableGyro &&
         typeof window !== 'undefined' &&
         window.DeviceOrientationEvent &&
-        (DeviceOrientationEvent as any).requestPermission
+        orientationEvent.requestPermission
       ) {
         try {
-          await (DeviceOrientationEvent as any).requestPermission();
-        } catch {
-          // noop
+          await orientationEvent.requestPermission();
+        } catch (error) {
+          console.warn('Failed to request device orientation permission', error);
         }
       }
     };

@@ -18,7 +18,9 @@ export default function CursorTrail() {
     // Hide the native cursor while the trail is active
     try {
       document.documentElement.classList.add('hide-cursor');
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to enable cursor trail mode', error);
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
@@ -43,7 +45,9 @@ export default function CursorTrail() {
       window.removeEventListener('mousemove', handleMouseMove);
       try {
         document.documentElement.classList.remove('hide-cursor');
-      } catch {}
+      } catch (error) {
+        console.warn('Failed to disable cursor trail mode', error);
+      }
     };
   }, []);
 

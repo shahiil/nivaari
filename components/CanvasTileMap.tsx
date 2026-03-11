@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Stage, Layer, Rect, Text, Group, Circle, Line } from 'react-konva';
+import type Konva from 'konva';
 import { generateCuratedTiles, getColorForCategory, NivaariTile, TileCategory } from '@/lib/tile-engine';
 
 interface CanvasTileMapProps {
@@ -86,9 +87,10 @@ export default function CanvasTileMap({ onTileSelect, activeFilters = [], select
     [localSelectedId, onTileSelect]
   );
 
-  const handleWheel = (event: any) => {
+  const handleWheel = (event: Konva.KonvaEventObject<WheelEvent>) => {
     event.evt.preventDefault();
     const stage = event.target.getStage();
+    if (!stage) return;
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
     const oldScale = stage.scaleX();
