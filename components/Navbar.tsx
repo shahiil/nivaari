@@ -22,9 +22,9 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, userData, loading, logout } = useAuth();
-  const hideNavbarRoutes = ['/login', '/signup', '/moderator-dashboard', '/admin-dashboard', '/auth'];
+  // routes where navbar shouldn't show (login/signup kept)
+  const hideNavbarRoutes = ['/login', '/signup', '/auth'];
 
-  // Hide navbar on login, signup, moderator and admin dashboard pages
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -88,9 +88,9 @@ const Navbar = () => {
             </Link>
             {currentUser && userData && (
               <motion.div className="flex items-center space-x-6" layout>
+                {/* everyone goes to the citizen dashboard now */}
                 <Link
-                  href={userData.role === 'admin' ? '/admin-dashboard' : 
-                        userData.role === 'moderator' ? '/moderator-dashboard' : '/citizen-dashboard'}
+                  href="/citizen-dashboard"
                   className="text-gray-300 hover:text-white transition-colors nav-link"
                 >
                   <span className="flex items-center gap-2">
@@ -98,22 +98,7 @@ const Navbar = () => {
                     Dashboard
                   </span>
                 </Link>
-                {userData.role === 'moderator' && (
-                  <Link href="/moderator/reports" className="text-gray-300 hover:text-white transition-colors nav-link">
-                    <span className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Reports
-                    </span>
-                  </Link>
-                )}
-                {userData.role === 'citizen' && (
-                  <Link href="/report" className="text-gray-300 hover:text-white transition-colors nav-link">
-                    <span className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      Report Issue
-                    </span>
-                  </Link>
-                )}
+                {/* no separate report/admin/moderator links */}
               </motion.div>
             )}
           </div>
@@ -198,8 +183,7 @@ const Navbar = () => {
               {currentUser && userData && (
                 <>
                   <Link
-                    href={userData.role === 'admin' ? '/admin-dashboard' : 
-                          userData.role === 'moderator' ? '/moderator-dashboard' : '/citizen-dashboard'}
+                    href="/citizen-dashboard"
                     className="block text-gray-300 hover:text-white transition-colors nav-link"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -208,30 +192,6 @@ const Navbar = () => {
                       Dashboard
                     </span>
                   </Link>
-                  {userData.role === 'moderator' && (
-                    <Link
-                      href="/moderator/reports"
-                      className="block text-gray-300 hover:text-white transition-colors nav-link"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Reports
-                      </span>
-                    </Link>
-                  )}
-                  {userData.role === 'citizen' && (
-                    <Link
-                      href="/report"
-                      className="block text-gray-300 hover:text-white transition-colors nav-link"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
-                        Report Issue
-                      </span>
-                    </Link>
-                  )}
                 </>
               )}
             </div>

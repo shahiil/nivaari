@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, X, Loader2, Sparkles, MapPin } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Bot, Loader2, MapPin, Send, Sparkles, User, X } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface Message {
   id: string;
   role: 'user' | 'ai';
   content: string;
-  isAction?: boolean;
 }
 
 interface NivaariChatProps {
@@ -17,172 +16,207 @@ interface NivaariChatProps {
   contextLocation?: { lat: number; lng: number } | null;
 }
 
+const quickPrompts = [
+  'This building is a hospital and it is crowded.',
+  'There is flooding on this route.',
+  'This tile should be residential, not commercial.',
+];
+
 export default function NivaariChat({ isOpen, onClose, contextLocation }: NivaariChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
+      id: 'initial',
       role: 'ai',
-      content: 'Hello! I am Nivaari Assistant. You can tell me about issues around you or ask for area updates.',
-    }
+      content:
+        'Describe the tile in natural language. I will convert it into a structured NIVAARI report with category, services, risks, and confidence.',
+    },
   ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const locationLabel = useMemo(() => {
+    if (!contextLocation) return 'Tile location not attached';
+    return `Location attached: ${contextLocation.lat.toFixed(4)}, ${contextLocation.lng.toFixed(4)}`;
+  }, [contextLocation]);
+
+  const submitMessage = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       role: 'user',
-      content: input.trim(),
+      content: trimmed,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((current) => [...current, userMessage]);
     setInput('');
-    setIsLoading(true);
+    setLoading(true);
 
-    // Simulate AI Processing Delay
-    setTimeout(() => {
-      let aiResponse: Message;
-
-      // Dummy NLP Simulation based on keywords
-      const lowerInput = userMessage.content.toLowerCase();
-      
-      if (lowerInput.includes('pothole') || lowerInput.includes('road')) {
-        aiResponse = {
-          id: (Date.now() + 1).toString(),
+    window.setTimeout(() => {
+      setMessages((current) => [
+        ...current,
+        {
+          id: `ai-${Date.now()}`,
           role: 'ai',
-          content: 'I understand you are reporting a road issue. I am generating a structured report for the moderator team. Would you like me to attach your current location?',
-          isAction: true
-        };
-      } else if (lowerInput.includes('traffic')) {
-        aiResponse = {
-          id: (Date.now() + 1).toString(),
-          role: 'ai',
-          content: 'Traffic reported. I will update the map tile data for others in your vicinity immediately.',
-          isAction: true
-        };
-      } else {
-        aiResponse = {
-          id: (Date.now() + 1).toString(),
-          role: 'ai',
-          content: 'Thank you for the update. Our spatial analysis engine has recorded your input to evaluate the surrounding tile infrastructure.',
-        };
-      }
-
-      setMessages(prev => [...prev, aiResponse]);
-      setIsLoading(false);
-    }, 1500);
+          content: buildStructuredReply(trimmed, contextLocation),
+        },
+      ]);
+      setLoading(false);
+    }, 900);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 w-[380px] h-[500px] bg-gray-900/95 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-[0_0_40px_rgba(0,183,255,0.2)] flex flex-col overflow-hidden z-[60] animate-in slide-in-from-bottom-10">
-      
-      {/* Header */}
-      <div className="bg-gradient-to-r from-cyan-900/50 to-blue-900/50 p-4 border-b border-white/10 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-400">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
+    <div className="fixed bottom-6 right-6 z-[80] flex h-[34rem] w-[24rem] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#07131a]/96 text-white shadow-[0_22px_90px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-500/10">
+            <Sparkles className="h-4 w-4 text-cyan-200" />
           </div>
           <div>
-            <h3 className="font-bold text-white text-sm">Nivaari AI</h3>
-            <p className="text-[10px] text-cyan-300 font-mono flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse mr-1" />
-              ONLINE {contextLocation && `- LOC SECURED`}
-            </p>
+            <p className="text-sm font-semibold">NIVAARI AI</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">field data assistant</p>
           </div>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-          <X className="w-5 h-5" />
+        <button type="button" onClick={onClose} className="rounded-full border border-white/10 p-2 text-slate-300">
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'ai' && (
-              <div className="w-8 h-8 rounded-full bg-cyan-900/50 flex-shrink-0 flex items-center justify-center border border-cyan-500/30">
-                <Bot className="w-4 h-4 text-cyan-400" />
+      <div className="border-b border-white/10 px-4 py-3 text-xs text-slate-300">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-cyan-200" />
+          <span>{locationLabel}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        {messages.map((message) => (
+          <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {message.role === 'ai' && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10">
+                <Bot className="h-4 w-4 text-cyan-200" />
               </div>
             )}
-            
-            <div className={`max-w-[75%] rounded-2xl p-3 text-sm shadow-md ${
-              msg.role === 'user' 
-                ? 'bg-cyan-600 text-white rounded-tr-sm' 
-                : 'bg-white/5 text-gray-200 border border-white/10 rounded-tl-sm'
-            }`}>
-              <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-              
-              {/* Optional dummy action block from AI */}
-              {msg.isAction && (
-                <div className="mt-3 p-2 bg-black/40 rounded-lg border border-cyan-500/30">
-                   <div className="flex justify-between items-center text-xs">
-                     <span className="text-cyan-400 font-mono tracking-wider">ACTION PENDING</span>
-                     <Button size="sm" className="h-6 text-[10px] bg-cyan-500 hover:bg-cyan-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]">
-                        Confirm
-                     </Button>
-                   </div>
-                </div>
-              )}
+            <div
+              className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                message.role === 'user'
+                  ? 'bg-cyan-600 text-white'
+                  : 'border border-white/10 bg-white/5 text-slate-100'
+              }`}
+            >
+              {message.content}
             </div>
-
-            {msg.role === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-gray-700/50 flex-shrink-0 flex items-center justify-center border border-gray-600">
-                <User className="w-4 h-4 text-gray-300" />
+            {message.role === 'user' && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <User className="h-4 w-4 text-slate-200" />
               </div>
             )}
           </div>
         ))}
-        {isLoading && (
-          <div className="flex gap-3 justify-start">
-             <div className="w-8 h-8 rounded-full bg-cyan-900/50 flex-shrink-0 flex items-center justify-center border border-cyan-500/30">
-                <Bot className="w-4 h-4 text-cyan-400" />
-              </div>
-              <div className="bg-white/5 text-gray-200 border border-white/10 rounded-2xl rounded-tl-sm p-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce delay-75" />
-                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce delay-150" />
-                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce delay-300" />
-              </div>
+
+        {loading && (
+          <div className="flex gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10">
+              <Bot className="h-4 w-4 text-cyan-200" />
+            </div>
+            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Structuring report
+            </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </div>
 
-      {/* Inputs */}
-      <div className="p-3 bg-black/60 border-t border-white/10 backdrop-blur-md">
-        <form 
-          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+      <div className="border-t border-white/10 px-4 py-3">
+        <div className="mb-3 flex flex-wrap gap-2">
+          {quickPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => submitMessage(prompt)}
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-left text-[11px] text-slate-300 transition hover:border-cyan-300/30 hover:text-white"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitMessage(input);
+          }}
           className="flex gap-2"
         >
           <input
-            type="text"
             value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Report issues directly to AI..."
-            className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 text-sm text-white focus:outline-none focus:border-cyan-400 transition-colors placeholder-gray-500"
-            disabled={isLoading}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Describe a tile, service, risk, or correction..."
+            className="h-11 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none placeholder:text-slate-500"
           />
-          <Button 
-            type="submit" 
-            disabled={!input.trim() || isLoading}
-            className="w-10 h-10 rounded-xl bg-cyan-600 hover:bg-cyan-700 p-0 flex items-center justify-center text-white"
-          >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          <Button type="submit" disabled={loading || !input.trim()} className="h-11 w-11 rounded-2xl bg-cyan-600 p-0 hover:bg-cyan-700">
+            <Send className="h-4 w-4" />
           </Button>
         </form>
       </div>
     </div>
   );
+}
+
+function buildStructuredReply(input: string, contextLocation?: { lat: number; lng: number } | null) {
+  const normalized = input.toLowerCase();
+  const category = normalized.includes('hospital')
+    ? 'health'
+    : normalized.includes('flood')
+      ? 'disaster'
+      : normalized.includes('residential')
+        ? 'residential'
+        : normalized.includes('road') || normalized.includes('train') || normalized.includes('traffic')
+          ? 'transportation'
+          : 'services';
+
+  const type = normalized.includes('hospital')
+    ? 'hospital'
+    : normalized.includes('flood')
+      ? 'flooding'
+      : normalized.includes('residential')
+        ? 'land usage correction'
+        : normalized.includes('traffic')
+          ? 'traffic load'
+          : 'field report';
+
+  const attributes =
+    category === 'health'
+      ? '"crowd_level":"high","emergency_services":true,"public":true'
+      : category === 'disaster'
+        ? '"severity":"elevated","route_access":"limited"'
+        : category === 'residential'
+          ? '"requested_zone":"residential","change_type":"tile correction"'
+          : '"verification_status":"needs_review"';
+
+  const location = contextLocation
+    ? `"location":{"lat":${contextLocation.lat.toFixed(4)},"lng":${contextLocation.lng.toFixed(4)}}`
+    : '"location":{"source":"manual"}';
+
+  return `Structured report draft:
+{
+  "category": "${category}",
+  "type": "${type}",
+  ${location},
+  "attributes": { ${attributes} },
+  "confidence": 0.84
+}
+
+Next questions:
+- confirm service availability
+- confirm zone classification
+- submit for verification voting`;
 }

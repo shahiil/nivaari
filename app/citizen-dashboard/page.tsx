@@ -1,1374 +1,375 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  X, 
-  Filter,
-  User,
-  LogOut,
-  Sun,
-  Moon,
-  AlertTriangle, 
-  Construction, 
-  Car, 
-  Trash2, 
-  Lightbulb, 
-  Droplets, 
-  Trees,
-  MapPin,
-  CheckCircle,
-  Map,
-  List,
-  Image as ImageIcon,
-  Home,
-  FileText,
-  TrendingUp,
-  Activity,
-  BarChart3,
-  Search,
-  Eye,
-  Clock,
-  Satellite,
-  Edit,
-  Camera,
-  Archive,
-  Sparkles
-} from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import toast from 'react-hot-toast';
-import Dock from '@/components/Dock';
-import DockSearchBar from '@/components/DockSearchBar';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrthographicCamera, MapControls, Html, Edges } from '@react-three/drei';
 
-const CanvasTileMap = dynamic(() => import('@/components/CanvasTileMap'), { ssr: false });
-const LocationSelectionMap = dynamic(() => import('@/components/LocationSelectionMap'), { ssr: false });
-const NivaariChat = dynamic(() => import('@/components/NivaariChat'), { ssr: false });
+export default function GameUI() {
+  const [camPos, setCamPos] = useState<[number, number, number]>([0,0,0]);
+  const [camZoom, setCamZoom] = useState(1);
+  const [date, setDate] = useState(new Date(2021,5,16));
+  const [editingDate, setEditingDate] = useState(false);
 
-const reportCategories = [
-  { id: 'danger', label: 'Danger', icon: AlertTriangle, color: 'text-red-600' },
-  { id: 'potholes', label: 'Potholes', icon: Construction, color: 'text-orange-600' },
-  { id: 'traffic', label: 'Traffic', icon: Car, color: 'text-yellow-600' },
-  { id: 'garbage', label: 'Garbage', icon: Trash2, color: 'text-green-600' },
-  { id: 'streetlight', label: 'Street Light', icon: Lightbulb, color: 'text-blue-600' },
-  { id: 'water', label: 'Water Issue', icon: Droplets, color: 'text-cyan-600' },
-  { id: 'trees', label: 'Trees/Parks', icon: Trees, color: 'text-emerald-600' },
-  { id: 'other', label: 'Other', icon: MapPin, color: 'text-gray-600' },
-];
-
-const issueTypes = ['Road Damage', 'Water Supply', 'Electricity', 'Garbage', 'Healthcare', 'Flooding', 'Other'];
-
-type ViewMode = 'map' | 'list' | 'image';
-
-type ApprovedReport = { 
-  id?: string; 
-  title: string; 
-  type: string; 
-  city?: string;
-  location?: {
-    lat?: number;
-    lng?: number;
-    address?: string;
-  };
-};
-
-export default function CitizenDashboard() {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [profileEditOpen, setProfileEditOpen] = useState(false);
-  const [passwordVerificationOpen, setPasswordVerificationOpen] = useState(false);
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const [locationSelectionOpen, setLocationSelectionOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState('');
-  const [description, setDescription] = useState('');
-  const [address, setAddress] = useState('');
-  const [reportLocation, setReportLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [reportImage, setReportImage] = useState<string>('');
-  const [submitting, setSubmitting] = useState(false);
-  const [currentView, setCurrentView] = useState<ViewMode>('map');
-  const [showArchive, setShowArchive] = useState(false);
-  const [reports, setReports] = useState<ApprovedReport[]>([]);
-  const [analyticsOpen, setAnalyticsOpen] = useState(false);
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
-  const [mapZoom, setMapZoom] = useState<number>(13);
-  const [useSatelliteView, setUseSatelliteView] = useState(false);
-  const [verificationPassword, setVerificationPassword] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [formErrors, setFormErrors] = useState({
-    verificationPassword: false,
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false
-  });
-  
-  const router = useRouter();
-  const { userData, logout, refresh } = useAuth();
-  
-  const [editFormData, setEditFormData] = useState({
-    name: userData?.name || '',
-    email: userData?.email || '',
-    phone: '',
-    profilePhoto: ''
-  });
+  // Toggle between 'city' and 'region'
+  const [viewLevel, setViewLevel] = useState<'city'|'region'>('city');
+  const [currentName, setCurrentName] = useState('Stuckenborstel');
 
   useEffect(() => {
-    const load = async () => {
-      const res = await fetch('/api/citizen-reports', { cache: 'no-store' });
-      const data = await res.json();
-      if (res.ok) setReports(data.reports);
-    };
-    load();
-  }, []);
-
-  const filteredReports = selectedCategories.length === 0 
-    ? reports 
-    : reports.filter(report => selectedCategories.includes(report.type));
-
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
-    );
-  };
-
-  const clearFilters = () => {
-    setSelectedCategories([]);
-  };
-
-  const submitReport = async () => {
-    if (!title || !type || !description) {
-      toast.error('Please fill in title, type and description');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/citizen-reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          title, 
-          type, 
-          description, 
-          location: reportLocation ? {
-            lat: reportLocation.lat,
-            lng: reportLocation.lng,
-            address: address
-          } : { address },
-          image: reportImage
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Report submitted successfully');
-        setTitle(''); 
-        setType(''); 
-        setDescription(''); 
-        setAddress('');
-        setReportLocation(null);
-        setReportImage('');
-        setReportOpen(false);
-        // Reload reports
-        const load = async () => {
-          const res = await fetch('/api/citizen-reports', { cache: 'no-store' });
-          const data = await res.json();
-          if (res.ok) setReports(data.reports);
-        };
-        load();
-      } else {
-        toast.error(data?.error || 'Failed to submit report');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success('Logged out successfully');
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      toast.error('Failed to logout');
-    }
-  };
-
-  const toggleTheme = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
-  };
-
-  const handleLocationSelect = (lat: number, lng: number, name: string) => {
-    setMapCenter([lat, lng]);
-    setMapZoom(15);
-    toast.success(`Navigating to ${name.split(',')[0]}`);
-  };
-
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Photo size must be less than 5MB');
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setEditFormData(prev => ({ ...prev, profilePhoto: result }));
-        toast.success('Photo uploaded successfully!');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleReportImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setReportImage(result);
-        toast.success('Image uploaded successfully!');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const verifyPassword = async (password: string): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/admin/profile?action=verify-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const data = await res.json();
-      return data.valid;
-    } catch (error) {
-      console.error('Password verification error:', error);
-      return false;
-    }
-  };
-
-  const saveProfileChanges = async (password: string) => {
-    try {
-      const requestData = {
-        password: password,
-        name: editFormData.name,
-        phone: editFormData.phone,
-        profilePhoto: editFormData.profilePhoto,
-      };
-      
-      const res = await fetch('/api/admin/profile?action=update-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData),
-      });
-      
-      if (res.ok) {
-        toast.success('Changes saved successfully!');
-        await refresh();
-        return true;
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Failed to save changes');
-        return false;
-      }
-    } catch (error) {
-      console.error('Save profile error:', error);
-      toast.error('Failed to save changes');
-      return false;
-    }
-  };
-
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/admin/profile?action=change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      
-      if (res.ok) {
-        toast.success('Password changed successfully!');
-        return true;
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Failed to change password');
-        return false;
-      }
-    } catch (error) {
-      console.error('Change password error:', error);
-      toast.error('Failed to change password');
-      return false;
-    }
-  };
-
-  // Dock items configuration
-  const dockItems = [
-    { 
-      icon: <Plus className="w-5 h-5" />, 
-      label: 'Report Issue', 
-      onClick: () => setReportOpen(true) 
-    },
-    { 
-      icon: <Archive className="w-5 h-5" />, 
-      label: 'Archive', 
-      onClick: () => setShowArchive(!showArchive) 
-    },
-    { 
-      icon: <Search className="w-5 h-5" />, 
-      label: 'Search Location', 
-      onClick: () => setSearchModalOpen(true) 
-    },
-    { 
-      icon: <Filter className="w-5 h-5" />, 
-      label: 'Filters', 
-      onClick: () => setFilterOpen(true) 
-    },
-    { 
-      icon: <BarChart3 className="w-5 h-5" />, 
-      label: 'View Stats', 
-      onClick: () => setAnalyticsOpen(true) 
-    },
-  ];
-
-  // Calculate stats
-  const totalReports = reports.length;
-  const infrastructureReports = reports.filter(r => ['Road Damage', 'potholes'].includes(r.type)).length;
-  const healthReports = reports.filter(r => ['Healthcare', 'water'].includes(r.type)).length;
-  const safetyReports = reports.filter(r => ['danger', 'traffic'].includes(r.type)).length;
+    setCurrentName(viewLevel === 'city' ? 'Stuckenborstel' : 'Theonia');
+  }, [viewLevel]);
 
   return (
-    <div className="fixed inset-0 w-full h-screen bg-black">
-
-      {/* Map/View Container - Fixed Size */}
-      <div 
-        className="fixed inset-0 z-[50]"
-        style={{ 
-          paddingTop: '1rem',
-          paddingRight: '1rem',
-          paddingBottom: '1rem',
-          paddingLeft: '1rem'
-        }}
-      >
-        <div className="w-full h-full rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,183,255,0.3)] border border-cyan-400/30 ring-1 ring-cyan-400/20">
-          {showArchive ? (
-            <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 p-8 overflow-y-auto">
-              <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
-                <Archive className="w-8 h-8 text-cyan-400" />
-                Report Archive
-              </h2>
-              {filteredReports.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-16 h-16 text-cyan-400/50 mx-auto mb-4" />
-                  <p className="text-cyan-300/70 text-lg">No approved reports yet. They will appear here once moderators approve them.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredReports.map((report) => (
-                    <div key={report.id} className="glass-panel bg-black/60 backdrop-blur-xl border-2 border-cyan-400/30 rounded-2xl p-6 hover:shadow-[0_0_30px_rgba(0,183,255,0.4)] transition-all duration-300 hover:scale-105">
-                      <h3 className="text-lg font-bold text-white mb-2">{report.title}</h3>
-                      <div className="space-y-2">
-                        <p className="text-sm text-cyan-300 flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          {report.type}
-                        </p>
-                        {report.city && <p className="text-sm text-cyan-400/70">{report.city}</p>}
-                        {report.location?.address && <p className="text-sm text-cyan-400/70">{report.location.address}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <CanvasTileMap />
-          )}
-        </div>
-      </div>
-
-      {/* Blur overlay when modals are open (but not search bar) */}
-      {(reportOpen || analyticsOpen || profileEditOpen || passwordVerificationOpen || changePasswordOpen || locationSelectionOpen) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[75]" />
-      )}
-
-      {/* Profile Menu - Top Right */}
-      <div className="fixed top-5 right-6 z-[70]">
-        <div className="relative">
-          {/* Profile Button */}
-          <button
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl border-2 border-cyan-400/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,183,255,0.3)] hover:shadow-[0_0_30px_rgba(0,183,255,0.5)] transition-all duration-300 overflow-hidden hover:scale-110"
-          >
-            {userData?.profilePhoto ? (
-              <img 
-                src={userData.profilePhoto} 
-                alt="Profile" 
-                className="w-full h-full object-cover rounded-full"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-cyan-400 font-semibold text-lg">
-                {userData?.name ? userData.name.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
-              </div>
-            )}
-          </button>
-
-          {/* Profile Dropdown Menu */}
-          {profileMenuOpen && (
-            <div className="absolute right-0 mt-3 w-72 glass-panel bg-black/90 backdrop-blur-xl rounded-2xl shadow-[0_0_30px_rgba(0,183,255,0.3)] border border-cyan-400/30 overflow-hidden transform origin-top-right animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* User Info */}
-              <div className="p-5 bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-pink-500/20 text-white border-b border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-xl border-2 border-cyan-400/30 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,183,255,0.3)]">
-                    {userData?.profilePhoto ? (
-                      <img 
-                        src={userData.profilePhoto} 
-                        alt="Profile" 
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-cyan-400 text-xl font-bold">
-                        {(userData?.name || 'Citizen').charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-lg truncate text-white">{userData?.name || 'Citizen'}</p>
-                    <p className="text-sm text-cyan-300 truncate">{userData?.email || 'citizen@nivaari.com'}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setProfileMenuOpen(false);
-                    setProfileEditOpen(true);
-                    setEditFormData({
-                      name: userData?.name || '',
-                      email: userData?.email || '',
-                      phone: (userData as any)?.phone || '',
-                      profilePhoto: (userData as any)?.profilePhoto || ''
-                    });
-                  }}
-                  className="mt-3 w-full px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 backdrop-blur-sm text-cyan-300 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-cyan-400/30 shadow-[0_0_10px_rgba(0,183,255,0.2)] hover:shadow-[0_0_15px_rgba(0,183,255,0.4)]"
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit Profile
-                </button>
-              </div>
-
-              {/* Menu Items */}
-              <div className="py-2">
-                {/* Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-white/5 transition-colors group"
-                >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${darkMode ? 'bg-amber-500/20 border border-amber-400/30' : 'bg-cyan-500/20 border border-cyan-400/30'} shadow-[0_0_10px_rgba(0,183,255,0.2)]`}>
-                    {darkMode ? (
-                      <Sun className="w-5 h-5 text-amber-400" />
-                    ) : (
-                      <Moon className="w-5 h-5 text-cyan-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-sm font-semibold text-white">
-                      {darkMode ? 'Light Mode' : 'Dark Mode'}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
-                    </div>
-                  </div>
-                </button>
-
-                {/* Divider */}
-                <div className="border-t border-white/10 my-2 mx-3"></div>
-
-                {/* Logout */}
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-red-500/10 transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-red-500/20 border border-red-400/30 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                    <LogOut className="w-5 h-5 text-red-400" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-sm font-semibold text-red-400">Logout</div>
-                    <div className="text-xs text-red-400/70">Sign out of your account</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Close profile menu when clicking outside */}
-      {profileMenuOpen && (
-        <div
-          className="fixed inset-0 z-[55]"
-          onClick={() => setProfileMenuOpen(false)}
-        />
-      )}
-
-      {/* Filter Popover */}
-      {filterOpen && (
-        <div
-          className="fixed inset-0 z-[65] bg-transparent"
-          onClick={() => setFilterOpen(false)}
-        />
-      )}
-
-      {filterOpen && (
-        <div
-          className="fixed z-[70]"
-          style={{ bottom: '1rem', right: '1rem' }}
-        >
-          <div className="w-[20rem] max-w-[90vw] rounded-2xl border border-cyan-400/30 glass-panel bg-black/90 backdrop-blur-xl shadow-[0_0_30px_rgba(0,183,255,0.3)] ring-1 ring-cyan-400/20">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <div>
-                <div className="font-bold text-base text-white">Filter Reports</div>
-                <div className="text-xs text-cyan-300 mt-0.5">Customize your view</div>
-              </div>
-              <button 
-                onClick={() => setFilterOpen(false)} 
-                className="p-2 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Map Filter Toggles (Nivaari Specific) */}
-              <div>
-                <div className="text-xs font-semibold text-white mb-2 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-gradient-to-b from-purple-400 to-pink-500 rounded-full shadow-[0_0_10px_rgba(255,0,255,0.5)]"></div>
-                  Tile Overlays & Zones
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'disasters', label: 'Disasters', icon: AlertTriangle, color: 'text-red-500' },
-                    { id: 'emergencies', label: 'Emergencies', icon: Activity, color: 'text-orange-500' },
-                    { id: 'transports', label: 'Transports', icon: Car, color: 'text-blue-500' },
-                    { id: 'zones', label: 'Safety Zones', icon: MapPin, color: 'text-green-500' }
-                  ].map((c) => {
-                    const Icon = c.icon;
-                    const checked = selectedCategories.includes(c.id);
-                    return (
-                      <button
-                        key={c.id}
-                        onClick={() => toggleCategory(c.id)}
-                        className={`flex items-center gap-2 p-2 rounded-lg border-2 text-left transition-all duration-200 ${
-                          checked
-                            ? 'border-cyan-400 bg-cyan-500/20 shadow-[0_0_15px_rgba(0,183,255,0.3)]'
-                            : 'border-white/10 hover:border-cyan-400/50 hover:bg-white/5'
-                        }`}
-                      >
-                        <div className={`w-4 h-4 rounded-lg border-2 flex items-center justify-center transition-all ${
-                          checked 
-                            ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(0,183,255,0.5)]' 
-                            : 'border-white/30'
-                        }`}>
-                          {checked && (
-                            <CheckCircle className="w-3 h-3 text-white" />
-                          )}
-                        </div>
-                        <Icon className={`w-3 h-3 ${c.color}`} />
-                        <span className="text-xs font-medium text-white">{c.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Satellite View Toggle */}
-              <div>
-                <div className="text-xs font-semibold text-white mb-2 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-gradient-to-b from-yellow-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(255,200,0,0.5)]"></div>
-                  Display Options
-                </div>
-                
-                <button
-                  onClick={() => setUseSatelliteView(!useSatelliteView)}
-                  className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${
-                    useSatelliteView
-                      ? 'border-cyan-400 bg-cyan-500/20 shadow-[0_0_15px_rgba(0,183,255,0.3)]'
-                      : 'border-white/10 hover:border-cyan-400/50 hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Satellite className={`w-4 h-4 ${useSatelliteView ? 'text-cyan-400' : 'text-gray-400'}`} />
-                    <span className="text-sm font-medium text-white">Satellite View</span>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full transition-all duration-200 ${
-                    useSatelliteView ? 'bg-cyan-500' : 'bg-white/20'
-                  }`}>
-                    <div className={`w-4 h-4 rounded-full bg-white shadow-lg transition-all duration-200 ${
-                      useSatelliteView ? 'translate-x-5 mt-0.5' : 'translate-x-0.5 mt-0.5'
-                    }`} />
-                  </div>
-                </button>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button 
-                  onClick={clearFilters} 
-                  className="flex-1 py-2.5 rounded-lg border-2 border-white/20 text-white text-sm hover:bg-white/5 font-semibold transition-all duration-200"
-                >
-                  Clear All
-                </button>
-                <button 
-                  onClick={() => setFilterOpen(false)} 
-                  className="flex-1 py-2.5 rounded-lg bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 text-white text-sm shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] font-semibold transition-all duration-200"
-                >
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AI Chat Integration */}
-      {/* Floating Action Button for Nivaari AI */}
-      {!chatOpen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all duration-300 hover:scale-110 z-[55] group overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-          <Sparkles className="w-6 h-6 text-white" />
-        </button>
-      )}
-
-      {/* Render AI Chat Component */}
-      <NivaariChat 
-        isOpen={chatOpen} 
-        onClose={() => setChatOpen(false)} 
-        // passing mock location for now representing "context"
-        contextLocation={{ lat: 19.0760, lng: 72.8777 }} 
-      />
-
-      {/* Report Issue Modal */}
-      {reportOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[80]">
-          <div className="glass-panel bg-black/90 backdrop-blur-xl rounded-3xl shadow-[0_0_40px_rgba(0,183,255,0.4)] border border-cyan-400/30 w-full max-w-2xl mx-4 ring-1 ring-cyan-400/20 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-white/10 sticky top-0 bg-black/90 backdrop-blur-xl z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,183,255,0.6)]">
-                    <Plus className="w-5 h-5 text-white" />
-                  </div>
-                  Report an Issue
-                </h2>
-                <p className="text-sm text-cyan-300 mt-1">Help improve your community</p>
-              </div>
-              <button
-                onClick={() => {
-                  setReportOpen(false);
-                  setTitle('');
-                  setType('');
-                  setDescription('');
-                  setAddress('');
-                  setReportLocation(null);
-                  setReportImage('');
-                }}
-                className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-cyan-400" />
-                    Title
-                  </label>
-                  <Input 
-                    placeholder="Brief title of the issue" 
-                    value={title} 
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full h-12 rounded-xl border-2 border-white/10 bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-cyan-400" />
-                    Issue Type
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {reportCategories.map((c) => {
-                      const Icon = c.icon;
-                      const checked = type === c.id;
-                      return (
-                        <button
-                          key={c.id}
-                          onClick={() => setType(c.id)}
-                          className={`flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all duration-200 ${
-                            checked
-                              ? 'border-cyan-400 bg-cyan-500/20 shadow-[0_0_15px_rgba(0,183,255,0.3)]'
-                              : 'border-white/10 hover:border-cyan-400/50 hover:bg-white/5'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                            checked 
-                              ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(0,183,255,0.5)]' 
-                              : 'border-white/30'
-                          }`}>
-                            {checked && (
-                              <CheckCircle className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <Icon className={`w-4 h-4 ${c.color}`} />
-                          <span className="text-sm font-medium text-white">{c.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-cyan-400" />
-                    Description
-                  </label>
-                  <Textarea 
-                    placeholder="Describe the issue in detail" 
-                    value={description} 
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full min-h-[100px] rounded-xl border-2 border-white/10 bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500 resize-none"
-                  />
-                </div>
-
-                {/* Image Upload */}
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-cyan-400" />
-                    Upload Image (Optional)
-                  </label>
-                  <div className="space-y-3">
-                    <input
-                      type="file"
-                      id="report-image-upload"
-                      accept="image/*"
-                      onChange={handleReportImageUpload}
-                      className="hidden"
-                    />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => document.getElementById('report-image-upload')?.click()}
-                      className="w-full h-12 rounded-xl border-2 border-dashed border-cyan-400/50 hover:border-cyan-400 bg-white/5 hover:bg-white/10 flex items-center justify-center gap-2 transition-all text-white"
-                    >
-                      <Camera className="w-5 h-5 text-cyan-400" />
-                      {reportImage ? 'Change Image' : 'Upload Image'}
-                    </Button>
-                    {reportImage && (
-                      <div className="relative rounded-xl overflow-hidden border-2 border-cyan-400/30">
-                        <img 
-                          src={reportImage} 
-                          alt="Report preview" 
-                          className="w-full h-48 object-cover"
-                        />
-                        <button
-                          onClick={() => setReportImage('')}
-                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors shadow-lg"
-                          title="Remove image"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Location Selection */}
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-cyan-400" />
-                    Location
-                  </label>
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="Address (optional)" 
-                        value={address} 
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="flex-1 h-12 rounded-xl border-2 border-white/10 bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500"
-                      />
-                      <Button 
-                        variant="outline" 
-                        onClick={() => navigator.geolocation?.getCurrentPosition((pos) => {
-                          setReportLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                          setAddress(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`);
-                          toast.success('Location captured from GPS');
-                        })}
-                        className="h-12 rounded-xl border-2 border-white/20 hover:bg-white/10 font-semibold transition-all text-white px-4 whitespace-nowrap"
-                      >
-                        Use GPS
-                      </Button>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setLocationSelectionOpen(true)}
-                      className="w-full h-12 rounded-xl border-2 border-dashed border-cyan-400/50 hover:border-cyan-400 bg-white/5 hover:bg-white/10 flex items-center justify-center gap-2 transition-all text-white"
-                    >
-                      <MapPin className="w-5 h-5 text-cyan-400" />
-                      {reportLocation ? 'Change Location on Map' : 'Select Location on Map'}
-                    </Button>
-                    {reportLocation && (
-                      <div className="p-3 bg-cyan-500/20 rounded-xl border border-cyan-400/30 shadow-[0_0_10px_rgba(0,183,255,0.2)]">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-medium text-white">
-                            📍 Location Selected
-                          </div>
-                          <button
-                            onClick={() => {
-                              setReportLocation(null);
-                              setAddress('');
-                            }}
-                            className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                        <div className="text-xs text-cyan-300 mt-1 font-mono">
-                          Lat: {reportLocation.lat.toFixed(6)}, Lng: {reportLocation.lng.toFixed(6)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  onClick={submitReport} 
-                  disabled={submitting}
-                  className="flex-1 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all font-semibold border-0 text-white"
-                >
-                  {submitting ? 'Submitting...' : 'Submit Report'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Analytics Modal */}
-      {analyticsOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[80] p-4 bg-black/40 backdrop-blur-sm">
-          <div className="glass-panel w-full max-w-lg bg-black/90 backdrop-blur-xl rounded-2xl border border-cyan-400/30 p-6 shadow-[0_0_40px_rgba(0,183,255,0.3)]">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <BarChart3 className="w-6 h-6 text-cyan-400" />
-                  Area Aggregation
-                </h2>
-                <p className="text-sm text-gray-400 mt-1">Live overview of your current vicinity</p>
-              </div>
-              <button onClick={() => setAnalyticsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-6 animate-in slide-in-from-bottom-4">
-              {/* Mood Index */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 font-semibold text-sm uppercase tracking-wider">Citizen Mood Index</span>
-                  <span className="text-green-400 font-bold text-lg">78% Positive</span>
-                </div>
-                <div className="w-full bg-black/50 rounded-full h-3 overflow-hidden shadow-inner">
-                  <div className="bg-gradient-to-r from-yellow-500 to-green-500 h-full rounded-full w-[78%]"></div>
-                </div>
-              </div>
-
-              {/* Satisfaction */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 font-semibold text-sm uppercase tracking-wider">Local Government Satisfaction</span>
-                  <span className="text-orange-400 font-bold text-lg">62% Approval</span>
-                </div>
-                <div className="w-full bg-black/50 rounded-full h-3 overflow-hidden shadow-inner flex">
-                  <div className="bg-green-500 h-full w-[62%]"></div>
-                  <div className="bg-red-500 h-full w-[38%]"></div>
-                </div>
-              </div>
-
-              {/* Structural Health */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
-                    <Construction className="w-4 h-4 text-cyan-400"/> Infrastructure Health
-                  </span>
-                  <span className="text-cyan-400 font-bold text-lg">Good (85%)</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                   <div className="bg-black/40 rounded p-2 text-center text-xs border border-white/5">
-                     <div className="text-gray-500 mb-1">Roads</div>
-                     <div className="text-white font-bold">81%</div>
-                   </div>
-                   <div className="bg-black/40 rounded p-2 text-center text-xs border border-white/5">
-                     <div className="text-gray-500 mb-1">Bridges</div>
-                     <div className="text-white font-bold">92%</div>
-                   </div>
-                   <div className="bg-black/40 rounded p-2 text-center text-xs border border-white/5">
-                     <div className="text-gray-500 mb-1">Utilities</div>
-                     <div className="text-white font-bold">85%</div>
-                   </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Profile Edit Modal */}
-      {profileEditOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[80]">
-          <div className="glass-panel bg-black/90 backdrop-blur-xl rounded-3xl shadow-[0_0_40px_rgba(0,183,255,0.4)] border border-cyan-400/30 w-full max-w-lg mx-4 ring-1 ring-cyan-400/20">
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div>
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,183,255,0.6)]">
-                    <Edit className="w-5 h-5 text-white" />
-                  </div>
-                  Edit Profile
-                </h2>
-                <p className="text-sm text-cyan-300 mt-1">Update your personal information</p>
-              </div>
-              <button
-                onClick={() => setProfileEditOpen(false)}
-                className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Profile Photo */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 flex items-center justify-center shadow-[0_0_20px_rgba(0,183,255,0.4)] border-2 border-cyan-400/30">
-                    {editFormData.profilePhoto ? (
-                      <img 
-                        src={editFormData.profilePhoto} 
-                        alt="Profile" 
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white text-3xl font-bold">
-                        {(editFormData.name || 'C').charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    id="photo-upload"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => document.getElementById('photo-upload')?.click()}
-                    className="absolute -bottom-1 -right-1 w-9 h-9 bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 rounded-full flex items-center justify-center text-white transition-all shadow-[0_0_15px_rgba(0,183,255,0.5)] border-2 border-black/20"
-                  >
-                    <Camera className="w-5 h-5" />
-                  </button>
-                  {editFormData.profilePhoto && (
-                    <button
-                      onClick={() => setEditFormData(prev => ({ ...prev, profilePhoto: '' }))}
-                      className="absolute -top-1 -right-1 w-9 h-9 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center text-white transition-all shadow-[0_0_15px_rgba(239,68,68,0.5)] border-2 border-black/20"
-                      title="Remove photo"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Form Fields */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <User className="w-4 h-4 text-cyan-400" />
-                    Name
-                  </label>
-                  <Input 
-                    value={editFormData.name} 
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full h-12 rounded-xl border-2 border-white/10 bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Email
-                  </label>
-                  <Input 
-                    value={editFormData.email} 
-                    className="w-full h-12 rounded-xl border-2 border-white/10 bg-white/5 text-gray-400 cursor-not-allowed"
-                    type="email"
-                    disabled
-                    readOnly
-                  />
-                  <p className="text-xs text-cyan-400/70 mt-2">Email cannot be changed</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2.5 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Phone Number
-                  </label>
-                  <Input 
-                    value={editFormData.phone} 
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full h-12 rounded-xl border-2 border-white/10 bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500"
-                    placeholder="Enter phone number"
-                  />
-                </div>
-              </div>
-
-              {/* Change Password Button */}
-              <button
-                onClick={() => setChangePasswordOpen(true)}
-                className="w-full py-3 px-4 bg-white/5 hover:bg-white/10 rounded-xl text-white border-2 border-white/10 hover:border-cyan-400/50 transition-all font-medium"
-              >
-                Change Password
-              </button>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={() => setPasswordVerificationOpen(true)}
-                  className="flex-1 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all font-semibold border-0 text-white"
-                >
-                  Save Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setProfileEditOpen(false)}
-                  className="flex-1 h-12 rounded-xl border-2 border-white/20 hover:bg-white/10 font-semibold transition-all text-white bg-transparent"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Password Verification Modal */}
-      {passwordVerificationOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[90]">
-          <div className={`glass-panel bg-black/90 backdrop-blur-xl rounded-3xl shadow-[0_0_40px_rgba(0,183,255,0.4)] border-2 ${formErrors.verificationPassword ? 'border-red-500/50' : 'border-cyan-400/30'} w-full max-w-md mx-4 ring-1 ring-cyan-400/20`}>
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.6)]">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  Verify Password
-                </h2>
-                <p className="text-sm text-cyan-300 mt-1">Enter password to confirm changes</p>
-              </div>
-              <button
-                onClick={() => {
-                  setPasswordVerificationOpen(false);
-                  setVerificationPassword('');
-                  setFormErrors(prev => ({ ...prev, verificationPassword: false }));
-                }}
-                className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-cyan-300/80">
-                Please enter your current password to save changes
-              </p>
-
-              <div>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={verificationPassword}
-                  onChange={(e) => {
-                    setVerificationPassword(e.target.value);
-                    setFormErrors(prev => ({ ...prev, verificationPassword: false }));
-                  }}
-                  className={`w-full h-12 rounded-xl border-2 ${formErrors.verificationPassword ? 'border-red-500/50' : 'border-white/10'} bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500`}
-                />
-                {formErrors.verificationPassword && (
-                  <p className="text-xs text-red-400 mt-2">Incorrect password</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={async () => {
-                    const isValid = await verifyPassword(verificationPassword);
-                    if (isValid) {
-                      const success = await saveProfileChanges(verificationPassword);
-                      if (success) {
-                        setPasswordVerificationOpen(false);
-                        setProfileEditOpen(false);
-                        setVerificationPassword('');
-                        setFormErrors(prev => ({ ...prev, verificationPassword: false }));
-                      }
-                    } else {
-                      toast.error('Incorrect password');
-                      setFormErrors(prev => ({ ...prev, verificationPassword: true }));
-                      setPasswordVerificationOpen(false);
-                      setVerificationPassword('');
-                    }
-                  }}
-                  className="flex-1 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all font-semibold border-0 text-white"
-                  disabled={!verificationPassword}
-                >
-                  Confirm
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setPasswordVerificationOpen(false);
-                    setVerificationPassword('');
-                    setFormErrors(prev => ({ ...prev, verificationPassword: false }));
-                  }}
-                  className="flex-1 h-12 rounded-xl border-2 border-white/20 hover:bg-white/10 font-semibold transition-all text-white bg-transparent"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Change Password Modal */}
-      {changePasswordOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[90]">
-          <div className="glass-panel bg-black/90 backdrop-blur-xl rounded-3xl shadow-[0_0_40px_rgba(0,183,255,0.4)] border border-cyan-400/30 w-full max-w-md mx-4 ring-1 ring-cyan-400/20">
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-400 to-pink-600 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.6)]">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                  </div>
-                  Change Password
-                </h2>
-                <p className="text-sm text-cyan-300 mt-1">Update your account password</p>
-              </div>
-              <button
-                onClick={() => {
-                  setChangePasswordOpen(false);
-                  setCurrentPassword('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                  setFormErrors(prev => ({ ...prev, currentPassword: false, newPassword: false, confirmPassword: false }));
-                }}
-                className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2.5">Current Password</label>
-                <Input 
-                  type="password"
-                  placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => {
-                    setCurrentPassword(e.target.value);
-                    setFormErrors(prev => ({ ...prev, currentPassword: false }));
-                  }}
-                  className={`w-full h-12 rounded-xl border-2 ${formErrors.currentPassword ? 'border-red-500/50' : 'border-white/10'} bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500`}
-                />
-                {formErrors.currentPassword && (
-                  <p className="text-xs text-red-400 mt-2">Incorrect current password</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2.5">New Password</label>
-                <Input 
-                  type="password"
-                  placeholder="Enter new password"
-                  value={newPassword}
-                  onChange={(e) => {
-                    setNewPassword(e.target.value);
-                    setFormErrors(prev => ({ ...prev, newPassword: false }));
-                  }}
-                  className={`w-full h-12 rounded-xl border-2 ${formErrors.newPassword ? 'border-red-500/50' : 'border-white/10'} bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500`}
-                />
-                {formErrors.newPassword && (
-                  <p className="text-xs text-red-400 mt-2">Password must be at least 6 characters</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-white mb-2.5">Confirm New Password</label>
-                <Input 
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setFormErrors(prev => ({ ...prev, confirmPassword: false }));
-                  }}
-                  className={`w-full h-12 rounded-xl border-2 ${formErrors.confirmPassword ? 'border-red-500/50' : 'border-white/10'} bg-white/5 text-white focus:border-cyan-400 transition-colors placeholder:text-gray-500`}
-                />
-                {formErrors.confirmPassword && (
-                  <p className="text-xs text-red-400 mt-2">Passwords do not match</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button 
-                  onClick={async () => {
-                    if (newPassword !== confirmPassword) {
-                      toast.error('Passwords do not match');
-                      setFormErrors(prev => ({ ...prev, confirmPassword: true }));
-                    } else if (newPassword.length < 6) {
-                      toast.error('Password must be at least 6 characters');
-                      setFormErrors(prev => ({ ...prev, newPassword: true }));
-                    } else {
-                      const success = await changePassword(currentPassword, newPassword);
-                      if (success) {
-                        setChangePasswordOpen(false);
-                        setCurrentPassword('');
-                        setNewPassword('');
-                        setConfirmPassword('');
-                        setFormErrors(prev => ({ ...prev, currentPassword: false, newPassword: false, confirmPassword: false }));
-                      }
-                    }
-                  }}
-                  className="flex-1 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 shadow-[0_0_20px_rgba(0,183,255,0.4)] hover:shadow-[0_0_30px_rgba(0,183,255,0.6)] transition-all font-semibold border-0 text-white"
-                  disabled={!newPassword || !confirmPassword}
-                >
-                  Confirm
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setChangePasswordOpen(false);
-                    setCurrentPassword('');
-                    setNewPassword('');
-                    setConfirmPassword('');
-                    setFormErrors(prev => ({ ...prev, currentPassword: false, newPassword: false, confirmPassword: false }));
-                  }}
-                  className="flex-1 h-12 rounded-xl border-2 border-white/20 hover:bg-white/10 font-semibold transition-all text-white bg-transparent"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Location Selection Map Modal */}
-      {locationSelectionOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[90]">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setLocationSelectionOpen(false)}
+    <main className="relative w-screen h-screen text-white font-sans overflow-hidden select-none">
+      
+      {/* --- 3D GAME WORLD LAYER --- */}
+      <div className={`absolute inset-0 z-0 transition-colors duration-500 ${viewLevel === 'city' ? 'bg-indigo-950' : 'bg-[#0a0a0a]'}`}>
+        <Canvas shadows>
+          <OrthographicCamera 
+            makeDefault 
+            position={[50, 50, 50]} 
+            zoom={viewLevel === 'city' ? 40 : 25} 
+            near={-100} 
+            far={500} 
           />
-          <div className="glass-panel bg-black/90 backdrop-blur-xl rounded-3xl shadow-[0_0_40px_rgba(0,183,255,0.4)] border border-cyan-400/30 w-full max-w-4xl mx-4 ring-1 ring-cyan-400/20 relative h-[80vh]">
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div>
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,183,255,0.6)]">
-                    <MapPin className="w-5 h-5 text-white" />
-                  </div>
-                  Select Location
-                </h2>
-                <p className="text-sm text-cyan-300 mt-1">Click on the map to select incident location</p>
-              </div>
-              <button
-                onClick={() => setLocationSelectionOpen(false)}
-                className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
+          <MapControls enableRotate={false} /> 
 
-            <div className="h-[calc(100%-120px)]">
-              <LocationSelectionMap
-                onLocationSelect={(location) => {
-                  setReportLocation(location);
-                  setAddress(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
-                  setLocationSelectionOpen(false);
-                  toast.success('Location selected on map');
-                }}
-                initialLocation={reportLocation}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+          {viewLevel === 'city' ? (
+            <CityScene onCameraMove={setCamPos} onZoom={setCamZoom} />
+          ) : (
+            <RegionScene />
+          )}
+        </Canvas>
+      </div>
 
-      {/* Dock Component */}
-      <Dock 
-        items={dockItems}
-        panelHeight={68}
-        baseItemSize={50}
-        magnification={70}
-        distance={200}
-      />
-
-      {/* Dock Search Bar - appears above dock */}
-      <AnimatePresence>
-        {searchModalOpen && (
-          <DockSearchBar
-            isOpen={searchModalOpen}
-            onClose={() => setSearchModalOpen(false)}
-            onLocationSelect={handleLocationSelect}
+      {/* --- UI OVERLAY LAYER --- */}
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        {viewLevel === 'city' ? (
+          <CityUI 
+            currentName={currentName}
+            date={date}
+            setDate={setDate}
+            editingDate={editingDate}
+            setEditingDate={setEditingDate}
+            setViewLevel={setViewLevel}
+            camPos={camPos}
+            camZoom={camZoom}
+          />
+        ) : (
+          <RegionUI 
+            currentName={currentName} 
+            setViewLevel={setViewLevel} 
           />
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </main>
+  );
+}
+
+/* =========================================
+   3D SCENES
+========================================= */
+
+function CityScene({ onCameraMove, onZoom }: { onCameraMove: (pos: [number,number,number]) => void, onZoom: (z: number) => void }) {
+  useFrame(({ camera }) => {
+    onCameraMove([camera.position.x, camera.position.y, camera.position.z]);
+    onZoom(camera.zoom);
+  });
+
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[100, 100]} />
+        <meshStandardMaterial color="#2d5a27" />
+      </mesh>
+
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[100, 4]} />
+        <meshStandardMaterial color="#475569" />
+      </mesh>
+      
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]} receiveShadow>
+        <planeGeometry args={[100, 4]} />
+        <meshStandardMaterial color="#475569" />
+      </mesh>
+
+      <Building position={[-5, 1, -5]} color="#fca5a5" scale={[3, 2, 3]} /> 
+      <Building position={[4, 3, 4]} color="#93c5fd" scale={[2, 6, 2]} /> 
+      <Building position={[5, 1.5, -3]} color="#fde047" scale={[2, 3, 2]} /> 
+      <Building position={[-4, 1, 6]} color="#ffffff" scale={[2, 2, 2]} /> 
+    </>
+  );
+}
+
+function RegionScene() {
+  const tiles = [];
+  for(let x = -2; x <= 1; x++) {
+    for(let z = -2; z <= 1; z++) {
+      tiles.push({ 
+        id: `${x}-${z}`, 
+        x: x * 10 + 5, 
+        z: z * 10 + 5, 
+        locked: !(x === 0 && z === 0) 
+      });
+    }
+  }
+
+  return (
+    <>
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[20, 30, 10]} intensity={1} castShadow />
+
+      <group position={[0, 0, 0]}>
+        {tiles.map((tile) => (
+          <RegionTile key={tile.id} position={[tile.x, 0, tile.z]} locked={tile.locked} isCenter={!tile.locked} />
+        ))}
+      </group>
+    </>
+  );
+}
+
+function RegionTile({ position, locked, isCenter }: { position: [number, number, number], locked: boolean, isCenter: boolean }) {
+  return (
+    <group position={position}>
+      <mesh receiveShadow castShadow position={[0, -0.5, 0]}>
+        <boxGeometry args={[10, 1, 10]} />
+        <meshStandardMaterial color={isCenter ? "#3b5e2b" : "#456b33"} />
+        <Edges scale={1} threshold={15} color="#1a2e12" />
+      </mesh>
+      
+      <mesh receiveShadow position={[0, -1.5, 0]}>
+        <boxGeometry args={[10, 1, 10]} />
+        <meshStandardMaterial color="#4a3b2c" />
+        <Edges scale={1} threshold={15} color="#2b2219" />
+      </mesh>
+
+      {locked && (
+        <Html position={[0, 0.5, 0]} center transform sprite>
+          <div className="text-2xl drop-shadow-lg opacity-90">🔒</div>
+        </Html>
+      )}
+
+      {isCenter && (
+        <group position={[0, 0, 0]}>
+          <Building position={[-1, 0.5, -1]} color="#ccc" scale={[1, 1, 1]} />
+          <Building position={[1, 0.25, 1]} color="#fca5a5" scale={[1, 0.5, 1]} />
+          <Building position={[-0.5, 0.75, 1.5]} color="#93c5fd" scale={[0.8, 1.5, 0.8]} />
+        </group>
+      )}
+    </group>
+  );
+}
+
+function Building({ position, color, scale }: { position: [number, number, number], color: string, scale: [number, number, number] }) {
+  return (
+    <mesh position={position} castShadow receiveShadow>
+      <boxGeometry args={scale} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
+
+/* =========================================
+   UI OVERLAYS
+========================================= */
+
+// --- FULL CITY UI ---
+function CityUI({ currentName, date, setDate, editingDate, setEditingDate, setViewLevel, camPos, camZoom }: any) {
+  const prevDay = () => setDate((d: Date) => new Date(d.getTime() - 24*60*60*1000));
+  const nextDay = () => setDate((d: Date) => new Date(d.getTime() + 24*60*60*1000));
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDate(new Date(e.target.value));
+    setEditingDate(false);
+  };
+
+  const viewportStyle = useMemo(() => {
+    const sizeX = 100, sizeZ = 100, mapW = 32, mapH = 24, baseZoom = 40;
+    const xPerc = (camPos[0] + sizeX/2) / sizeX;
+    const zPerc = (camPos[2] + sizeZ/2) / sizeZ;
+    const w = 12 * (baseZoom / camZoom);
+    const h = 9 * (baseZoom / camZoom);
+    return {
+      left: `${xPerc * mapW}px`,
+      top: `${zPerc * mapH}px`,
+      width: `${w}px`,
+      height: `${h}px`,
+    };
+  }, [camPos, camZoom]);
+
+  return (
+    <>
+      {/* TOP LEFT: City Info */}
+      <div className="absolute top-2 left-20 flex items-center gap-2 pointer-events-auto shadow-lg">
+        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-4 py-1 flex items-center gap-4">
+          <span className="font-bold tracking-wide">{currentName}</span>
+          <div className="flex items-center gap-1 text-sm font-semibold">
+            <span>👥</span><span>7,525</span>
+          </div>
+        </div>
+        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1 flex items-center gap-2">
+          <div className="w-5 h-5 bg-green-500 rounded-full border-2 border-black flex items-center justify-center text-black text-xs">😃</div>
+          <span className="text-green-400 font-bold">79%-</span>
+        </div>
+      </div>
+
+      {/* TOP RIGHT: Level & Build Tools */}
+      <div className="absolute top-2 right-4 flex items-start gap-4 pointer-events-auto">
+        <div className="flex flex-col items-center gap-1 mt-2">
+          <div className="flex gap-2">
+            <button className="text-2xl hover:scale-110 transition-transform cursor-pointer">🔨</button>
+            <button className="text-2xl hover:scale-110 transition-transform cursor-pointer">⬇️</button>
+          </div>
+        </div>
+        <div className="flex flex-col items-center">
+          <div className="relative w-16 h-16 rounded-full border-4 border-gray-600 bg-gray-900 flex items-center justify-center shadow-lg">
+            <svg className="absolute inset-0 w-full h-full -rotate-90">
+              <circle cx="28" cy="28" r="26" stroke="#eab308" strokeWidth="4" fill="none" strokeDasharray="163" strokeDashoffset="40" />
+            </svg>
+            <span className="text-2xl font-bold">8</span>
+          </div>
+          <span className="text-xs font-semibold mt-1 drop-shadow-md">Large Town</span>
+        </div>
+      </div>
+
+      {/* LEFT SIDEBAR: Tools */}
+      <div className="absolute top-2 left-2 flex flex-col gap-1 w-14 pointer-events-auto">
+        <SidebarButton icon="🔨" active />
+        <SidebarButton icon="🚜" />
+        <SidebarButton icon="🔍" />
+        <SidebarButton icon="🚧" />
+        <SidebarButton icon="📊" />
+        <SidebarButton icon="🗺️" onClick={() => setViewLevel('region')} />
+        
+        <div className="absolute top-[calc(100vh-8rem)] flex flex-col gap-1">
+          <SidebarButton icon="🌍" />
+          <SidebarButton icon="⚙️" />
+        </div>
+      </div>
+
+      {/* RIGHT SIDEBAR: Action Bubbles */}
+      <div className="absolute top-1/3 right-4 flex flex-col gap-4 pointer-events-auto">
+        <BubbleButton icon="🎁" highlight />
+        <BubbleButton icon="🧍" />
+        <BubbleButton icon="🏛️" star />
+      </div>
+
+      {/* BOTTOM LEFT: Time Controls */}
+      <div className="absolute bottom-2 left-20 pointer-events-auto">
+        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md flex items-center overflow-hidden h-10 shadow-lg">
+          <div className="px-3 bg-white/10 h-full flex items-center border-r border-[#0066cc]">🕐</div>
+          
+          <button onClick={prevDay} className="px-2 hover:bg-white/20 h-full flex items-center text-white cursor-pointer">◀</button>
+          {editingDate ? (
+             <input type="date" className="px-2 text-black" value={date.toISOString().substring(0,10)} onChange={handleDateChange} onBlur={() => setEditingDate(false)} autoFocus />
+          ) : (
+            <span onClick={() => setEditingDate(true)} className="px-2 font-bold tracking-wide border-r border-[#0066cc] cursor-pointer">
+              {date.toLocaleDateString('en-GB')}
+            </span>
+          )}
+          <button onClick={nextDay} className="px-2 border-r border-[#0066cc] hover:bg-white/20 h-full flex items-center text-white cursor-pointer">▶</button>
+
+          <button className="px-3 hover:bg-white/20 h-full flex items-center text-yellow-400 cursor-pointer">⏸</button>
+          <button className="px-3 hover:bg-white/20 h-full flex items-center bg-white/10 text-green-400 cursor-pointer">▶</button>
+          <button className="px-3 hover:bg-white/20 h-full flex items-center text-cyan-400 cursor-pointer">▶▶</button>
+          <button className="px-3 hover:bg-white/20 h-full flex items-center text-cyan-400 cursor-pointer">⏭</button>
+        </div>
+      </div>
+      
+      {/* BOTTOM RIGHT: Currency & Minimap */}
+      <div className="absolute bottom-2 right-2 flex items-end gap-3 pointer-events-auto">
+        
+        <div className="flex gap-2 mb-1 shadow-lg">
+          <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1.5 flex items-center gap-2">
+            <span>💎</span>
+            <span className="font-bold text-blue-200">+180</span>
+          </div>
+          <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1.5 flex items-center gap-2">
+            <span>🪙</span>
+            <span className="font-bold text-yellow-300">163K<span className="text-xs">₮</span></span>
+            <span className="font-bold text-green-400 text-sm">+11.5K<span className="text-xs text-green-400">₮</span></span>
+          </div>
+        </div>
+
+        <div className="w-32 h-24 bg-[#5a6e5a] border-4 border-gray-400 rounded-md relative shadow-lg overflow-hidden">
+          <div className="absolute top-1 left-1 w-6 h-6" style={{ background: '#ffffff' }}></div>
+          <div className="absolute top-1 right-1 w-6 h-6" style={{ background: '#93c5fd' }}></div>
+          <div className="absolute bottom-1 left-1 w-6 h-6" style={{ background: '#fde047' }}></div>
+          <div className="absolute bottom-1 right-1 w-6 h-6" style={{ background: '#a0522d' }}></div>
+          <div className="absolute w-8 h-6 border border-white bg-white/20 shadow-[0_0_0_999px_rgba(0,0,0,0.3)]" style={viewportStyle}></div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// --- REGION UI ---
+function RegionUI({ currentName, setViewLevel }: any) {
+  return (
+    <>
+      <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto">
+        <div className="flex bg-white rounded-md shadow-lg border-2 border-[#0066cc] overflow-hidden text-black font-bold text-sm">
+          <button className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 border-r border-gray-300">
+            <span className="text-green-500 text-lg leading-none">+</span> New region
+          </button>
+          <button className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 border-r border-gray-300">
+            👥 Online regions
+          </button>
+          <button className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 bg-gray-200">
+            📚 Single Cities
+          </button>
+        </div>
+        <button className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1.5 flex items-center gap-2 w-max shadow-md hover:bg-blue-800 transition-colors">
+          👤 Account
+        </button>
+      </div>
+
+      <div className="absolute bottom-4 left-4 flex items-end gap-2 pointer-events-auto">
+        <div className="flex flex-col gap-2">
+          <SidebarButton icon="☰" onClick={() => setViewLevel('city')} />
+          <SidebarButton icon="⚙️" />
+        </div>
+        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-4 py-2 shadow-lg min-w-[250px]">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            {currentName} <span className="text-yellow-400 text-sm">✏️</span>
+          </h1>
+          <div className="text-sm mt-1 text-gray-200 flex items-center gap-4">
+            <span>Region 2/4</span>
+            <span>Inhabitants: 7,523</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-4 right-4 flex gap-2 pointer-events-auto shadow-lg">
+        <button className="bg-gradient-to-b from-[#4fc3f7] to-[#0288d1] border-2 border-blue-200 w-14 h-12 rounded-md flex items-center justify-center text-3xl hover:scale-105 transition-transform cursor-pointer text-white">←</button>
+        <button className="bg-gradient-to-b from-[#4fc3f7] to-[#0288d1] border-2 border-blue-200 w-14 h-12 rounded-md flex items-center justify-center text-3xl hover:scale-105 transition-transform cursor-pointer text-white">→</button>
+      </div>
+    </>
+  );
+}
+
+/* =========================================
+   REUSABLE BUTTONS
+========================================= */
+
+function SidebarButton({ icon, active = false, onClick }: { icon: string; active?: boolean; onClick?: () => void }) {
+  return (
+    <button onClick={onClick} className={`
+      w-12 h-12 rounded-lg border-2 flex items-center justify-center text-2xl shadow-md transition-transform hover:scale-105 cursor-pointer
+      ${active ? 'bg-blue-400 border-white shadow-[inset_0_0_10px_rgba(255,255,255,0.5)]' : 'bg-gradient-to-b from-[#1e88e5] to-[#1565c0] border-blue-300'}
+    `}>
+      {icon}
+    </button>
+  );
+}
+
+function BubbleButton({ icon, highlight = false, star = false }: { icon: string; highlight?: boolean; star?: boolean }) {
+  return (
+    <button className="relative w-12 h-12 rounded-full border-2 border-white bg-white/20 backdrop-blur-sm shadow-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform cursor-pointer">
+      {icon}
+      {highlight && <span className="absolute inset-0 rounded-full border-2 border-pink-500 animate-pulse"></span>}
+      {star && <span className="absolute -bottom-2 -right-2 text-yellow-400 text-xl drop-shadow-md">⭐</span>}
+    </button>
   );
 }

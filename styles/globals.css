@@ -351,16 +351,7 @@
   }
 }
 
-/* Moderator avatar markers on map */
-.moderator-avatar-marker {
-  background: transparent !important;
-  border: none !important;
-}
-
-.moderator-avatar-marker div {
-  background: transparent !important;
-  border: none !important;
-}
+/* moderator styling removed */
 
 /* Hide native cursor when the `hide-cursor` class is present on <html> */
 .hide-cursor, .hide-cursor * {

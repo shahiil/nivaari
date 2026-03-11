@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { MongoServerError } from "mongodb";
 import { z } from "zod";
 
-import { createUser, findUserByEmail, updateUserStatus, ensureDefaultAdmin } from "@/lib/auth-service";
+import { createUser, findUserByEmail, updateUserStatus } from "@/lib/auth-service";
 import { setSessionCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -15,8 +15,6 @@ const signupSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    // Ensure default admin exists
-    await ensureDefaultAdmin();
 
     // Pre-check required session secret to avoid creating user then failing to set cookie
     if (!process.env.JWT_SECRET) {

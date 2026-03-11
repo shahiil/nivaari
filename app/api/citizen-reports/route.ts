@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCitizenReportsCollection, getModeratorReportsCollection } from '@/lib/mongodb';
+import { getCitizenReportsCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { getSession } from '@/lib/session';
 import { normalizeReportType } from '@/lib/utils';
@@ -70,22 +70,22 @@ export async function POST(req: Request) {
   }
 }
 
-// List approved reports for citizen view (from moderatorReports)
+// List citizen reports (recent submissions)
 export async function GET() {
   try {
-    const coll = await getModeratorReportsCollection();
-    const approved = await coll
-      .find({ status: 'approved' })
-      .sort({ decidedAt: -1 })
+    const coll = await getCitizenReportsCollection();
+    const rows = await coll
+      .find({})
+      .sort({ createdAt: -1 })
       .limit(100)
       .toArray();
-    return NextResponse.json({ reports: approved.map(r => ({
+    return NextResponse.json({ reports: rows.map(r => ({
       id: r._id?.toString(),
       title: r.title,
       type: r.type,
       city: r.city,
       location: r.location,
-      decidedAt: r.decidedAt,
+      createdAt: r.createdAt,
     })) });
   } catch (e) {
     console.error('Citizen reports list error', e);

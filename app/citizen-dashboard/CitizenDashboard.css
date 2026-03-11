@@ -1,0 +1,905 @@
+/* ===================================================================
+   CitizenDashboard.css — Nivaari Citizen Dashboard
+   Responsive: PC (sidebar) + Mobile (bottom sheet + FABs)
+   =================================================================== */
+
+/* ─── Root fullscreen layout ──────────────────────────────────────── */
+.cd-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  background: #061015;
+}
+
+/* ─── New layout helpers ────────────────────────────────────────────── */
+
+.cd-topbar {
+  position: fixed;
+  top: 0;
+  left: 4rem;
+  right: 0;
+  height: 3rem;
+  background: #0b141f;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1rem;
+  z-index: 65;
+  font-size: 0.875rem;
+}
+.cd-topbar .cd-city-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.cd-topbar .cd-city-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cd-rightbar {
+  position: fixed;
+  right: 0;
+  top: 3rem;
+  bottom: 3rem;
+  width: 3rem;
+  background: linear-gradient(135deg,#0e1c2c,#0b141f);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  z-index: 60;
+}
+.cd-rightbar button {
+  background: #13202b;
+  color: white;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.cd-rightbar button:hover {
+  background: #1f2a38;
+  transform: scale(1.1);
+}
+
+.cd-status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 4rem;
+  right: 0;
+  height: 3rem;
+  background: #0b141f;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  padding: 0 1rem;
+  z-index: 60;
+}
+.cd-bottom-left,
+.cd-bottom-center,
+.cd-bottom-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.cd-control-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .cd-vertical-toolbar {
+    flex-direction: row;
+    width: 100%;
+    height: 3.5rem;
+    padding: 0 0.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 70;
+  }
+  .cd-status-bar {
+    left: 0;
+  }
+  .cd-content-area {
+    padding-top: 3.5rem;
+  }
+}
+.cd-vertical-toolbar {
+  width: 4rem;
+  background: #0b141f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0;
+  gap: 1rem;
+  z-index: 60;
+}
+.cd-vertical-toolbar button {
+  color: white;
+  background: #13202b;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.cd-vertical-toolbar button:hover {
+  background: #1f2a38;
+  transform: scale(1.1);
+}
+.cd-vertical-toolbar button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.cd-content-area {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: 3rem; /* make room for topbar */
+}
+
+.cd-map-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a1620;
+  color: #718096;
+  font-size: 1.25rem;
+}
+
+.cd-status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 4rem;
+  right: 0;
+  height: 3rem;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  font-size: 0.875rem;
+  padding: 0 1rem;
+  z-index: 60;
+}
+
+@media (max-width: 768px) {
+  .cd-vertical-toolbar {
+    flex-direction: row;
+    width: 100%;
+    height: 3.5rem;
+    padding: 0 0.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 70;
+  }
+  .cd-status-bar {
+    left: 0;
+  }
+  .cd-content-area {
+    padding-top: 3.5rem;
+  }
+}
+
+/* ─── Map containers ──────────────────────────────────────────────── */
+.cd-map-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* MapView wrapper uses inline inset:0 style */
+
+/* Canvas tile overlay on top of leaflet */
+/* pointer-events: all — Konva handles its own hit detection internally;
+   clicks on empty (transparent) canvas areas fall through to the map below */
+.cd-canvas-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: all;
+}
+
+/* ─── Filter chips bar (floats top-center of map area) ── */
+.cd-filter-bar {
+  position: absolute;
+  top: 1rem;
+  /* center in content area to the right of toolbar */
+  left: calc(4rem + ((100vw - 4rem) / 2));
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+@media (max-width: 768px) {
+  .cd-filter-bar {
+    left: 50%;
+  }
+}
+
+.cd-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(5, 15, 22, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cd-filter-chip:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cd-filter-label {
+  font-size: inherit;
+}
+
+/* ─── Menu button (shows sidebar on mobile) ────────────────────────── */
+.cd-menu-btn {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 30;
+  display: none; /* hidden on PC since sidebar always visible */
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(5, 15, 22, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cd-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cd-menu-icon {
+  font-size: 1.2rem;
+  letter-spacing: -3px;
+  line-height: 1;
+}
+
+/* ─── FABs (mobile bottom-right) ─────────────────────────────────── */
+.cd-fab-group {
+  position: absolute;
+  bottom: 7rem; /* above bottom sheet handle */
+  right: 1rem;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cd-fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: white;
+}
+
+.cd-fab:hover {
+  transform: scale(1.08);
+}
+
+.cd-fab:active {
+  transform: scale(0.95);
+}
+
+.cd-fab-report {
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+  box-shadow: 0 4px 20px rgba(8, 145, 178, 0.45);
+}
+
+.cd-fab-locate {
+  background: rgba(30, 58, 80, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+/* ─── PC: Tile detail floating card (bottom-right) ────────────────── */
+.cd-tile-detail-card {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 40;
+  width: 320px;
+  max-width: calc(100vw - 2rem);
+  max-height: 60vh;
+  overflow-y: auto;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(7, 18, 26, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 1.25rem;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  animation: cd-slide-up 0.25s ease;
+}
+
+.cd-tile-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cd-tile-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────────────── */
+.cd-sidebar {
+  /* sidebar removed; keep rule in case something else refers to it */
+  display: none !important;
+}
+
+.cd-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(5, 14, 21, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.5rem 1.25rem;
+  gap: 0;
+  overflow-y: auto;
+}
+
+.cd-sidebar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.cd-sidebar-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.02em;
+  margin: 0.25rem 0 0;
+  font-family: 'Playfair Display', serif;
+}
+
+.cd-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cd-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cd-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+/* Hide close button on PC (sidebar always visible) */
+.cd-sidebar-close {
+  display: none;
+}
+
+.cd-identity-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 1.25rem;
+}
+
+.cd-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.cd-identity-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+/* ─── Labels, sections ────────────────────────────────────────────── */
+.cd-label-tiny {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(103, 232, 249, 0.8);
+  margin: 0;
+}
+
+.cd-section-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* ─── Permission chips ────────────────────────────────────────────── */
+.cd-permission-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cd-perm-chip {
+  flex: 1;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cd-perm-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.cd-perm-chip--active {
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+}
+
+.cd-perm-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ─── Stats grid ──────────────────────────────────────────────────── */
+.cd-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cd-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  text-align: center;
+  gap: 0.2rem;
+}
+
+.cd-stat-icon {
+  font-size: 1.3rem;
+}
+
+.cd-stat-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.cd-stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+/* ─── Reports list ────────────────────────────────────────────────── */
+.cd-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cd-report-item {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cd-report-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-report-type {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(103, 232, 249, 0.7);
+  margin: 0.2rem 0 0;
+}
+
+/* ─── Primary button ──────────────────────────────────────────────── */
+.cd-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 0.85rem;
+  border: none;
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 18px rgba(8, 145, 178, 0.35);
+}
+
+.cd-btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(8, 145, 178, 0.5);
+}
+
+/* ─── Sidebar backdrop (mobile) ──────────────────────────────────── */
+.cd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* ─── Mobile bottom sheet ─────────────────────────────────────────── */
+.cd-bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: rgba(7, 18, 26, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 65vh;
+  overflow-y: auto;
+  /* Hidden on PC */
+  display: none;
+}
+
+.cd-bottom-sheet--open {
+  transform: translateY(0);
+}
+
+.cd-drag-handle {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 0 0.5rem;
+  cursor: pointer;
+}
+
+.cd-drag-bar {
+  width: 2.5rem;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.cd-no-tile {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.875rem;
+  padding: 1.5rem;
+  margin: 0;
+}
+
+/* ─── Tile detail inner content ──────────────────────────────────── */
+.cd-tile-detail-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.cd-tile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cd-tile-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: white;
+  margin: 0.35rem 0 0;
+  font-family: 'Playfair Display', serif;
+}
+
+.cd-tile-desc {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0.3rem 0 0;
+  line-height: 1.5;
+}
+
+/* ─── Metrics row ─────────────────────────────────────────────────── */
+.cd-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.cd-metric-badge {
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cd-metric-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+
+.cd-metric-value {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0.2rem 0 0;
+  text-transform: capitalize;
+}
+
+/* ─── Service chips ──────────────────────────────────────────────── */
+.cd-info-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.cd-chip {
+  padding: 0.25rem 0.65rem;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: capitalize;
+}
+
+/* ─── Vote buttons ──────────────────────────────────────────────── */
+.cd-vote-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cd-vote-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cd-vote-btn strong {
+  margin-left: auto;
+  font-size: 1rem;
+}
+
+.cd-vote-up {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.cd-vote-up:hover {
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.cd-vote-down {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.cd-vote-down:hover {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+/* ─── Animations ──────────────────────────────────────────────────── */
+@keyframes cd-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── MOBILE breakpoint (≤ 768px) ────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Sidebar hidden by default, slides in from left as overlay */
+  .cd-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 55;
+  }
+
+  .cd-sidebar--open {
+    transform: translateX(0);
+  }
+
+  /* Show the close button inside sidebar on mobile */
+  .cd-sidebar-close {
+    display: flex;
+  }
+
+  /* Show the menu hamburger button */
+  .cd-menu-btn {
+    display: flex;
+  }
+
+  /* Filter bar: smaller text, no labels */
+  .cd-filter-bar {
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 0.4rem;
+  }
+
+  .cd-filter-chip {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.7rem;
+  }
+
+  .cd-filter-label {
+    display: none; /* Show only emoji on mobile */
+  }
+
+  /* Hide PC tile detail card — use bottom sheet instead */
+  .cd-tile-detail-card {
+    display: none;
+  }
+
+  /* Show bottom sheet */
+  .cd-bottom-sheet {
+    display: block;
+  }
+
+  /* FABs stay but move up less */
+  .cd-fab-group {
+    bottom: 5.5rem;
+  }
+
+  /* Metrics 2x2 on mobile */
+  .cd-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ─── PC / large screens ──────────────────────────────────────────── */
+@media (min-width: 769px) {
+  /* Sidebar always visible */
+  .cd-sidebar {
+    position: absolute;
+    transform: none !important;
+    transition: none;
+  }
+
+  /* Bottom sheet never shown on PC */
+  .cd-bottom-sheet {
+    display: none !important;
+  }
+
+  /* FABs are less prominent on PC */
+  .cd-fab-group {
+    bottom: 2rem;
+  }
+}
