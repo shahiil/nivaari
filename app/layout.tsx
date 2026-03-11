@@ -4,6 +4,8 @@ import '../styles/globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect } from 'react';
+import { initializeAnalytics } from '@/utils/analytics';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as HotToaster } from "react-hot-toast";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -11,6 +13,13 @@ import Navbar from "@/components/Navbar";
 import { usePathname } from 'next/navigation';
 
 const queryClient = new QueryClient();
+
+function AnalyticsLoader() {
+  useEffect(() => {
+    initializeAnalytics();
+  }, []);
+  return null;
+}
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -34,7 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#0f172a" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap" rel="stylesheet" />
@@ -44,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <TooltipProvider>
               <LayoutContent>{children}</LayoutContent>
+              <AnalyticsLoader />
             </TooltipProvider>
           </AuthProvider>
         </QueryClientProvider>

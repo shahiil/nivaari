@@ -1,375 +1,325 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrthographicCamera, MapControls, Html, Edges } from '@react-three/drei';
+import React, { useState, useMemo } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrthographicCamera, MapControls, Edges } from '@react-three/drei';
+import { create } from 'zustand';
 
-export default function GameUI() {
-  const [camPos, setCamPos] = useState<[number, number, number]>([0,0,0]);
-  const [camZoom, setCamZoom] = useState(1);
-  const [date, setDate] = useState(new Date(2021,5,16));
-  const [editingDate, setEditingDate] = useState(false);
+// --- NIVAARI DATA TYPES ---
+type NivaariData = { category: string; zone: string; confidence: number; upvotes: number; downvotes: number; services: string[]; };
+type Tile = { id: string; x: number; z: number; type: 'empty' | 'road' | 'house' | 'hospital'; data?: NivaariData; };
+type ViewMode = 'world' | 'country' | 'state' | 'city';
 
-  // Toggle between 'city' and 'region'
-  const [viewLevel, setViewLevel] = useState<'city'|'region'>('city');
-  const [currentName, setCurrentName] = useState('Stuckenborstel');
+interface GameState {
+  viewMode: ViewMode;
+  location: { world: string | null; country: string | null; state: string | null; city: string | null };
+  grid: Record<string, Tile>;
+  buildTool: 'cursor' | 'road' | 'house' | 'hospital';
+  selectedTile: Tile | null;
+  heatmapConfidence: boolean;
+  
+  navigate: (level: ViewMode, id: string) => void;
+  navigateUp: (level: ViewMode) => void;
+  toggleHeatmap: () => void;
+  setBuildTool: (tool: 'cursor' | 'road' | 'house' | 'hospital') => void;
+  selectTile: (x: number, z: number) => void;
+  placeTile: (x: number, z: number) => void;
+  voteTile: (id: string, type: 'up' | 'down') => void;
+}
 
-  useEffect(() => {
-    setCurrentName(viewLevel === 'city' ? 'Stuckenborstel' : 'Theonia');
-  }, [viewLevel]);
+// --- ZUSTAND STORE ---
+const useStore = create<GameState>((set) => ({
+  viewMode: 'world', 
+  location: { world: 'Earth', country: null, state: null, city: null },
+  grid: {}, 
+  buildTool: 'cursor',
+  selectedTile: null,
+  heatmapConfidence: false,
+  
+  navigate: (level, id) => set((s) => {
+    const loc = { ...s.location };
+    let nextMode: ViewMode = 'world';
+    if (level === 'world') { loc.country = id; nextMode = 'country'; }
+    if (level === 'country') { loc.state = id; nextMode = 'state'; }
+    if (level === 'state') { loc.city = id; nextMode = 'city'; }
+    return { location: loc, viewMode: nextMode, selectedTile: null };
+  }),
+
+  navigateUp: (level) => set((s) => {
+    const loc = { ...s.location };
+    if (level === 'world') { loc.country = null; loc.state = null; loc.city = null; }
+    if (level === 'country') { loc.state = null; loc.city = null; }
+    if (level === 'state') { loc.city = null; }
+    return { location: loc, viewMode: level, selectedTile: null };
+  }),
+  
+  toggleHeatmap: () => set((s) => ({ heatmapConfidence: !s.heatmapConfidence })),
+  setBuildTool: (tool) => set({ buildTool: tool, selectedTile: null }),
+  selectTile: (x, z) => set((state) => ({ selectedTile: state.grid[`${x},${z}`] || null })),
+
+  placeTile: (x, z) => set((state) => {
+    if (state.buildTool === 'cursor') return state;
+    const key = `${x},${z}`;
+    const baseData: NivaariData = {
+      category: state.buildTool === 'hospital' ? 'health' : 'residential',
+      zone: state.buildTool === 'hospital' ? 'public' : 'private',
+      confidence: 50, upvotes: 1, downvotes: 0,
+      services: state.buildTool === 'hospital' ? ['Emergency', 'Ambulance'] : ['Water', 'Power']
+    };
+    return { grid: { ...state.grid, [key]: { id: key, x, z, type: state.buildTool, data: state.buildTool !== 'road' ? baseData : undefined } } };
+  }),
+
+  voteTile: (id, type) => set((state) => {
+    const tile = state.grid[id];
+    if (!tile || !tile.data) return state;
+    const newData = { ...tile.data };
+    newData[type === 'up' ? 'upvotes' : 'downvotes'] += 1;
+    newData.confidence = Math.round((newData.upvotes / (newData.upvotes + newData.downvotes)) * 100);
+    const updatedTile = { ...tile, data: newData };
+    return { grid: { ...state.grid, [id]: updatedTile }, selectedTile: state.selectedTile?.id === id ? updatedTile : state.selectedTile };
+  })
+}));
+
+// --- SHARED RETRO UI STYLES ---
+const retroBox = "bg-[#005c99] border-t-[3px] border-l-[3px] border-white/90 border-b-[4px] border-r-[4px] border-[#002b4d] text-white pixel-font shadow-md";
+const retroBoxPressed = "bg-[#003d66] border-t-[4px] border-l-[4px] border-[#001122] border-b-[2px] border-r-[2px] border-white/50 text-white pixel-font shadow-sm";
+const retroPanel = "bg-[#004d80] border-[4px] border-[#002b4d] outline outline-2 outline-white text-white pixel-font shadow-xl";
+
+// --- MAIN ROUTER COMPONENT ---
+export default function NivaariApp() {
+  const { viewMode, location, navigateUp } = useStore();
 
   return (
-    <main className="relative w-screen h-screen text-white font-sans overflow-hidden select-none">
-      
-      {/* --- 3D GAME WORLD LAYER --- */}
-      <div className={`absolute inset-0 z-0 transition-colors duration-500 ${viewLevel === 'city' ? 'bg-indigo-950' : 'bg-[#0a0a0a]'}`}>
-        <Canvas shadows>
-          <OrthographicCamera 
-            makeDefault 
-            position={[50, 50, 50]} 
-            zoom={viewLevel === 'city' ? 40 : 25} 
-            near={-100} 
-            far={500} 
-          />
-          <MapControls enableRotate={false} /> 
+    <main className="relative w-screen h-screen bg-black text-white overflow-hidden select-none">
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        .pixel-font { font-family: 'VT323', monospace; letter-spacing: 0.5px; }
+      `}} />
 
-          {viewLevel === 'city' ? (
-            <CityScene onCameraMove={setCamPos} onZoom={setCamZoom} />
-          ) : (
-            <RegionScene />
-          )}
-        </Canvas>
-      </div>
-
-      {/* --- UI OVERLAY LAYER --- */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        {viewLevel === 'city' ? (
-          <CityUI 
-            currentName={currentName}
-            date={date}
-            setDate={setDate}
-            editingDate={editingDate}
-            setEditingDate={setEditingDate}
-            setViewLevel={setViewLevel}
-            camPos={camPos}
-            camZoom={camZoom}
-          />
-        ) : (
-          <RegionUI 
-            currentName={currentName} 
-            setViewLevel={setViewLevel} 
-          />
+      {/* Retro Breadcrumb Navigation Bar */}
+      <div className="absolute top-2 left-2 z-20 flex gap-1 pointer-events-auto">
+        <button onClick={() => navigateUp('world')} className={`${retroBox} px-3 py-1 text-xl hover:text-yellow-300`}>
+          🌍 World
+        </button>
+        {location.country && (
+          <button onClick={() => navigateUp('country')} className={`${retroBox} px-3 py-1 text-xl hover:text-yellow-300`}>
+            ▶ {location.country}
+          </button>
+        )}
+        {location.state && (
+          <button onClick={() => navigateUp('state')} className={`${retroBox} px-3 py-1 text-xl hover:text-yellow-300`}>
+            ▶ {location.state}
+          </button>
+        )}
+        {location.city && (
+          <div className={`${retroBox} px-3 py-1 text-xl text-yellow-300`}>
+            ▶ {location.city}
+          </div>
         )}
       </div>
+
+      {viewMode === 'city' ? <CityCanvas /> : <AtlasCanvas viewMode={viewMode} />}
     </main>
   );
 }
 
-/* =========================================
-   3D SCENES
-========================================= */
+// ==========================================
+// 1. DYNAMIC ATLAS VIEW (World / Country / State)
+// ==========================================
+function AtlasCanvas({ viewMode }: { viewMode: ViewMode }) {
+  const { location, navigate } = useStore();
+  const [hovered, setHovered] = useState<string | null>(null);
 
-function CityScene({ onCameraMove, onZoom }: { onCameraMove: (pos: [number,number,number]) => void, onZoom: (z: number) => void }) {
-  useFrame(({ camera }) => {
-    onCameraMove([camera.position.x, camera.position.y, camera.position.z]);
-    onZoom(camera.zoom);
-  });
-
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#2d5a27" />
-      </mesh>
-
-      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[100, 4]} />
-        <meshStandardMaterial color="#475569" />
-      </mesh>
-      
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]} receiveShadow>
-        <planeGeometry args={[100, 4]} />
-        <meshStandardMaterial color="#475569" />
-      </mesh>
-
-      <Building position={[-5, 1, -5]} color="#fca5a5" scale={[3, 2, 3]} /> 
-      <Building position={[4, 3, 4]} color="#93c5fd" scale={[2, 6, 2]} /> 
-      <Building position={[5, 1.5, -3]} color="#fde047" scale={[2, 3, 2]} /> 
-      <Building position={[-4, 1, 6]} color="#ffffff" scale={[2, 2, 2]} /> 
-    </>
-  );
-}
-
-function RegionScene() {
-  const tiles = [];
-  for(let x = -2; x <= 1; x++) {
-    for(let z = -2; z <= 1; z++) {
-      tiles.push({ 
-        id: `${x}-${z}`, 
-        x: x * 10 + 5, 
-        z: z * 10 + 5, 
-        locked: !(x === 0 && z === 0) 
-      });
+  // Generate different grid sizes and labels based on the zoom level
+  const atlasData = useMemo(() => {
+    const data = [];
+    if (viewMode === 'world') {
+      // Mock Continents/Countries
+      data.push({ id: 'North America', x: -20, z: -20, color: '#365e32' });
+      data.push({ id: 'USA', x: -20, z: -5, color: '#4a7a42' });
+      data.push({ id: 'Brazil', x: -10, z: 20, color: '#2d6a4f' });
+      data.push({ id: 'Europe', x: 5, z: -20, color: '#365e32' });
+      data.push({ id: 'India', x: 20, z: 0, color: '#b45309' }); // Distinct color for India
+      data.push({ id: 'Japan', x: 40, z: -5, color: '#365e32' });
+    } else if (viewMode === 'country') {
+      // Mock States inside a country
+      for (let x = -1; x <= 1; x++) {
+        for (let z = -1; z <= 1; z++) {
+          const names = ['Maharashtra', 'Gujarat', 'Karnataka', 'Delhi', 'Punjab', 'Kerala', 'Tamil Nadu', 'Assam', 'Goa'];
+          data.push({ id: names[(x+1)*3 + (z+1)] || `Region ${x},${z}`, x: x * 15, z: z * 15, color: '#4a7a42' });
+        }
+      }
+    } else if (viewMode === 'state') {
+      // Mock Sectors inside a state
+      for (let x = -2; x <= 2; x++) {
+        for (let z = -2; z <= 2; z++) {
+          data.push({ id: `Sector ${x+3}-${z+3}`, x: x * 10, z: z * 10, color: '#365e32', hasCity: x===0 && z===0 });
+        }
+      }
     }
-  }
+    return data;
+  }, [viewMode]);
 
   return (
     <>
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[20, 30, 10]} intensity={1} castShadow />
-
-      <group position={[0, 0, 0]}>
-        {tiles.map((tile) => (
-          <RegionTile key={tile.id} position={[tile.x, 0, tile.z]} locked={tile.locked} isCenter={!tile.locked} />
-        ))}
-      </group>
-    </>
-  );
-}
-
-function RegionTile({ position, locked, isCenter }: { position: [number, number, number], locked: boolean, isCenter: boolean }) {
-  return (
-    <group position={position}>
-      <mesh receiveShadow castShadow position={[0, -0.5, 0]}>
-        <boxGeometry args={[10, 1, 10]} />
-        <meshStandardMaterial color={isCenter ? "#3b5e2b" : "#456b33"} />
-        <Edges scale={1} threshold={15} color="#1a2e12" />
-      </mesh>
-      
-      <mesh receiveShadow position={[0, -1.5, 0]}>
-        <boxGeometry args={[10, 1, 10]} />
-        <meshStandardMaterial color="#4a3b2c" />
-        <Edges scale={1} threshold={15} color="#2b2219" />
-      </mesh>
-
-      {locked && (
-        <Html position={[0, 0.5, 0]} center transform sprite>
-          <div className="text-2xl drop-shadow-lg opacity-90">🔒</div>
-        </Html>
-      )}
-
-      {isCenter && (
-        <group position={[0, 0, 0]}>
-          <Building position={[-1, 0.5, -1]} color="#ccc" scale={[1, 1, 1]} />
-          <Building position={[1, 0.25, 1]} color="#fca5a5" scale={[1, 0.5, 1]} />
-          <Building position={[-0.5, 0.75, 1.5]} color="#93c5fd" scale={[0.8, 1.5, 0.8]} />
-        </group>
-      )}
-    </group>
-  );
-}
-
-function Building({ position, color, scale }: { position: [number, number, number], color: string, scale: [number, number, number] }) {
-  return (
-    <mesh position={position} castShadow receiveShadow>
-      <boxGeometry args={scale} />
-      <meshStandardMaterial color={color} />
-    </mesh>
-  );
-}
-
-/* =========================================
-   UI OVERLAYS
-========================================= */
-
-// --- FULL CITY UI ---
-function CityUI({ currentName, date, setDate, editingDate, setEditingDate, setViewLevel, camPos, camZoom }: any) {
-  const prevDay = () => setDate((d: Date) => new Date(d.getTime() - 24*60*60*1000));
-  const nextDay = () => setDate((d: Date) => new Date(d.getTime() + 24*60*60*1000));
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDate(new Date(e.target.value));
-    setEditingDate(false);
-  };
-
-  const viewportStyle = useMemo(() => {
-    const sizeX = 100, sizeZ = 100, mapW = 32, mapH = 24, baseZoom = 40;
-    const xPerc = (camPos[0] + sizeX/2) / sizeX;
-    const zPerc = (camPos[2] + sizeZ/2) / sizeZ;
-    const w = 12 * (baseZoom / camZoom);
-    const h = 9 * (baseZoom / camZoom);
-    return {
-      left: `${xPerc * mapW}px`,
-      top: `${zPerc * mapH}px`,
-      width: `${w}px`,
-      height: `${h}px`,
-    };
-  }, [camPos, camZoom]);
-
-  return (
-    <>
-      {/* TOP LEFT: City Info */}
-      <div className="absolute top-2 left-20 flex items-center gap-2 pointer-events-auto shadow-lg">
-        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-4 py-1 flex items-center gap-4">
-          <span className="font-bold tracking-wide">{currentName}</span>
-          <div className="flex items-center gap-1 text-sm font-semibold">
-            <span>👥</span><span>7,525</span>
-          </div>
-        </div>
-        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1 flex items-center gap-2">
-          <div className="w-5 h-5 bg-green-500 rounded-full border-2 border-black flex items-center justify-center text-black text-xs">😃</div>
-          <span className="text-green-400 font-bold">79%-</span>
-        </div>
-      </div>
-
-      {/* TOP RIGHT: Level & Build Tools */}
-      <div className="absolute top-2 right-4 flex items-start gap-4 pointer-events-auto">
-        <div className="flex flex-col items-center gap-1 mt-2">
-          <div className="flex gap-2">
-            <button className="text-2xl hover:scale-110 transition-transform cursor-pointer">🔨</button>
-            <button className="text-2xl hover:scale-110 transition-transform cursor-pointer">⬇️</button>
-          </div>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="relative w-16 h-16 rounded-full border-4 border-gray-600 bg-gray-900 flex items-center justify-center shadow-lg">
-            <svg className="absolute inset-0 w-full h-full -rotate-90">
-              <circle cx="28" cy="28" r="26" stroke="#eab308" strokeWidth="4" fill="none" strokeDasharray="163" strokeDashoffset="40" />
-            </svg>
-            <span className="text-2xl font-bold">8</span>
-          </div>
-          <span className="text-xs font-semibold mt-1 drop-shadow-md">Large Town</span>
-        </div>
-      </div>
-
-      {/* LEFT SIDEBAR: Tools */}
-      <div className="absolute top-2 left-2 flex flex-col gap-1 w-14 pointer-events-auto">
-        <SidebarButton icon="🔨" active />
-        <SidebarButton icon="🚜" />
-        <SidebarButton icon="🔍" />
-        <SidebarButton icon="🚧" />
-        <SidebarButton icon="📊" />
-        <SidebarButton icon="🗺️" onClick={() => setViewLevel('region')} />
-        
-        <div className="absolute top-[calc(100vh-8rem)] flex flex-col gap-1">
-          <SidebarButton icon="🌍" />
-          <SidebarButton icon="⚙️" />
-        </div>
-      </div>
-
-      {/* RIGHT SIDEBAR: Action Bubbles */}
-      <div className="absolute top-1/3 right-4 flex flex-col gap-4 pointer-events-auto">
-        <BubbleButton icon="🎁" highlight />
-        <BubbleButton icon="🧍" />
-        <BubbleButton icon="🏛️" star />
-      </div>
-
-      {/* BOTTOM LEFT: Time Controls */}
-      <div className="absolute bottom-2 left-20 pointer-events-auto">
-        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md flex items-center overflow-hidden h-10 shadow-lg">
-          <div className="px-3 bg-white/10 h-full flex items-center border-r border-[#0066cc]">🕐</div>
+      <div className="absolute inset-0 z-0 bg-[#050510]">
+        <Canvas shadows>
+          <OrthographicCamera makeDefault position={[100, 100, 100]} zoom={viewMode === 'world' ? 6 : viewMode === 'country' ? 10 : 15} near={-200} far={500} />
+          <MapControls enableRotate={false} maxZoom={30} minZoom={2} /> 
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[50, 80, 20]} intensity={1.5} castShadow />
           
-          <button onClick={prevDay} className="px-2 hover:bg-white/20 h-full flex items-center text-white cursor-pointer">◀</button>
-          {editingDate ? (
-             <input type="date" className="px-2 text-black" value={date.toISOString().substring(0,10)} onChange={handleDateChange} onBlur={() => setEditingDate(false)} autoFocus />
-          ) : (
-            <span onClick={() => setEditingDate(true)} className="px-2 font-bold tracking-wide border-r border-[#0066cc] cursor-pointer">
-              {date.toLocaleDateString('en-GB')}
-            </span>
-          )}
-          <button onClick={nextDay} className="px-2 border-r border-[#0066cc] hover:bg-white/20 h-full flex items-center text-white cursor-pointer">▶</button>
+          <group>
+            {/* Ocean / Base Layer */}
+            <mesh position={[0, -2, 0]} receiveShadow>
+              <boxGeometry args={[150, 2, 150]} />
+              <meshStandardMaterial color={viewMode === 'world' ? "#1e3a8a" : "#2d2218"} />
+            </mesh>
 
-          <button className="px-3 hover:bg-white/20 h-full flex items-center text-yellow-400 cursor-pointer">⏸</button>
-          <button className="px-3 hover:bg-white/20 h-full flex items-center bg-white/10 text-green-400 cursor-pointer">▶</button>
-          <button className="px-3 hover:bg-white/20 h-full flex items-center text-cyan-400 cursor-pointer">▶▶</button>
-          <button className="px-3 hover:bg-white/20 h-full flex items-center text-cyan-400 cursor-pointer">⏭</button>
-        </div>
+            {atlasData.map((block) => (
+              <group key={block.id} position={[block.x, 0, block.z]}>
+                <mesh 
+                  onPointerOver={(e) => { e.stopPropagation(); setHovered(block.id); }}
+                  onPointerOut={() => setHovered(null)}
+                  onClick={(e) => { e.stopPropagation(); navigate(viewMode, block.id); }}
+                  receiveShadow
+                >
+                  <boxGeometry args={[viewMode === 'world' ? 14 : viewMode === 'country' ? 14 : 9, 1, viewMode === 'world' ? 14 : viewMode === 'country' ? 14 : 9]} />
+                  <meshStandardMaterial color={hovered === block.id ? '#ffff00' : block.color} />
+                  
+                  {/* Mock mini cities if looking at a state level */}
+                  {(block as any).hasCity && (
+                     <mesh position={[0, 1, 0]} castShadow><boxGeometry args={[4, 4, 4]}/><meshStandardMaterial color="#aaaaaa"/></mesh>
+                  )}
+                </mesh>
+              </group>
+            ))}
+          </group>
+        </Canvas>
       </div>
-      
-      {/* BOTTOM RIGHT: Currency & Minimap */}
-      <div className="absolute bottom-2 right-2 flex items-end gap-3 pointer-events-auto">
-        
-        <div className="flex gap-2 mb-1 shadow-lg">
-          <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1.5 flex items-center gap-2">
-            <span>💎</span>
-            <span className="font-bold text-blue-200">+180</span>
-          </div>
-          <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1.5 flex items-center gap-2">
-            <span>🪙</span>
-            <span className="font-bold text-yellow-300">163K<span className="text-xs">₮</span></span>
-            <span className="font-bold text-green-400 text-sm">+11.5K<span className="text-xs text-green-400">₮</span></span>
-          </div>
-        </div>
 
-        <div className="w-32 h-24 bg-[#5a6e5a] border-4 border-gray-400 rounded-md relative shadow-lg overflow-hidden">
-          <div className="absolute top-1 left-1 w-6 h-6" style={{ background: '#ffffff' }}></div>
-          <div className="absolute top-1 right-1 w-6 h-6" style={{ background: '#93c5fd' }}></div>
-          <div className="absolute bottom-1 left-1 w-6 h-6" style={{ background: '#fde047' }}></div>
-          <div className="absolute bottom-1 right-1 w-6 h-6" style={{ background: '#a0522d' }}></div>
-          <div className="absolute w-8 h-6 border border-white bg-white/20 shadow-[0_0_0_999px_rgba(0,0,0,0.3)]" style={viewportStyle}></div>
+      {/* Hover Info Overlay */}
+      {hovered && (
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+          <div className={`${retroPanel} px-6 py-3 text-3xl animate-in slide-in-from-bottom-2`}>
+            {hovered} <span className="text-xl text-yellow-300 ml-2">(Click to Enter)</span>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
 
-// --- REGION UI ---
-function RegionUI({ currentName, setViewLevel }: any) {
+// ==========================================
+// 2. CITY VIEW (3D Builder Grid)
+// ==========================================
+function CityCanvas() {
+  const { buildTool, setBuildTool, selectedTile, toggleHeatmap, grid, voteTile } = useStore();
+
   return (
     <>
-      <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto">
-        <div className="flex bg-white rounded-md shadow-lg border-2 border-[#0066cc] overflow-hidden text-black font-bold text-sm">
-          <button className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 border-r border-gray-300">
-            <span className="text-green-500 text-lg leading-none">+</span> New region
-          </button>
-          <button className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 border-r border-gray-300">
-            👥 Online regions
-          </button>
-          <button className="px-3 py-2 flex items-center gap-2 hover:bg-gray-100 bg-gray-200">
-            📚 Single Cities
-          </button>
-        </div>
-        <button className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-3 py-1.5 flex items-center gap-2 w-max shadow-md hover:bg-blue-800 transition-colors">
-          👤 Account
-        </button>
+      <div className="absolute inset-0 z-0 bg-[#0a0a1a]">
+        <Canvas shadows>
+          <OrthographicCamera makeDefault position={[50, 50, 50]} zoom={40} near={-100} far={500} />
+          <MapControls enableRotate={false} enabled={buildTool === 'cursor'} /> 
+          <ambientLight intensity={0.7} />
+          <directionalLight position={[20, 30, 10]} intensity={1.5} castShadow />
+          <CityScene />
+        </Canvas>
       </div>
 
-      <div className="absolute bottom-4 left-4 flex items-end gap-2 pointer-events-auto">
-        <div className="flex flex-col gap-2">
-          <SidebarButton icon="☰" onClick={() => setViewLevel('city')} />
-          <SidebarButton icon="⚙️" />
-        </div>
-        <div className="bg-[#004b87] border-2 border-[#0066cc] rounded-md px-4 py-2 shadow-lg min-w-[250px]">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            {currentName} <span className="text-yellow-400 text-sm">✏️</span>
-          </h1>
-          <div className="text-sm mt-1 text-gray-200 flex items-center gap-4">
-            <span>Region 2/4</span>
-            <span>Inhabitants: 7,523</span>
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        
+        {/* Right Stats/Tools */}
+        <div className="absolute top-2 right-2 flex gap-1 pointer-events-auto">
+          <div className={`${retroBox} px-3 py-1 flex items-center text-xl`}>
+            <span className="mr-2">👥</span> {Object.keys(grid).length * 12}
           </div>
+          <button onClick={toggleHeatmap} className={`${retroBox} w-10 h-10 flex items-center justify-center text-xl active:scale-95`}>
+            📊
+          </button>
         </div>
-      </div>
 
-      <div className="absolute bottom-4 right-4 flex gap-2 pointer-events-auto shadow-lg">
-        <button className="bg-gradient-to-b from-[#4fc3f7] to-[#0288d1] border-2 border-blue-200 w-14 h-12 rounded-md flex items-center justify-center text-3xl hover:scale-105 transition-transform cursor-pointer text-white">←</button>
-        <button className="bg-gradient-to-b from-[#4fc3f7] to-[#0288d1] border-2 border-blue-200 w-14 h-12 rounded-md flex items-center justify-center text-3xl hover:scale-105 transition-transform cursor-pointer text-white">→</button>
+        {/* Left Vertical Tool Palette */}
+        <div className="absolute top-16 left-2 flex flex-col gap-1 pointer-events-auto">
+          <ToolButton icon="🔍" active={buildTool === 'cursor'} onClick={() => setBuildTool('cursor')} />
+          <ToolButton icon="🚜" active={false} onClick={() => console.log('Bulldoze')} />
+          <div className="h-2" />
+          <ToolButton icon="🛣️" active={buildTool === 'road'} onClick={() => setBuildTool('road')} />
+          <ToolButton icon="🏠" active={buildTool === 'house'} onClick={() => setBuildTool('house')} />
+          <ToolButton icon="🏥" active={buildTool === 'hospital'} onClick={() => setBuildTool('hospital')} />
+        </div>
+
+        {/* Center: Inspect Panel */}
+        {selectedTile && selectedTile.data && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-auto w-full max-w-sm">
+            <div className={`${retroPanel} p-4 animate-in slide-in-from-bottom-4`}>
+              <div className="flex justify-between border-b-2 border-[#002b4d] pb-2">
+                <div>
+                  <h2 className="text-3xl uppercase text-yellow-300">{selectedTile.type}</h2>
+                  <p className="text-lg text-blue-200">{selectedTile.data.category}</p>
+                </div>
+                <div className={`text-xl ${selectedTile.data.confidence > 75 ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {selectedTile.data.confidence}% Ver.
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={() => voteTile(selectedTile.id, 'up')} className={`${retroBox} flex-1 py-2 text-xl active:translate-y-1`}>👍 {selectedTile.data.upvotes}</button>
+                <button onClick={() => voteTile(selectedTile.id, 'down')} className={`${retroBox} flex-1 py-2 text-xl active:translate-y-1`}>👎 {selectedTile.data.downvotes}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
 }
 
-/* =========================================
-   REUSABLE BUTTONS
-========================================= */
+function CityScene() {
+  const { placeTile, selectTile, buildTool, grid, selectedTile } = useStore();
+  const [hoverPos, setHoverPos] = useState<[number, number] | null>(null);
 
-function SidebarButton({ icon, active = false, onClick }: { icon: string; active?: boolean; onClick?: () => void }) {
+  const handlePointerMove = (e: any) => { e.stopPropagation(); setHoverPos([Math.floor(e.point.x) + 0.5, Math.floor(e.point.z) + 0.5]); };
+  const handleClick = (e: any) => { e.stopPropagation(); const x = Math.floor(e.point.x) + 0.5; const z = Math.floor(e.point.z) + 0.5; if (buildTool === 'cursor') selectTile(x, z); else placeTile(x, z); };
+
   return (
-    <button onClick={onClick} className={`
-      w-12 h-12 rounded-lg border-2 flex items-center justify-center text-2xl shadow-md transition-transform hover:scale-105 cursor-pointer
-      ${active ? 'bg-blue-400 border-white shadow-[inset_0_0_10px_rgba(255,255,255,0.5)]' : 'bg-gradient-to-b from-[#1e88e5] to-[#1565c0] border-blue-300'}
-    `}>
-      {icon}
-    </button>
+    <>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} onPointerMove={handlePointerMove} onPointerOut={() => setHoverPos(null)} onClick={handleClick} receiveShadow>
+        <planeGeometry args={[100, 100]} />
+        <meshStandardMaterial color="#365e32" /> 
+      </mesh>
+      <gridHelper args={[100, 100, '#4a7a42', '#4a7a42']} position={[0, 0.01, 0]} />
+
+      {hoverPos && (
+        <mesh position={[hoverPos[0], 0.02, hoverPos[1]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial color={buildTool === 'cursor' ? "#ffffff" : "#ffff00"} opacity={0.5} transparent />
+        </mesh>
+      )}
+
+      {selectedTile && (
+        <mesh position={[selectedTile.x, 0.03, selectedTile.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial color="#ffff00" opacity={0.6} transparent />
+          <Edges color="#ffffff" />
+        </mesh>
+      )}
+
+      {Object.values(grid).map((tile) => (
+        <mesh key={tile.id} position={[tile.x, tile.type === 'hospital' ? 0.75 : 0.5, tile.z]} castShadow>
+          {tile.type === 'road' ? <planeGeometry args={[1, 1]} /> : <boxGeometry args={[0.8, tile.type === 'hospital' ? 1.5 : 1, 0.8]} />}
+          <meshStandardMaterial color={tile.type === 'road' ? "#555" : tile.type === 'hospital' ? "#cc0000" : "#ccc"} />
+          {tile.type !== 'road' && <Edges color="#000" />}
+        </mesh>
+      ))}
+    </>
   );
 }
 
-function BubbleButton({ icon, highlight = false, star = false }: { icon: string; highlight?: boolean; star?: boolean }) {
+function ToolButton({ icon, active, onClick }: any) {
   return (
-    <button className="relative w-12 h-12 rounded-full border-2 border-white bg-white/20 backdrop-blur-sm shadow-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform cursor-pointer">
-      {icon}
-      {highlight && <span className="absolute inset-0 rounded-full border-2 border-pink-500 animate-pulse"></span>}
-      {star && <span className="absolute -bottom-2 -right-2 text-yellow-400 text-xl drop-shadow-md">⭐</span>}
+    <button onClick={onClick} className={`w-[50px] h-[50px] flex items-center justify-center transition-none text-white pixel-font shadow-sm ${active ? retroBoxPressed : retroBox}`}>
+      <span className="text-2xl leading-none">{icon}</span>
     </button>
   );
 }

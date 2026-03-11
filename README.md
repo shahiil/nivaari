@@ -30,6 +30,11 @@ Create a `.env.local` file and add the following keys:
 | `SMTP_PORT` | SMTP port (e.g. `465` or `587`) |
 | `EMAIL_USER` | SMTP username / from address |
 | `EMAIL_PASS` | SMTP password or app-specific password |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL for real-time sync |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public API key for client |
+| `OPENAI_API_KEY` | Secret key for OpenAI / LLM backend (server-side only) |
+| `DISASTER_WEBHOOK_URL` | Optional Discord/Slack webhook for disaster alerts |
+| `NEXT_PUBLIC_POSTHOG_KEY` | (Optional) PostHog API key for event analytics |
 
 Optional:
 

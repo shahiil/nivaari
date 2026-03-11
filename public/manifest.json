@@ -1,11 +1,11 @@
 {
-  "name": "Nivaari - Anonymous Geo-Explorer",
-  "short_name": "Nivaari",
+  "name": "NIVAARI",
+  "short_name": "NIVAARI",
   "description": "Anonymous, tile-based geographical exploration platform.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#000000",
+  "theme_color": "#0f172a",
   "icons": [
     {
       "src": "/apple-icon.png",
