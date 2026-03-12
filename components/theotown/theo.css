@@ -1,0 +1,135 @@
+.theo-window {
+  background-color: #f0f2f5;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+}
+.theo-btn {
+  background: linear-gradient(to bottom, #ffffff, #e9ecef);
+  border: 2px solid #adb5bd;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 700;
+  color: #212529;
+  text-shadow: 1px 1px 0px white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: inset 1px 1px 0px white, 0 2px 2px rgba(0,0,0,0.1);
+  font-family: sans-serif;
+}
+.theo-btn:hover {
+  background: linear-gradient(to bottom, #f8f9fa, #dee2e6);
+}
+.theo-btn:active {
+  background: #e9ecef;
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.2);
+  transform: translateY(1px);
+}
+.theo-btn.active {
+  background: linear-gradient(to bottom, #fff3cd, #ffecb5);
+  border-color: #ffe69c;
+}
+.theo-btn-blue {
+  background: linear-gradient(to bottom, #1e40af, #1e3a8a);
+  border: 2px solid #3b82f6;
+  color: white;
+  text-shadow: 1px 1px 0px black;
+}
+.theo-btn-blue:active {
+  background: #1e3a8a;
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.5);
+}
+.theo-bottom-bar {
+  background: linear-gradient(to bottom, #0f172a, #020617);
+  border-top: 2px solid #3b82f6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 48px;
+  font-family: sans-serif;
+}
+.theo-toolbar {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.theo-tool {
+  background: linear-gradient(to bottom, #60a5fa, #3b82f6);
+  border: 2px solid #2563eb;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: white;
+  font-size: 24px;
+}
+.theo-tool:active {
+  background: #2563eb;
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+.theo-tool.active {
+  background: linear-gradient(to bottom, #fde047, #eab308);
+  border-color: #ca8a04;
+}
+.theo-city-info {
+  background: linear-gradient(to bottom, #0369a1, #1e3a8a);
+  border: 2px solid #38bdf8;
+  border-radius: 4px;
+  color: white;
+  padding: 8px 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+}
+.theo-menu-title {
+  font-weight: bold;
+  font-size: 20px;
+  padding: 8px;
+  border-bottom: 2px solid #dee2e6;
+  font-family: sans-serif;
+  color: #343a40;
+}
+.theo-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #495057;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  gap: 4px;
+}
+.theo-menu-item:hover {
+  background: #fff;
+  border-color: #adb5bd;
+}
+.theo-menu-item:active {
+  background: #e2e8f0;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
+}
+.theo-menu-item.active {
+  background: linear-gradient(to bottom, #fff3cd, #ffe69c);
+  border-color: #ffc107;
+}
+
+.pixel-text {
+  font-family: 'Courier New', Courier, monospace;
+}

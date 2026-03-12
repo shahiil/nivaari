@@ -15,6 +15,8 @@ import TileInfoModal from '@/components/nivaari/TileInfoModal';
 import TravelModeButton from '@/components/nivaari/TravelModeButton';
 import type { ActiveFilter, ViewMode } from '@/lib/nivaariStore';
 import { getAtlasBlocks, type AtlasBlock } from '@/lib/nivaari/atlas-data';
+import '../theotown/theo.css';
+import TheoUIOverlay from '../theotown/TheoUIOverlay';
 
 const CityStatsDashboard = dynamic(() => import('@/components/CityStatsDashboard'), { ssr: false });
 const TutorialOverlay = dynamic(() => import('@/components/TutorialOverlay'), { ssr: false });
@@ -563,209 +565,21 @@ export default function NivaariExperience({
           />
         )}
 
-      {/* 2D UI overlay */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        {/* top-left sector panel */}
-        <div className="absolute top-4 left-4 pointer-events-auto bg-slate-800 bg-opacity-75 text-white p-3 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] rounded-lg shadow-lg">
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.15em] text-slate-300">
-            <button className={`rounded px-2 py-1 ${viewMode === 'world' ? 'bg-cyan-600 text-white' : 'bg-slate-700'}`} onClick={() => { setLocationHierarchy(null, null); setViewMode('world'); }}>
-              World
-            </button>
-            {currentCountry && (
-              <button className={`rounded px-2 py-1 ${viewMode === 'country' ? 'bg-cyan-600 text-white' : 'bg-slate-700'}`} onClick={() => setViewMode('country')}>
-                {currentCountry}
-              </button>
-            )}
-            {currentState && (
-              <button className={`rounded px-2 py-1 ${viewMode === 'state' ? 'bg-cyan-600 text-white' : 'bg-slate-700'}`} onClick={() => setViewMode('state')}>
-                {currentState}
-              </button>
-            )}
-            <button className={`rounded px-2 py-1 ${viewMode === 'city' ? 'bg-cyan-600 text-white' : 'bg-slate-700'}`} onClick={() => setViewMode('city')}>
-              City
-            </button>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="font-bold">
-              {viewMode === 'city'
-                ? `Sector: ${currentSector[0]}${currentSector[0] >= 0 ? 'N' : 'S'} - ${Math.abs(currentSector[1])}${currentSector[1] >= 0 ? 'E' : 'W'}`
-                : `Viewing ${viewMode}`}
-              {isLoadingSector && <span className="ml-1 animate-spin">⏳</span>}
-            </div>
-            {routeLabel && (
-              <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-cyan-200">
-                {routeLabel}
-              </span>
-            )}
-            <button
-              className="text-xl"
-              onClick={() => setStatsOpen((o) => !o)}
-              title="Sector Statistics"
-            >📊</button>
-          </div>
-          <div className="text-xs">
-            Citizen: {user.socialId || '—'} | Rep: {user.reputation} ⭐️
-            {currentCountry ? ` | Country: ${currentCountry}` : ''}
-            {currentState ? ` | State: ${currentState}` : ''}
-          </div>
-          <div className="text-sm">Active Contributors: 1,240</div>
-        </div>
-
-        {/* travel mode button */}
-        <TravelModeButton
-          active={isTravelModeActive}
-          type={travelType}
-          onStart={(t) => activateTravelMode(t)}
-          onStop={() => deactivateTravelMode()}
-          className="absolute top-4 right-32"
-        />
-        {/* locate me button */}
-        <button
-          className="absolute top-4 right-20 pointer-events-auto bg-slate-700 px-2 py-1 rounded text-white"
-          title="Locate Me"
-          onClick={() => window.nivaariLocate?.()}
-        >🎯</button>
-        {/* AI assistant toggle button */}
-        <button
-          className="absolute top-4 right-24 pointer-events-auto bg-indigo-600 px-3 py-2 rounded-lg text-white shadow-lg"
-          onClick={() => setChatOpen((o) => !o)}
-        >
-          🤖 AI Assistant
-        </button>
-        
-        {/* map filter dropdown trigger */}
-        <MapFilterDropdown
-          active={activeFilter}
-          onChange={setActiveFilter}
-          className="absolute top-4 right-4"
-        />
-
-        {chatOpen && <NivaariAIWindow />}
-        {/* disaster category modal */}
-        {disasterMode && selectedTile && (
-          <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
-            <div className="bg-white p-6 rounded-lg space-y-4">
-              <h3 className="text-lg font-bold">Disaster Type</h3>
-              <div className="flex gap-4">
-                <button
-                  className="px-4 py-2 bg-red-500 text-white rounded"
-                  onClick={() => {
-                    useNivaariStore.getState().reportMajorDisaster(selectedTile.id, 'manmade');
-                    setDisasterMode(false);
-                  }}
-                >
-                  Man-Made
-                </button>
-                <button
-                  className="px-4 py-2 bg-blue-500 text-white rounded"
-                  onClick={() => {
-                    useNivaariStore.getState().reportMajorDisaster(selectedTile.id, 'natural');
-                    setDisasterMode(false);
-                  }}
-                >
-                  Natural
-                </button>
-              </div>
-              <button
-                className="mt-2 px-4 py-2 bg-gray-300 rounded"
-                onClick={() => setDisasterMode(false)}
-              >Cancel</button>
-            </div>
-          </div>
-        )}
-
-        {/* legend for filter */}
-        {activeFilter !== 'default' && (
-          <div className="absolute bottom-4 left-4 pointer-events-none text-xs text-white">
-            {activeFilter === 'confidence' && (
-              <div className="flex items-center space-x-1">
-                <span>Low</span>
-                <div className="h-2 w-20 bg-gradient-to-r from-red-500 via-yellow-400 to-green-500"></div>
-                <span>High</span>
-              </div>
-            )}
-            {activeFilter === 'zone' && (
-              <div className="flex items-center space-x-2">
-                <span className="text-blue-400">Public</span>
-                <span className="text-purple-400">Private</span>
-              </div>
-            )}
-          </div>
-        )}
-        {/* stats dashboard overlay */}
-        {viewMode === 'city' && <CityStatsDashboard open={statsOpen} onClose={() => setStatsOpen(false)} />}
-
-        {/* main toolbar (left sidebar on wide screens / bottom dock) */}
-        {viewMode === 'city' && (
-        <div className="absolute bottom-0 w-full flex justify-center gap-4 p-4 pb-[env(safe-area-inset-bottom)] pointer-events-auto bg-white/10 backdrop-blur-md">
-          {(['inspect', 'road', 'building', 'hospital', 'nature', 'police', 'industrial'] as const).map(
-            (tool) => {
-              const icons: Record<typeof tool, string> = {
-                inspect: '🔍',
-                road: '🛣️',
-                building: '🏢',
-                hospital: '🏥',
-                nature: '🌳',
-                police: '🚓',
-                industrial: '🏭',
-              };
-              return (
-                <button
-                  key={tool}
-                  className={`w-12 h-12 rounded text-white flex flex-col items-center justify-center ${
-                    activeTool === tool
-                      ? 'bg-cyan-500 border-2 border-yellow-300'
-                      : 'bg-gray-700'
-                  }`}
-                  onClick={() =>
-                    useNivaariStore.setState({ activeTool: tool })
-                  }
-                >
-                  <span className="text-xl">{icons[tool]}</span>
-                  <span className="text-xs mt-1">
-                    {tool.charAt(0).toUpperCase() + tool.slice(1)}
-                  </span>
-                </button>
-              );
-            }
-          )}
-        </div>
-        )}
-
-        {/* Tile info modal component (only in inspect mode) */}
-        {viewMode === 'city' && activeTool === 'inspect' && (
-          <TileInfoModal
-            tile={selectedTile}
-            onVote={(type) => {
-              if (selectedTile) voteTile(selectedTile.id, type);
-            }}
-            editMode={editMode}
-            user={user}
-            onEditStart={() => {
-              if (selectedTile) {
-                const newSet = new Set<string>();
-                Object.entries(grid).forEach(([k,v]) => {
-                  if (v === selectedTile) newSet.add(k);
-                });
-                setEditingPositions(newSet);
-                setEditMode(true);
-              }
-            }}
-            onSaveEdit={() => {
-              if (selectedTile) {
-                useNivaariStore.getState().updateTileShape(selectedTile.id, Array.from(editingPositions));
-                setEditMode(false);
-                setEditingPositions(new Set());
-              }
-            }}
-            onCancelEdit={() => {
-              setEditMode(false);
-              setEditingPositions(new Set());
-            }}
-            onReportDisaster={() => { setDisasterMode(true); }}
-          />
-        )}
-      </div>
+            {/* 2D UI overlay */}
+      <TheoUIOverlay
+        chatOpen={chatOpen}
+        setChatOpen={setChatOpen}
+        statsOpen={statsOpen}
+        setStatsOpen={setStatsOpen}
+        disasterMode={disasterMode}
+        setDisasterMode={setDisasterMode}
+        editMode={editMode}
+        setEditMode={setEditMode}
+        setEditingPositions={setEditingPositions}
+        editingPositions={editingPositions}
+        routeLabel={routeLabel}
+        user={user}
+      />
       </>
       )}
     </div>
