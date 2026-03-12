@@ -10,17 +10,12 @@ import { useTileRealtime } from '@/hooks/useTileRealtime';
 import * as THREE from 'three';
 import AuthModal from '@/components/nivaari/AuthModal';
 import DragPreview from '@/components/nivaari/DragPreview';
-import MapFilterDropdown from '@/components/nivaari/MapFilterDropdown';
-import TileInfoModal from '@/components/nivaari/TileInfoModal';
-import TravelModeButton from '@/components/nivaari/TravelModeButton';
 import type { ActiveFilter, ViewMode } from '@/lib/nivaariStore';
 import { getAtlasBlocks, type AtlasBlock } from '@/lib/nivaari/atlas-data';
 import '../theotown/theo.css';
 import TheoUIOverlay from '../theotown/TheoUIOverlay';
 
-const CityStatsDashboard = dynamic(() => import('@/components/CityStatsDashboard'), { ssr: false });
 const TutorialOverlay = dynamic(() => import('@/components/TutorialOverlay'), { ssr: false });
-const NivaariAIWindow = dynamic(() => import('@/components/nivaari/NivaariAIWindow'), { ssr: false });
 
 interface NivaariExperienceProps {
   initialStatsOpen?: boolean;
@@ -329,15 +324,11 @@ export default function NivaariExperience({
   const selectedTile = useNivaariStore((s) => s.selectedTile);
   const placeTile = useNivaariStore((s) => s.placeTile);
   const selectTile = useNivaariStore((s) => s.selectTile);
-  const voteTile = useNivaariStore((s) => s.voteTile);
 
   const user = useNivaariStore((s) => s.user);
   const generateIdentity = useNivaariStore((s) => s.generateIdentity);
   const login = useNivaariStore((s) => s.login);
   const activeFilter = useNivaariStore((s) => s.activeFilter);
-  const setActiveFilter = useNivaariStore((s) => s.setActiveFilter);
-  const currentSector = useNivaariStore((s) => s.currentSector);
-  const isLoadingSector = useNivaariStore((s) => s.isLoadingSector);
   const viewMode = useNivaariStore((s) => s.viewMode);
   const currentCountry = useNivaariStore((s) => s.currentCountry);
   const currentState = useNivaariStore((s) => s.currentState);
@@ -368,14 +359,8 @@ export default function NivaariExperience({
   const [editMode, setEditMode] = useState(false);
   const [editingPositions, setEditingPositions] = useState<Set<string>>(new Set());
   const [disasterMode, setDisasterMode] = useState(false);
-  const [disasterTarget, setDisasterTarget] = useState<string | null>(null);
   const [pointerDownPos, setPointerDownPos] = useState<[number, number] | null>(null);
   const [pointerDownTime, setPointerDownTime] = useState<number>(0);
-
-  const isTravelModeActive = useNivaariStore((s) => s.isTravelModeActive);
-  const travelType = useNivaariStore((s) => s.travelType);
-  const activateTravelMode = useNivaariStore((s) => s.activateTravelMode);
-  const deactivateTravelMode = useNivaariStore((s) => s.deactivateTravelMode);
 
   useTravelMode();
 
@@ -428,8 +413,7 @@ export default function NivaariExperience({
       });
       return;
     }
-    if (disasterMode && selectedTile) {
-      setDisasterTarget(id);
+    if (disasterMode) {
       return;
     }
     if (activeTool === 'inspect') {
@@ -565,7 +549,7 @@ export default function NivaariExperience({
           />
         )}
 
-            {/* 2D UI overlay */}
+          {/* 2D UI overlay */}
       <TheoUIOverlay
         chatOpen={chatOpen}
         setChatOpen={setChatOpen}

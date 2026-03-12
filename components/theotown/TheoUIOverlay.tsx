@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useNivaariStore } from '@/lib/nivaariStore';
+import { useNivaariStore, type ActiveTool } from '@/lib/nivaariStore';
+import type { UserIdentity } from '@/lib/nivaari/domain';
 import dynamic from 'next/dynamic';
 import MapFilterDropdown from '@/components/nivaari/MapFilterDropdown';
 import TileInfoModal from '@/components/nivaari/TileInfoModal';
@@ -9,6 +10,30 @@ import TravelModeButton from '@/components/nivaari/TravelModeButton';
 
 const CityStatsDashboard = dynamic(() => import('@/components/CityStatsDashboard'), { ssr: false });
 const NivaariAIWindow = dynamic(() => import('@/components/nivaari/NivaariAIWindow'), { ssr: false });
+
+interface TheoUIOverlayProps {
+  chatOpen: boolean;
+  setChatOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  statsOpen: boolean;
+  setStatsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  disasterMode: boolean;
+  setDisasterMode: React.Dispatch<React.SetStateAction<boolean>>;
+  editMode: boolean;
+  setEditMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setEditingPositions: React.Dispatch<React.SetStateAction<Set<string>>>;
+  editingPositions: Set<string>;
+  routeLabel?: string;
+  user: UserIdentity;
+}
+
+const BUILD_TOOLS: Array<{ tool: ActiveTool; label: string; icon: string }> = [
+  { tool: 'road', label: 'Road', icon: '🛣️' },
+  { tool: 'building', label: 'Zones', icon: '🏢' },
+  { tool: 'industrial', label: 'Industry', icon: '🏭' },
+  { tool: 'hospital', label: 'Services', icon: '🏥' },
+  { tool: 'police', label: 'Police', icon: '🚓' },
+  { tool: 'nature', label: 'Nature', icon: '🌳' },
+];
 
 export default function TheoUIOverlay({
   chatOpen,
@@ -23,12 +48,12 @@ export default function TheoUIOverlay({
   editingPositions,
   routeLabel,
   user,
-}: any) {
+}: TheoUIOverlayProps) {
   const viewMode = useNivaariStore((s) => s.viewMode);
   const currentSector = useNivaariStore((s) => s.currentSector);
   const isLoadingSector = useNivaariStore((s) => s.isLoadingSector);
   const activeTool = useNivaariStore((s) => s.activeTool);
-  const setActiveTool = (tool: any) => useNivaariStore.setState({ activeTool: tool });
+  const setActiveTool = (tool: ActiveTool) => useNivaariStore.setState({ activeTool: tool });
   const activeFilter = useNivaariStore((s) => s.activeFilter);
   const setActiveFilter = useNivaariStore((s) => s.setActiveFilter);
   const currentCountry = useNivaariStore((s) => s.currentCountry);
@@ -37,28 +62,43 @@ export default function TheoUIOverlay({
   const setViewMode = useNivaariStore((s) => s.setViewMode);
   const selectedTile = useNivaariStore((s) => s.selectedTile);
   const voteTile = useNivaariStore((s) => s.voteTile);
+  const isTravelModeActive = useNivaariStore((s) => s.isTravelModeActive);
+  const travelType = useNivaariStore((s) => s.travelType);
+  const activateTravelMode = useNivaariStore((s) => s.activateTravelMode);
+  const deactivateTravelMode = useNivaariStore((s) => s.deactivateTravelMode);
 
   const [buildMenuOpen, setBuildMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('All > Zones');
 
-  // Helper date for the UI
   const dateStr = '16/01/40';
+  const locationLabel = [currentCountry, currentState].filter(Boolean).join(' / ');
+
+  const handleToolSelect = (tool: ActiveTool) => {
+    setActiveTool(tool);
+    setBuildMenuOpen(false);
+  };
 
   if (viewMode !== 'city') {
     return (
-       <div className="absolute inset-0 z-10 pointer-events-none">
-          <div className="absolute top-2 left-2 flex gap-2 pointer-events-auto">
-             <button className="theo-btn bg-white" onClick={() => { setLocationHierarchy(null, null); setViewMode('world'); }}>
-               ✚ New region
-             </button>
-             <button className="theo-btn bg-white">
-               👥 Online regions
-             </button>
-             <button className="theo-btn bg-white">
-               🌆 Single Cities
-             </button>
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2 pointer-events-auto">
+          <button className="theo-btn" onClick={() => { setLocationHierarchy(null, null); setViewMode('world'); }}>
+            ✚ New region
+          </button>
+          <button className="theo-btn" onClick={() => setViewMode('country')}>
+            👥 Online regions
+          </button>
+          <button className="theo-btn" onClick={() => setViewMode('city')}>
+            🌆 Single Cities
+          </button>
+        </div>
+
+        <div className="absolute left-3 top-20 pointer-events-auto theo-panel px-4 py-3 max-w-sm">
+          <div className="theo-panel-title">Atlas View</div>
+          <div className="theo-panel-copy">
+            {locationLabel || 'Pick a block to drill down from world to city view.'}
           </div>
-       </div>
+        </div>
+      </div>
     );
   }
 
@@ -74,6 +114,7 @@ export default function TheoUIOverlay({
              👤 Account
            </button>
         </div>
+        {routeLabel && <div className="theo-route-label">{routeLabel}</div>}
       </div>
 
       <div className="absolute bottom-16 left-2 pointer-events-auto flex flex-col gap-2">
@@ -89,6 +130,7 @@ export default function TheoUIOverlay({
                <div className="text-sm">
                   Sector {currentSector[0]},{currentSector[1]} Rep: {user?.reputation}★
                </div>
+              {locationLabel && <div className="text-xs text-white/80">{locationLabel}</div>}
             </div>
          </div>
       </div>
@@ -121,15 +163,15 @@ export default function TheoUIOverlay({
              onClick={() => window.nivaariLocate?.()}
              title="Locate Me"
            >🎯</button>
-           <button 
-             className={`theo-tool ${useNivaariStore(s=>s.isTravelModeActive) ? 'active' : ''}`} 
-             onClick={() => {
-                 const store = useNivaariStore.getState();
-                 if(store.isTravelModeActive) store.deactivateTravelMode();
-                 else store.activateTravelMode('car');
-             }}
-             title="Travel Mode"
-           >🚗</button>
+           <div className="theo-travel-slot">
+             <TravelModeButton
+               active={isTravelModeActive}
+               type={travelType}
+               onStart={activateTravelMode}
+               onStop={deactivateTravelMode}
+               className="theo-travel-menu"
+             />
+           </div>
            <button 
              className={`theo-tool ${chatOpen ? 'active' : ''}`} 
              onClick={() => setChatOpen(!chatOpen)}
@@ -144,51 +186,19 @@ export default function TheoUIOverlay({
             <div className="theo-window w-full">
                <div className="flex flex-wrap gap-2 p-2 border-b border-gray-300 bg-gray-100 items-center">
                   <button className="theo-btn h-8" onClick={() => setBuildMenuOpen(false)}>⬅</button>
-                  <span className="font-bold text-gray-700 ml-2">{activeTab}</span>
+                  <span className="font-bold text-gray-700 ml-2">All &gt; Build</span>
                </div>
                <div className="p-4 flex flex-wrap gap-4 min-h-[120px] bg-white">
-                  <button 
-                    className={`theo-menu-item ${activeTool === 'road' ? 'active' : ''}`}
-                    onClick={() => setActiveTool('road')}
-                  >
-                     <span className="text-3xl">🛣️</span>
-                     <span>Road</span>
-                  </button>
-                  <button 
-                    className={`theo-menu-item ${activeTool === 'building' ? 'active' : ''}`}
-                    onClick={() => setActiveTool('building')}
-                  >
-                     <span className="text-3xl">🏢</span>
-                     <span>Zones</span>
-                  </button>
-                  <button 
-                    className={`theo-menu-item ${activeTool === 'industrial' ? 'active' : ''}`}
-                    onClick={() => setActiveTool('industrial')}
-                  >
-                     <span className="text-3xl">🏭</span>
-                     <span>Industrial</span>
-                  </button>
-                  <button 
-                    className={`theo-menu-item ${activeTool === 'hospital' ? 'active' : ''}`}
-                    onClick={() => setActiveTool('hospital')}
-                  >
-                     <span className="text-3xl">🏥</span>
-                     <span>Services</span>
-                  </button>
-                  <button 
-                    className={`theo-menu-item ${activeTool === 'police' ? 'active' : ''}`}
-                    onClick={() => setActiveTool('police')}
-                  >
-                     <span className="text-3xl">🚓</span>
-                     <span>Police</span>
-                  </button>
-                  <button 
-                    className={`theo-menu-item ${activeTool === 'nature' ? 'active' : ''}`}
-                    onClick={() => setActiveTool('nature')}
-                  >
-                     <span className="text-3xl">🌳</span>
-                     <span>Nature</span>
-                  </button>
+                  {BUILD_TOOLS.map(({ tool, label, icon }) => (
+                    <button
+                      key={tool}
+                      className={`theo-menu-item ${activeTool === tool ? 'active' : ''}`}
+                      onClick={() => handleToolSelect(tool)}
+                    >
+                      <span className="text-3xl">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
                </div>
             </div>
         </div>
@@ -198,7 +208,7 @@ export default function TheoUIOverlay({
       {disasterMode && (
           <div className="absolute top-24 left-16 z-30 flex items-center justify-center pointer-events-auto">
             <div className="theo-window w-64">
-              <div className="theo-header text-lg">Emergencies</div>
+              <div className="theo-menu-title text-lg">Emergencies</div>
               <div className="p-4 flex flex-col gap-2">
                 <button
                   className="theo-btn justify-center text-red-600 border-red-400"
@@ -251,7 +261,7 @@ export default function TheoUIOverlay({
                  <div className="absolute top-1/2 left-1/2 w-4 h-4 border border-white -translate-x-1/2 -translate-y-1/2 bg-white/20"></div>
              </div>
          </div>
-         <div className="flex flex-col gap-1 items-end absolute right-0 bottom-[120px]">
+        <div className="flex flex-col gap-1 items-end absolute right-0 bottom-[120px] theo-filter-slot">
             <MapFilterDropdown active={activeFilter} onChange={setActiveFilter} />
          </div>
       </div>
