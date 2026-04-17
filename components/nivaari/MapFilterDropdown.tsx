@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { BadgeCheck, Building2, ChevronDown, Globe, Map } from 'lucide-react';
 import type { ActiveFilter } from '@/lib/nivaariStore';
 
 const OPTIONS: Array<[string, ActiveFilter]> = [
-  ['🌍 Default View', 'default'],
-  ['✅ Verification Heatmap', 'confidence'],
-  ['🏢 Zoning Map', 'zone'],
+  ['Default View', 'default'],
+  ['Verification Heatmap', 'confidence'],
+  ['Zoning Map', 'zone'],
 ];
 
 export default function MapFilterDropdown({
@@ -23,33 +24,35 @@ export default function MapFilterDropdown({
   return (
     <div className={`${className ?? ''} relative`.trim()}>
       <button
-        className="w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all duration-200 hover:opacity-80"
-        style={{ background: open ? 'rgba(0,212,255,0.15)' : 'rgba(8,13,26,0.85)', border: open ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(16px)' }}
+        className="theo-glass-icon-btn theo-glass-icon-btn--square h-11 w-11 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105"
+        style={{ background: open ? 'rgba(0,212,255,0.14)' : 'rgba(8,13,26,0.6)', border: open ? '1px solid rgba(0,212,255,0.28)' : '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(18px) saturate(160%)' }}
         onClick={() => setOpen((value) => !value)}
         title="Map Filter"
       >
-        🗺️
+        <Map className="h-5 w-5" strokeWidth={1.9} />
       </button>
       {open && (
         <div
-          className="absolute right-0 mt-2 w-52 rounded-xl overflow-hidden z-10"
-          style={{ background: 'rgba(8,13,26,0.95)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
+          className="theo-glass-menu absolute right-0 mt-2 w-52 rounded-2xl overflow-hidden z-10"
         >
-          {OPTIONS.map(([label, key]) => (
+          {OPTIONS.map(([label, key]) => {
+            const Icon = key === 'confidence' ? BadgeCheck : key === 'zone' ? Building2 : Globe;
+
+            return (
             <div
               key={key}
-              className="px-4 py-2.5 text-xs cursor-pointer transition-colors duration-150"
+              className="flex items-center gap-2 px-4 py-2.5 text-xs cursor-pointer transition-all duration-200"
               style={{
                 color: active === key ? '#00d4ff' : 'rgba(255,255,255,0.75)',
                 background: active === key ? 'rgba(0,212,255,0.08)' : 'transparent',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
                 fontWeight: active === key ? 600 : 400,
               }}
               onClick={() => { onChange(key); setOpen(false); }}
             >
+              <Icon className="h-4 w-4" />
               {label}
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

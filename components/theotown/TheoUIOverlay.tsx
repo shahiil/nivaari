@@ -1,9 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNivaariStore, type ActiveTool } from '@/lib/nivaariStore';
 import type { UserIdentity } from '@/lib/nivaari/domain';
 import dynamic from 'next/dynamic';
+import {
+  Bot,
+  Building2,
+  ChevronDown,
+  Clock3,
+  Compass,
+  Globe,
+  Hammer,
+  LocateFixed,
+  MapPinned,
+  Menu,
+  Pause,
+  Play,
+  Search,
+  Settings2,
+  ShieldAlert,
+  SkipForward,
+  Tractor,
+  Trees,
+  UserRound,
+} from 'lucide-react';
 import MapFilterDropdown from '@/components/nivaari/MapFilterDropdown';
 import TileInfoModal from '@/components/nivaari/TileInfoModal';
 import TravelModeButton from '@/components/nivaari/TravelModeButton';
@@ -26,13 +47,13 @@ interface TheoUIOverlayProps {
   user: UserIdentity;
 }
 
-const BUILD_TOOLS: Array<{ tool: ActiveTool; label: string; icon: string }> = [
-  { tool: 'road', label: 'Road', icon: '🛣️' },
-  { tool: 'building', label: 'Zones', icon: '🏢' },
-  { tool: 'industrial', label: 'Industry', icon: '🏭' },
-  { tool: 'hospital', label: 'Services', icon: '🏥' },
-  { tool: 'police', label: 'Police', icon: '🚓' },
-  { tool: 'nature', label: 'Nature', icon: '🌳' },
+const BUILD_TOOLS: Array<{ tool: ActiveTool; label: string; icon: ReactNode; tone: string }> = [
+  { tool: 'road', label: 'Road', icon: <MapPinned className="h-5 w-5" />, tone: 'from-slate-100 via-slate-200 to-slate-400 text-slate-900' },
+  { tool: 'building', label: 'Zones', icon: <Building2 className="h-5 w-5" />, tone: 'from-cyan-200 via-cyan-300 to-cyan-500 text-slate-950' },
+  { tool: 'industrial', label: 'Industry', icon: <Tractor className="h-5 w-5" />, tone: 'from-amber-200 via-amber-300 to-amber-500 text-slate-950' },
+  { tool: 'hospital', label: 'Services', icon: <ShieldAlert className="h-5 w-5" />, tone: 'from-emerald-200 via-emerald-300 to-emerald-500 text-slate-950' },
+  { tool: 'police', label: 'Police', icon: <Search className="h-5 w-5" />, tone: 'from-indigo-200 via-indigo-300 to-indigo-500 text-slate-950' },
+  { tool: 'nature', label: 'Nature', icon: <Trees className="h-5 w-5" />, tone: 'from-lime-200 via-lime-300 to-lime-500 text-slate-950' },
 ];
 
 export default function TheoUIOverlay({
@@ -77,6 +98,9 @@ export default function TheoUIOverlay({
     setBuildMenuOpen(false);
   };
 
+  const iconButtonClass =
+    'theo-glass-icon-btn inline-flex items-center justify-center gap-2 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 active:scale-95';
+
   if (viewMode !== 'city') {
     return (
       <div className="absolute inset-0 z-10 pointer-events-none">
@@ -107,11 +131,9 @@ export default function TheoUIOverlay({
       {/* TOP LEFT */}
       <div className="absolute top-2 left-2 flex flex-col gap-2 pointer-events-auto items-start">
         <div className="flex gap-2">
-           <button className="theo-btn" onClick={() => { setLocationHierarchy(null, null); setViewMode('world'); }}>
-             ✚ World
-           </button>
-           <button className="theo-btn">
-             👤 Account
+           <button className={`${iconButtonClass} theo-glass-icon-btn--wide`}>
+             <UserRound className="h-4 w-4" />
+             <span className="text-xs font-semibold tracking-wide">Account</span>
            </button>
         </div>
         {routeLabel && <div className="theo-route-label">{routeLabel}</div>}
@@ -119,13 +141,17 @@ export default function TheoUIOverlay({
 
       <div className="absolute bottom-16 left-2 pointer-events-auto flex flex-col gap-2">
          <div className="flex gap-2 items-end">
-            <button className="theo-btn theo-btn-blue text-2xl h-10 w-10 flex items-center justify-center p-0" title="Menu">☰</button>
-            <button className="theo-btn theo-btn-blue text-2xl h-10 w-10 flex items-center justify-center p-0" title="Settings" onClick={() => setStatsOpen(!statsOpen)}>⚙️</button>
+            <button className={`${iconButtonClass} theo-glass-icon-btn--square`} title="Menu">
+              <Menu className="h-4 w-4" />
+            </button>
+            <button className={`${iconButtonClass} theo-glass-icon-btn--square`} title="Settings" onClick={() => setStatsOpen(!statsOpen)}>
+              <Settings2 className="h-4 w-4" />
+            </button>
             
             <div className="theo-city-info flex flex-col justify-center min-w-[200px]">
                <div className="flex items-center gap-2">
                   <span className="text-xl font-bold">Nivaari City /</span>
-                  {isLoadingSector && <span className="text-xs text-yellow-300">⏳</span>}
+                  {isLoadingSector && <Clock3 className="h-3.5 w-3.5 animate-[theo-float_2.4s_ease-in-out_infinite] text-cyan-200" />}
                </div>
                <div className="text-sm">
                   Sector {currentSector[0]},{currentSector[1]} Rep: {user?.reputation}★
@@ -142,27 +168,27 @@ export default function TheoUIOverlay({
              className={`theo-tool ${buildMenuOpen || ['road','building','hospital','nature','police','industrial'].includes(activeTool) ? 'active' : ''}`} 
              onClick={() => { setBuildMenuOpen(!buildMenuOpen); }}
              title="Build"
-           >🔨</button>
+           ><Hammer className="h-5 w-5" /></button>
            <button 
              className={`theo-tool`} 
              onClick={() => { setActiveTool('inspect'); setBuildMenuOpen(false); }}
              title="Remove (Currently Maps to Inspect/Edit)"
-           >🚜</button>
+           ><Search className="h-5 w-5" /></button>
            <button 
              className={`theo-tool ${activeTool === 'inspect' && !buildMenuOpen ? 'active' : ''}`} 
              onClick={() => { setActiveTool('inspect'); setBuildMenuOpen(false); }}
              title="Inspect"
-           >🔍</button>
+           ><Compass className="h-5 w-5" /></button>
            <button 
              className={`theo-tool ${disasterMode ? 'active' : ''}`} 
              onClick={() => setDisasterMode(!disasterMode)}
              title="Emergencies"
-           >🦺</button>
+           ><ShieldAlert className="h-5 w-5" /></button>
            <button 
              className="theo-tool" 
              onClick={() => window.nivaariLocate?.()}
              title="Locate Me"
-           >🎯</button>
+           ><LocateFixed className="h-5 w-5" /></button>
            <div className="theo-travel-slot">
              <TravelModeButton
                active={isTravelModeActive}
@@ -176,7 +202,7 @@ export default function TheoUIOverlay({
              className={`theo-tool ${chatOpen ? 'active' : ''}`} 
              onClick={() => setChatOpen(!chatOpen)}
              title="AI Chat"
-           >🤖</button>
+           ><Bot className="h-5 w-5" /></button>
         </div>
       </div>
 
@@ -185,17 +211,17 @@ export default function TheoUIOverlay({
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-full max-w-2xl pointer-events-auto flex justify-center">
             <div className="theo-window w-full">
                <div className="flex flex-wrap gap-2 p-2 border-b border-gray-300 bg-gray-100 items-center">
-                  <button className="theo-btn h-8" onClick={() => setBuildMenuOpen(false)}>⬅</button>
+                  <button className="theo-btn h-8" onClick={() => setBuildMenuOpen(false)}><ChevronDown className="h-3.5 w-3.5 rotate-90" /></button>
                   <span className="font-bold text-gray-700 ml-2">All &gt; Build</span>
                </div>
                <div className="p-4 flex flex-wrap gap-4 min-h-[120px] bg-white">
-                  {BUILD_TOOLS.map(({ tool, label, icon }) => (
+                  {BUILD_TOOLS.map(({ tool, label, icon, tone }) => (
                     <button
                       key={tool}
                       className={`theo-menu-item ${activeTool === tool ? 'active' : ''}`}
                       onClick={() => handleToolSelect(tool)}
                     >
-                      <span className="text-3xl">{icon}</span>
+                      <span className={`theo-menu-icon ${tone}`}>{icon}</span>
                       <span>{label}</span>
                     </button>
                   ))}
@@ -214,13 +240,15 @@ export default function TheoUIOverlay({
                   className="theo-btn justify-center text-red-600 border-red-400"
                   onClick={() => { if (selectedTile) { useNivaariStore.getState().reportMajorDisaster(selectedTile.id, 'manmade'); setDisasterMode(false); } }}
                 >
-                  🏗️ Request Dispatch (Man-Made)
+                  <Building2 className="h-4 w-4" />
+                  Request Dispatch (Man-Made)
                 </button>
                 <button
                   className="theo-btn justify-center text-blue-600 border-blue-400"
                   onClick={() => { if (selectedTile) { useNivaariStore.getState().reportMajorDisaster(selectedTile.id, 'natural'); setDisasterMode(false); } }}
                 >
-                  🌊 Dispatch Rescue (Natural)
+                  <Globe className="h-4 w-4" />
+                  Dispatch Rescue (Natural)
                 </button>
                 <button
                   className="theo-btn justify-center mt-2"
@@ -237,26 +265,20 @@ export default function TheoUIOverlay({
       <div className="absolute bottom-0 left-0 right-0 pointer-events-auto theo-bottom-bar shadow-[0_-4px_10px_rgba(0,0,0,0.5)]">
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-               <span className="text-xl">🕒</span>
+            <Clock3 className="h-5 w-5" />
                <span className="font-bold">{dateStr}</span>
             </div>
-            <div className="flex items-center gap-1 text-green-400 text-lg ml-2 font-bold cursor-pointer">
-               ⏸ ▷ ⏭
-            </div>
-         </div>
-         <div className="flex items-center gap-6 mr-16">
-            <div className="flex items-center gap-2 font-bold text-blue-300">
-               <span className="text-xl">💎</span> +{user?.reputation || 0}
-            </div>
-            <div className="flex items-center gap-2 font-bold text-yellow-400">
-               <span className="text-xl">🟡</span> ∞
+          <div className="flex items-center gap-1 ml-2 font-bold cursor-pointer text-green-300">
+            <Pause className="h-4 w-4" />
+            <Play className="h-4 w-4" />
+            <SkipForward className="h-4 w-4" />
             </div>
          </div>
       </div>
 
       {/* MAP VIEW MINIMAP AREA (Placeholder) */}
       <div className="absolute bottom-12 right-2 pointer-events-auto">
-         <div className="w-24 h-24 bg-gray-800 border-2 border-gray-400 rounded opacity-80 flex items-center justify-center p-2 mb-2 shadow-lg">
+         <div className="theo-glass-minimap w-24 h-24 flex items-center justify-center p-2 mb-2 shadow-lg">
              <div className="w-full h-full border border-green-500 rounded-sm relative">
                  <div className="absolute top-1/2 left-1/2 w-4 h-4 border border-white -translate-x-1/2 -translate-y-1/2 bg-white/20"></div>
              </div>

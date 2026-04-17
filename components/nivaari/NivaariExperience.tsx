@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, memo, useCallback, type ElementRef } from 'react';
 import { useThree, useFrame, Canvas, type ThreeEvent } from '@react-three/fiber';
-import { OrthographicCamera, MapControls, Edges, BakeShadows, Text } from '@react-three/drei';
+import { OrthographicCamera, PerspectiveCamera, MapControls, Edges, BakeShadows, Text } from '@react-three/drei';
 import { useNivaariStore, Tile } from '@/lib/nivaariStore';
 import { useTravelMode } from '@/hooks/useTravelMode';
 import { useTileRealtime } from '@/hooks/useTileRealtime';
@@ -46,7 +46,7 @@ function CameraDriver({
     // check for pending locate command
     if (pendingLocate) {
       const [gx, gz] = pendingLocate;
-      camera.position.set(gx, 50, gz);
+      camera.position.set(gx + 34, 42, gz + 34);
       controls.current?.target.set(gx, 0, gz);
       setPendingLocate(null);
       // also load sector
@@ -86,6 +86,8 @@ function CameraDriver({
     enablePan={!dragStart && !editMode}
     enableDamping
     dampingFactor={0.05}
+    minDistance={18}
+    maxDistance={140}
     minZoom={10}
     maxZoom={100}
     touches={{ ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN }}
@@ -361,12 +363,57 @@ export default function NivaariExperience({
   const [disasterMode, setDisasterMode] = useState(false);
   const [pointerDownPos, setPointerDownPos] = useState<[number, number] | null>(null);
   const [pointerDownTime, setPointerDownTime] = useState<number>(0);
+  const [mapboxTexture, setMapboxTexture] = useState<THREE.Texture | null>(null);
+
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  const mapboxStyle = process.env.NEXT_PUBLIC_MAPBOX_STYLE_ID ?? 'mapbox/streets-v12';
+  const mapboxStaticUrl = mapboxToken
+    ? `https://api.mapbox.com/styles/v1/${mapboxStyle}/static/72.8777,19.0760,12,0/1024x1024?access_token=${mapboxToken}`
+    : null;
+  const osmStaticFallbackUrl = 'https://staticmap.openstreetmap.de/staticmap.php?center=19.0760,72.8777&zoom=12&size=1024x1024&maptype=mapnik';
+  const cityGroundTextureUrl = mapboxStaticUrl ?? osmStaticFallbackUrl;
 
   useTravelMode();
 
   useEffect(() => {
     useNivaariStore.setState({ activeFilter: initialFilter });
   }, [initialFilter]);
+
+  useEffect(() => {
+    let disposed = false;
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+
+    loader.load(
+      cityGroundTextureUrl,
+      (texture) => {
+        if (disposed) {
+          texture.dispose();
+          return;
+        }
+
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.anisotropy = 8;
+        setMapboxTexture(texture);
+      },
+      undefined,
+      () => {
+        if (!disposed) {
+          setMapboxTexture(null);
+        }
+      },
+    );
+
+    return () => {
+      disposed = true;
+      setMapboxTexture((previous) => {
+        previous?.dispose();
+        return null;
+      });
+    };
+  }, [cityGroundTextureUrl]);
 
   const recordRecentUpdate = useCallback((tileId: string) => {
     setRecentUpdates((prev) => ({ ...prev, [tileId]: Date.now() }));
@@ -463,7 +510,7 @@ export default function NivaariExperience({
         {viewMode === 'city' ? (
         <Canvas shadows dpr={[1,1.5]} frameloop="demand" className="absolute inset-0 z-0 touch-action-none">
         <BakeShadows />
-        <OrthographicCamera makeDefault position={[50, 50, 50]} zoom={50} />
+        <PerspectiveCamera makeDefault position={[42, 38, 42]} fov={44} near={0.1} far={500} />
         <CameraDriver dragStart={dragStart} editMode={editMode} />
         <ambientLight intensity={0.5} />
         <directionalLight
@@ -499,10 +546,13 @@ export default function NivaariExperience({
           onClick={(e)=>{/* handled in pointerUp */}}
         >
           <planeGeometry args={[100, 100]} />
-          <meshStandardMaterial color="#1E293B" />
+          <meshStandardMaterial
+            color={mapboxTexture ? '#f8fafc' : '#0f172a'}
+            map={mapboxTexture ?? undefined}
+            roughness={0.95}
+            metalness={0.02}
+          />
         </mesh>
-
-        <gridHelper args={[100, 100, 'white', 'gray']} position={[0, 0.01, 0]} />
 
         {/* hover cursor */}
         {hoverPos && (

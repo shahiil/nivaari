@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CarFront, ChevronDown, Footprints, TrainFront, Compass, X } from 'lucide-react';
 import type { TravelType } from '@/lib/nivaariStore';
 
 export default function TravelModeButton({
@@ -21,38 +22,44 @@ export default function TravelModeButton({
   return (
     <div className={`${className ?? ''} relative`.trim()}>
       <button
-        className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold text-white transition-all duration-200 hover:opacity-80"
+        className="theo-glass-icon-btn theo-glass-icon-btn--wide h-10 px-3 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:scale-105"
         style={{
-          background: active ? 'rgba(34,197,94,0.25)' : 'rgba(8,13,26,0.85)',
-          border: active ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.12)',
-          backdropFilter: 'blur(16px)',
-          boxShadow: active ? '0 0 10px rgba(34,197,94,0.2)' : 'none',
+          background: active ? 'rgba(34,197,94,0.16)' : 'rgba(8,13,26,0.6)',
+          border: active ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(255,255,255,0.14)',
+          backdropFilter: 'blur(18px) saturate(160%)',
+          boxShadow: active ? '0 0 18px rgba(34,197,94,0.18)' : '0 10px 30px rgba(0,0,0,0.18)',
         }}
         onClick={() => setOpen((value) => !value)}
       >
-        {type ? `🧭 ${type}` : '🧭'}
+        <Compass className="h-4 w-4" />
+        <span className="capitalize">{type ?? 'Travel'}</span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div
-          className="absolute right-0 mt-2 w-40 rounded-xl overflow-hidden z-10"
-          style={{ background: 'rgba(8,13,26,0.95)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
+          className="theo-glass-menu absolute right-0 mt-2 w-44 rounded-2xl overflow-hidden z-10"
         >
           {!active ? (
             <>
-              {[{ label: '🚶 Walking', type: 'walk' as TravelType }, { label: '🚗 Car', type: 'car' as TravelType }, { label: '🚆 Train', type: 'train' as TravelType }].map(({ label, type: t }) => (
+              {[
+                { label: 'Walking', type: 'walk' as TravelType, icon: Footprints },
+                { label: 'Car', type: 'car' as TravelType, icon: CarFront },
+                { label: 'Train', type: 'train' as TravelType, icon: TrainFront },
+              ].map(({ label, type: t, icon: Icon }) => (
                 <div
                   key={t}
-                  className="px-4 py-2.5 text-xs text-white/80 cursor-pointer hover:bg-white/05 hover:text-white transition-colors duration-150"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  className="flex items-center gap-2 px-4 py-2.5 text-xs text-white/80 cursor-pointer hover:bg-white/08 hover:text-white transition-all duration-200"
                   onClick={() => { onStart(t); setOpen(false); }}
                 >
+                  <Icon className="h-4 w-4" />
                   {label}
                 </div>
               ))}
             </>
           ) : (
-            <div className="px-4 py-2.5 text-xs text-red-300 cursor-pointer hover:text-red-200" onClick={() => { onStop(); setOpen(false); }}>
-              ✕ Stop Tracking
+            <div className="flex items-center gap-2 px-4 py-2.5 text-xs text-red-300 cursor-pointer hover:text-red-200 transition-colors" onClick={() => { onStop(); setOpen(false); }}>
+              <X className="h-4 w-4" />
+              Stop Tracking
             </div>
           )}
         </div>
