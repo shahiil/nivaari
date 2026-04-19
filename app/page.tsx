@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import mapboxgl from "mapbox-gl";
+import { useAuth } from "@/contexts/AuthContext";
+import toast from "react-hot-toast";
 // @ts-ignore
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -158,17 +160,158 @@ const RADIUS_OUTLINE_LAYER_ID = "zone-radius-outline";
 const SELECTED_PLACE_SOURCE_ID = "selected-place-source";
 const SELECTED_PLACE_FILL_LAYER_ID = "selected-place-fill";
 const SELECTED_PLACE_LINE_LAYER_ID = "selected-place-line";
+const REPORT_IMPACT_SOURCE_ID = "report-impact-source";
+const REPORT_IMPACT_FILL_LAYER_ID = "report-impact-fill";
+const REPORT_IMPACT_OUTLINE_LAYER_ID = "report-impact-outline";
 const DEFAULT_MAP_PITCH = 60;
 const DEFAULT_MAP_BEARING = -17.6;
 const MIN_3D_ZOOM = 14;
 const STREETS_STYLE = "mapbox://styles/mapbox/streets-v12";
 const DEFAULT_RADIUS_KM = 0.2;
-const RADIUS_VISIBILITY_MIN_ZOOM = 17;
+const RADIUS_VISIBILITY_MIN_ZOOM = 9;
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_CACHE_TTL_MS = 4 * 60 * 1000;
 const RECENT_SEARCHES_KEY = "nivaari-recent-searches-v2";
 const MAX_RECENT_SEARCHES = 8;
 const MIN_CONFIDENCE_DEFAULT = 0.45;
+const SERVICE_BUILDING_KEYWORDS = [
+  "service",
+  "shop",
+  "store",
+  "market",
+  "office",
+  "mall",
+  "hospital",
+  "clinic",
+  "school",
+  "college",
+  "university",
+  "restaurant",
+  "cafe",
+  "hotel",
+  "station",
+  "bank",
+  "pharmacy",
+  "warehouse",
+  "factory",
+];
+const RESIDENTIAL_EXCLUDE_KEYWORDS = ["residential", "apartment", "house", "housing", "home", "villa"];
+
+type ReportType = "potholes" | "garbage" | "flooding" | "streetlight" | "traffic" | "water" | "danger" | "trees" | "other";
+
+type ReportItem = {
+  id: string;
+  title: string;
+  type: ReportType;
+  description?: string;
+  location?: { lat?: number; lng?: number; address?: string };
+  impactRadiusKm?: number;
+  createdAt?: string;
+  aiSummary?: string;
+  createdBySocialId?: string;
+  upvotes?: number;
+  downvotes?: number;
+  myVote?: "upvote" | "downvote";
+};
+
+type ReportChatMessage = { role: "user" | "assistant"; text: string };
+
+type ReportDraft = {
+  title?: string;
+  type?: ReportType;
+  description?: string;
+  location?: { lat?: number; lng?: number; address?: string };
+  impactRadiusKm?: number;
+  verificationQuestions?: string[];
+};
+
+const REPORT_TYPE_META: Record<ReportType, { icon: string; color: string; label: string }> = {
+  potholes: { icon: "🕳️", color: "#ea580c", label: "Pothole" },
+  garbage: { icon: "🗑️", color: "#16a34a", label: "Garbage" },
+  flooding: { icon: "🌊", color: "#0284c7", label: "Flooding" },
+  streetlight: { icon: "💡", color: "#f59e0b", label: "Streetlight" },
+  traffic: { icon: "🚦", color: "#dc2626", label: "Traffic" },
+  water: { icon: "💧", color: "#0891b2", label: "Water" },
+  danger: { icon: "⚠️", color: "#b91c1c", label: "Danger" },
+  trees: { icon: "🌳", color: "#059669", label: "Trees" },
+  other: { icon: "📍", color: "#64748b", label: "Other" },
+};
+
+const normalizeReportType = (input?: string): ReportType => {
+  const value = String(input ?? "").trim().toLowerCase();
+  if (/(pothole|road damage|crack)/.test(value)) return "potholes";
+  if (/(garbage|trash|waste|dustbin)/.test(value)) return "garbage";
+  if (/(flood|water log|drain)/.test(value)) return "flooding";
+  if (/(streetlight|light)/.test(value)) return "streetlight";
+  if (/(traffic|jam|signal)/.test(value)) return "traffic";
+  if (/(water|pipeline|supply)/.test(value)) return "water";
+  if (/(tree|fallen tree)/.test(value)) return "trees";
+  if (/(danger|accident|hazard|unsafe)/.test(value)) return "danger";
+  if (value in REPORT_TYPE_META) return value as ReportType;
+  return "other";
+};
+
+const getReportMeta = (type?: string) => REPORT_TYPE_META[normalizeReportType(type)] ?? REPORT_TYPE_META.other;
+
+const buildReportImpactFeatureCollection = (reports: ReportItem[]): GeoJSON.FeatureCollection => {
+  const impactFeatures = reports.flatMap((report) => {
+    const lat = report.location?.lat;
+    const lng = report.location?.lng;
+    const radiusKm = report.impactRadiusKm;
+    if (typeof lat !== "number" || typeof lng !== "number" || typeof radiusKm !== "number" || radiusKm <= 0) {
+      return [];
+    }
+
+    const meta = getReportMeta(report.type);
+    return buildRadiusFeature([lng, lat], clamp(radiusKm, 0.05, 5), 80, {
+      reportId: report.id,
+      radiusColor: meta.color,
+      radiusOpacity: 0.14,
+    }).features;
+  });
+
+  return {
+    type: "FeatureCollection",
+    features: impactFeatures,
+  };
+};
+
+const ensureReportImpactLayers = (map: mapboxgl.Map, reports: ReportItem[]) => {
+  const data = buildReportImpactFeatureCollection(reports);
+
+  let source = map.getSource(REPORT_IMPACT_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  if (!source) {
+    map.addSource(REPORT_IMPACT_SOURCE_ID, { type: "geojson", data });
+    source = map.getSource(REPORT_IMPACT_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  } else {
+    source.setData(data);
+  }
+
+  if (!map.getLayer(REPORT_IMPACT_FILL_LAYER_ID)) {
+    map.addLayer({
+      id: REPORT_IMPACT_FILL_LAYER_ID,
+      type: "fill",
+      source: REPORT_IMPACT_SOURCE_ID,
+      paint: {
+        "fill-color": ["coalesce", ["get", "radiusColor"], "#22d3ee"],
+        "fill-opacity": ["coalesce", ["get", "radiusOpacity"], 0.12],
+      },
+    });
+  }
+
+  if (!map.getLayer(REPORT_IMPACT_OUTLINE_LAYER_ID)) {
+    map.addLayer({
+      id: REPORT_IMPACT_OUTLINE_LAYER_ID,
+      type: "line",
+      source: REPORT_IMPACT_SOURCE_ID,
+      paint: {
+        "line-color": ["coalesce", ["get", "radiusColor"], "#22d3ee"],
+        "line-opacity": 0.9,
+        "line-width": 1.5,
+      },
+    });
+  }
+};
 
 const normalizeText = (value: string) =>
   value
@@ -273,7 +416,12 @@ const buildKeywordMatchExpression = (
   return ["any", ...conditions] as mapboxgl.ExpressionSpecification;
 };
 
-const buildRadiusFeature = (center: LngLatTuple, radiusKm: number, steps = 96): GeoJSON.FeatureCollection => {
+const buildRadiusFeature = (
+  center: LngLatTuple,
+  radiusKm: number,
+  steps = 96,
+  properties: Record<string, unknown> = {},
+): GeoJSON.FeatureCollection => {
   const [lng, lat] = center;
   const earthRadiusKm = 6371;
   const angularDistance = radiusKm / earthRadiusKm;
@@ -302,13 +450,233 @@ const buildRadiusFeature = (center: LngLatTuple, radiusKm: number, steps = 96): 
     features: [
       {
         type: "Feature",
-        properties: {},
+        properties,
         geometry: {
           type: "Polygon",
           coordinates: [coordinates],
         },
       },
     ],
+  };
+};
+
+const emptyFeatureCollection = (): GeoJSON.FeatureCollection => ({
+  type: "FeatureCollection",
+  features: [],
+});
+
+const parseNumericValue = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
+const collectPolygonVertices = (geometry: GeoJSON.Geometry): Array<[number, number]> => {
+  if (geometry.type === "Polygon") {
+    return geometry.coordinates[0] as Array<[number, number]>;
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.flatMap((polygon) => polygon[0] as Array<[number, number]>);
+  }
+
+  return [];
+};
+
+const deriveBuildingCenter = (geometry: GeoJSON.Geometry): LngLatTuple | null => {
+  const vertices = collectPolygonVertices(geometry);
+  if (vertices.length === 0) return null;
+
+  const sums = vertices.reduce(
+    (acc, [lng, lat]) => {
+      acc.lng += lng;
+      acc.lat += lat;
+      return acc;
+    },
+    { lng: 0, lat: 0 },
+  );
+
+  return [sums.lng / vertices.length, sums.lat / vertices.length];
+};
+
+const deriveBuildingRadiusKm = (
+  geometry: GeoJSON.Geometry,
+  center: LngLatTuple,
+  properties: Record<string, unknown> | null | undefined,
+  fallbackRadiusKm: number,
+): number => {
+  const vertices = collectPolygonVertices(geometry);
+  const footprintKm = vertices.reduce((maxDistance, [lng, lat]) => {
+    const distance = calculateDistance(center[0], center[1], lng, lat);
+    return Math.max(maxDistance, distance);
+  }, 0);
+
+  const heightValue =
+    parseNumericValue(properties?.height) ??
+    parseNumericValue(properties?.render_height) ??
+    (parseNumericValue(properties?.levels) ?? 0) * 3;
+
+  const heightKm = clamp(heightValue / 1000, 0, 0.25);
+  const adaptiveRadiusKm = footprintKm * 1.8 + heightKm * 0.34 + fallbackRadiusKm * 0.35;
+
+  return clamp(adaptiveRadiusKm || fallbackRadiusKm, 0.1, 0.9);
+};
+
+type RadiusCircle = {
+  center: LngLatTuple;
+  radiusKm: number;
+};
+
+const circlesOverlap = (first: RadiusCircle, second: RadiusCircle): boolean => {
+  const centerDistanceKm = calculateDistance(first.center[0], first.center[1], second.center[0], second.center[1]);
+  const mergeBufferKm = 0.06;
+  return centerDistanceKm <= first.radiusKm + second.radiusKm + mergeBufferKm;
+};
+
+const mergeOverlappingCircles = (circles: RadiusCircle[]): RadiusCircle[] => {
+  if (circles.length <= 1) return circles;
+
+  const visited = new Array(circles.length).fill(false);
+  const merged: RadiusCircle[] = [];
+
+  for (let index = 0; index < circles.length; index += 1) {
+    if (visited[index]) continue;
+
+    const stack = [index];
+    const cluster: RadiusCircle[] = [];
+    visited[index] = true;
+
+    while (stack.length > 0) {
+      const currentIndex = stack.pop()!;
+      const current = circles[currentIndex];
+      cluster.push(current);
+
+      for (let candidateIndex = 0; candidateIndex < circles.length; candidateIndex += 1) {
+        if (visited[candidateIndex]) continue;
+        if (!circlesOverlap(current, circles[candidateIndex])) continue;
+        visited[candidateIndex] = true;
+        stack.push(candidateIndex);
+      }
+    }
+
+    const weighted = cluster.reduce(
+      (acc, item) => {
+        const weight = Math.max(item.radiusKm, 0.02);
+        acc.lng += item.center[0] * weight;
+        acc.lat += item.center[1] * weight;
+        acc.weight += weight;
+        return acc;
+      },
+      { lng: 0, lat: 0, weight: 0 },
+    );
+
+    const mergedCenter: LngLatTuple = [weighted.lng / weighted.weight, weighted.lat / weighted.weight];
+    const mergedRadiusKm = cluster.reduce((maxRadius, item) => {
+      const distanceToMergedCenter = calculateDistance(
+        mergedCenter[0],
+        mergedCenter[1],
+        item.center[0],
+        item.center[1],
+      );
+      return Math.max(maxRadius, distanceToMergedCenter + item.radiusKm);
+    }, 0);
+
+    const clusterBoost = 1 + Math.min(0.4, (cluster.length - 1) * 0.08);
+
+    merged.push({
+      center: mergedCenter,
+      radiusKm: clamp(mergedRadiusKm * clusterBoost, 0.1, 1.2),
+    });
+  }
+
+  return merged;
+};
+
+const buildGradientRadiusFeatures = (
+  circles: RadiusCircle[],
+  zoneColor: string,
+  gradientSteps = 14,
+): GeoJSON.Feature[] => {
+  const features: GeoJSON.Feature[] = [];
+
+  circles.forEach((circle, clusterIndex) => {
+    for (let step = gradientSteps; step >= 1; step -= 1) {
+      const stepRatio = step / gradientSteps;
+      const eased = 1 - stepRatio;
+      const gradientOpacity = clamp(0.025 + Math.pow(eased, 1.6) * 0.36, 0.025, 0.4);
+      const ringRadiusKm = circle.radiusKm * stepRatio;
+      const gradientOrder = gradientSteps - step;
+
+      features.push(
+        ...buildRadiusFeature(circle.center, ringRadiusKm, 96, {
+          radiusColor: zoneColor,
+          radiusOpacity: gradientOpacity,
+          boundaryOpacity: step === gradientSteps ? 1 : 0,
+          gradientOrder,
+          clusterIndex,
+        }).features,
+      );
+    }
+  });
+
+  return features;
+};
+
+const buildZoneRadiusFeatureCollection = (
+  map: mapboxgl.Map,
+  selectedZone: ZoneOption,
+  fallbackRadiusKm: number,
+): GeoJSON.FeatureCollection => {
+  if (selectedZone === "all") return emptyFeatureCollection();
+
+  if (selectedZone === "residential") return emptyFeatureCollection();
+
+  const buildingSearchTextExpression = getBuildingSearchTextExpression();
+
+  const features = map.querySourceFeatures("composite", {
+    sourceLayer: "building",
+    filter: [
+      "all",
+      buildZoneFilterExpression(selectedZone),
+      buildKeywordMatchExpression(buildingSearchTextExpression, SERVICE_BUILDING_KEYWORDS),
+      ["!", buildKeywordMatchExpression(buildingSearchTextExpression, RESIDENTIAL_EXCLUDE_KEYWORDS)],
+    ] as mapboxgl.FilterSpecification,
+  });
+  const zoneColor = ZONE_CONFIG.find((zone) => zone.key === selectedZone)?.color ?? "#22d3ee";
+
+  if (features.length === 0) return emptyFeatureCollection();
+
+  const dedupe = new Set<string>();
+  const baseCircles: RadiusCircle[] = features.flatMap((feature) => {
+    const geometry = feature.geometry as GeoJSON.Geometry | null;
+    if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon")) return [];
+
+    const center = deriveBuildingCenter(geometry);
+    if (!center) return [];
+
+    const dedupeKey = `${center[0].toFixed(6)}:${center[1].toFixed(6)}`;
+    if (dedupe.has(dedupeKey)) return [];
+    dedupe.add(dedupeKey);
+
+    const radiusForBuilding = deriveBuildingRadiusKm(
+      geometry,
+      center,
+      (feature.properties as Record<string, unknown>) ?? null,
+      fallbackRadiusKm,
+    );
+
+    return [{ center, radiusKm: radiusForBuilding }];
+  });
+
+  const mergedCircles = mergeOverlappingCircles(baseCircles);
+  const circleFeatures = buildGradientRadiusFeatures(mergedCircles, zoneColor);
+
+  return {
+    type: "FeatureCollection",
+    features: circleFeatures,
   };
 };
 
@@ -430,7 +798,6 @@ const setSelectedPlaceGeometry = (map: mapboxgl.Map, geometry: GeoJSON.Geometry 
 const addOrUpdateZoneLayers = (
   map: mapboxgl.Map,
   selectedZone: ZoneOption,
-  radiusCenter: LngLatTuple,
   radiusKm: number,
 ) => {
   if (!map.isStyleLoaded()) return;
@@ -440,7 +807,7 @@ const addOrUpdateZoneLayers = (
     if (map.getLayer(RADIUS_OUTLINE_LAYER_ID)) map.removeLayer(RADIUS_OUTLINE_LAYER_ID);
     if (map.getSource(RADIUS_SOURCE_ID)) map.removeSource(RADIUS_SOURCE_ID);
   } else {
-    const radiusFeature = buildRadiusFeature(radiusCenter, radiusKm);
+    const radiusFeature = buildZoneRadiusFeatureCollection(map, selectedZone, radiusKm);
 
     let radiusSource = map.getSource(RADIUS_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (!radiusSource) {
@@ -459,9 +826,12 @@ const addOrUpdateZoneLayers = (
         type: "fill",
         source: RADIUS_SOURCE_ID,
         minzoom: RADIUS_VISIBILITY_MIN_ZOOM,
+        layout: {
+          "fill-sort-key": ["coalesce", ["get", "gradientOrder"], 0],
+        },
         paint: {
-          "fill-color": "#06b6d4",
-          "fill-opacity": 0.25,
+          "fill-color": ["coalesce", ["get", "radiusColor"], "#06b6d4"],
+          "fill-opacity": ["coalesce", ["get", "radiusOpacity"], 0.2],
         },
       });
     }
@@ -473,9 +843,9 @@ const addOrUpdateZoneLayers = (
         source: RADIUS_SOURCE_ID,
         minzoom: RADIUS_VISIBILITY_MIN_ZOOM,
         paint: {
-          "line-color": "#0891b2",
-          "line-width": 3.5,
-          "line-opacity": 1,
+          "line-color": ["coalesce", ["get", "radiusColor"], "#0891b2"],
+          "line-width": 2.3,
+          "line-opacity": ["coalesce", ["get", "boundaryOpacity"], 0],
         },
       });
     }
@@ -614,20 +984,27 @@ const highlightText = (text: string, rawQuery: string): ReactNode => {
   );
 };
 
+declare global {
+  interface Window {
+    nivaariVoteReport?: (reportId: string, vote: "upvote" | "downvote") => Promise<void>;
+  }
+}
+
 export default function HomePage() {
+  const { logout } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const reportMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const reportsRef = useRef<ReportItem[]>([]);
   const userLocationRef = useRef<LngLatTuple | null>(null);
   const selectedZoneRef = useRef<ZoneOption>("all");
   const focusPointRef = useRef<LngLatTuple | null>(null);
-  const radiusKmRef = useRef(DEFAULT_RADIUS_KM);
   const cacheRef = useRef<Map<string, { ts: number; items: UniversalSuggestion[] }>>(new Map());
 
   const [selectedZone, setSelectedZone] = useState<ZoneOption>("all");
   const [focusPoint, setFocusPoint] = useState<LngLatTuple | null>(null);
-  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
 
   const [searchText, setSearchText] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
@@ -639,6 +1016,55 @@ export default function HomePage() {
   const [recentSearches, setRecentSearches] = useState<UniversalSuggestion[]>([]);
   const [showSearchBar, setShowSearchBar] = useState(true);
   const [nearbyInsights, setNearbyInsights] = useState<string[]>([]);
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [isReportChatOpen, setIsReportChatOpen] = useState(false);
+  const [reportMessages, setReportMessages] = useState<ReportChatMessage[]>([
+    {
+      role: "assistant",
+      text: "Hi, I am your civic report assistant. Describe the issue and I will verify details before submitting it.",
+    },
+  ]);
+  const [reportInput, setReportInput] = useState("");
+  const [reportDraft, setReportDraft] = useState<ReportDraft>({});
+  const [reportReadyToSubmit, setReportReadyToSubmit] = useState(false);
+  const [isReportThinking, setIsReportThinking] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportStatusMessage, setReportStatusMessage] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const voteReport = useCallback(async (reportId: string, vote: "upvote" | "downvote") => {
+    try {
+      const response = await fetch(`/api/citizen-reports/${reportId}/vote`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ vote }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(body?.error ?? "Unable to submit vote");
+        return;
+      }
+
+      await loadReports();
+      toast.success(vote === "upvote" ? "Upvote recorded" : "Downvote recorded");
+    } catch {
+      toast.error("Unable to submit vote right now");
+    }
+  }, []);
+
+  useEffect(() => {
+    window.nivaariVoteReport = async (reportId: string, vote: "upvote" | "downvote") => {
+      await voteReport(reportId, vote);
+    };
+
+    return () => {
+      delete window.nivaariVoteReport;
+    };
+  }, [voteReport]);
 
   const zoneLabelMap = useMemo(
     () => ({
@@ -675,6 +1101,317 @@ export default function HomePage() {
       }
       return merged;
     });
+  };
+
+  const refreshReportsOnMap = (map: mapboxgl.Map, reportRows: ReportItem[]) => {
+    reportMarkersRef.current.forEach((marker) => marker.remove());
+    reportMarkersRef.current = [];
+
+    reportRows.forEach((report) => {
+      const lat = report.location?.lat;
+      const lng = report.location?.lng;
+      if (typeof lat !== "number" || typeof lng !== "number") return;
+
+      const meta = getReportMeta(report.type);
+      const markerEl = document.createElement("button");
+      markerEl.type = "button";
+      markerEl.style.width = "34px";
+      markerEl.style.height = "34px";
+      markerEl.style.borderRadius = "999px";
+      markerEl.style.border = "2px solid rgba(255,255,255,0.88)";
+      markerEl.style.background = meta.color;
+      markerEl.style.display = "grid";
+      markerEl.style.placeItems = "center";
+      markerEl.style.cursor = "pointer";
+      markerEl.style.fontSize = "16px";
+      markerEl.style.boxShadow = "0 8px 16px rgba(2,6,23,0.4)";
+      markerEl.textContent = meta.icon;
+      markerEl.title = `${meta.label}: ${report.title}`;
+
+      const popupHtml = `
+        <div style="min-width:220px;max-width:290px;font-family:system-ui,sans-serif;">
+          <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">${report.title}</div>
+          <div style="font-size:12px;color:#334155;margin-bottom:8px;">${meta.label}</div>
+          <div style="font-size:12px;color:#1e293b;line-height:1.45;white-space:pre-wrap;">${report.description ?? "No additional details"}</div>
+          ${report.aiSummary ? `<div style="font-size:12px;color:#0f172a;margin-top:8px;"><strong>AI Summary:</strong> ${report.aiSummary}</div>` : ""}
+          ${typeof report.impactRadiusKm === "number" && report.impactRadiusKm > 0 ? `<div style="font-size:12px;color:#0f172a;margin-top:6px;">Impact Radius: ${report.impactRadiusKm.toFixed(2)} km</div>` : ""}
+          ${report.createdBySocialId ? `<div style="font-size:11px;color:#334155;margin-top:6px;">Reported by: <strong>${report.createdBySocialId}</strong></div>` : ""}
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button
+              type="button"
+              onclick="window.nivaariVoteReport && window.nivaariVoteReport('${report.id}', 'upvote')"
+              style="border:1px solid rgba(22,163,74,0.4);background:${report.myVote === "upvote" ? "rgba(22,163,74,0.2)" : "rgba(241,245,249,0.95)"};color:#166534;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;"
+            >▲ ${report.upvotes ?? 0}</button>
+            <button
+              type="button"
+              onclick="window.nivaariVoteReport && window.nivaariVoteReport('${report.id}', 'downvote')"
+              style="border:1px solid rgba(220,38,38,0.35);background:${report.myVote === "downvote" ? "rgba(220,38,38,0.2)" : "rgba(241,245,249,0.95)"};color:#991b1b;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;"
+            >▼ ${report.downvotes ?? 0}</button>
+          </div>
+          <div style="font-size:11px;color:#475569;margin-top:8px;">📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+        </div>
+      `;
+
+      const marker = new mapboxgl.Marker({ element: markerEl, anchor: "bottom" })
+        .setLngLat([lng, lat])
+        .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(popupHtml))
+        .addTo(map);
+
+      reportMarkersRef.current.push(marker);
+    });
+
+    if (map.isStyleLoaded()) {
+      ensureReportImpactLayers(map, reportRows);
+    }
+  };
+
+  const loadReports = async () => {
+    try {
+      const response = await fetch("/api/citizen-reports", { method: "GET" });
+      if (!response.ok) return;
+      const body = (await response.json()) as { reports?: ReportItem[] };
+      const list = (body.reports ?? []).map((report) => ({
+        ...report,
+        type: normalizeReportType(report.type),
+      })) as ReportItem[];
+      setReports(list);
+    } catch {
+      // Keep map usable if reports fetch fails.
+    }
+  };
+
+  const resolveAutoLocation = async (): Promise<{ lat?: number; lng?: number }> => {
+    if (userLocationRef.current) {
+      return { lat: userLocationRef.current[1], lng: userLocationRef.current[0] };
+    }
+
+    return new Promise((resolve) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        const center = mapRef.current?.getCenter();
+        resolve({ lat: center?.lat, lng: center?.lng });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const current: LngLatTuple = [position.coords.longitude, position.coords.latitude];
+          userLocationRef.current = current;
+          resolve({ lat: current[1], lng: current[0] });
+        },
+        () => {
+          const center = mapRef.current?.getCenter();
+          resolve({ lat: center?.lat, lng: center?.lng });
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 },
+      );
+    });
+  };
+
+    const geocodeReportAddress = async (address: string): Promise<{ lat?: number; lng?: number } | null> => {
+      const query = address.trim();
+      if (!query) return null;
+
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
+      if (!token) return null;
+
+      try {
+        const params = new URLSearchParams({
+          access_token: token,
+          limit: "1",
+          country: "IN",
+          language: "en",
+        });
+
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
+
+        const body = (await response.json()) as { features?: Array<{ center?: [number, number] }> };
+        const center = body.features?.[0]?.center;
+        if (center && Number.isFinite(center[0]) && Number.isFinite(center[1])) {
+          return { lat: center[1], lng: center[0] };
+        }
+      } catch {
+        return null;
+      }
+
+      return null;
+    };
+
+    const resolveReportDraftLocation = async (draft: ReportDraft) => {
+      const existingLat = draft.location?.lat;
+      const existingLng = draft.location?.lng;
+      if (typeof existingLat === "number" && typeof existingLng === "number") {
+        return draft.location;
+      }
+
+      if (!draft.location?.address) {
+        return draft.location;
+      }
+
+      const geocoded = await geocodeReportAddress(draft.location.address);
+      if (!geocoded) {
+        return draft.location;
+      }
+
+      return {
+        ...draft.location,
+        lat: geocoded.lat,
+        lng: geocoded.lng,
+      };
+    };
+
+  const sendReportMessage = async () => {
+    const text = reportInput.trim();
+    if (!text || isReportThinking) return;
+
+    const userMessage: ReportChatMessage = { role: "user", text };
+    const nextHistory = [...reportMessages, userMessage];
+    setReportMessages(nextHistory);
+    setReportInput("");
+    setIsReportThinking(true);
+    setReportStatusMessage("");
+
+    try {
+      const autoLocation = await resolveAutoLocation();
+      const response = await fetch("/api/citizen-reports/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          history: nextHistory,
+          draft: reportDraft,
+          userLocation:
+            typeof autoLocation.lat === "number" && typeof autoLocation.lng === "number"
+              ? { lat: autoLocation.lat, lng: autoLocation.lng }
+              : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        setReportMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: "I could not process this right now. Please add type, location, and impact details manually." },
+        ]);
+        return;
+      }
+
+      const body = (await response.json()) as {
+        assistantMessage: string;
+        draft: ReportDraft;
+        verificationQuestions?: string[];
+        readyToSubmit?: boolean;
+      };
+
+      setReportDraft((prev) => ({
+        ...prev,
+        ...body.draft,
+        verificationQuestions: body.verificationQuestions ?? prev.verificationQuestions,
+        location: {
+          lat: body.draft.location?.lat ?? prev.location?.lat,
+          lng: body.draft.location?.lng ?? prev.location?.lng,
+          address: body.draft.location?.address ?? prev.location?.address,
+        },
+      }));
+
+      const mergedDraft: ReportDraft = {
+        ...reportDraft,
+        ...body.draft,
+        verificationQuestions: body.verificationQuestions ?? reportDraft.verificationQuestions,
+        location: {
+          lat: body.draft.location?.lat ?? reportDraft.location?.lat,
+          lng: body.draft.location?.lng ?? reportDraft.location?.lng,
+          address: body.draft.location?.address ?? reportDraft.location?.address,
+        },
+      };
+
+      const resolvedLocation = await resolveReportDraftLocation(mergedDraft);
+      const isReady = Boolean(
+        mergedDraft.type &&
+          mergedDraft.description &&
+          resolvedLocation &&
+          ((typeof resolvedLocation.lat === "number" && typeof resolvedLocation.lng === "number") || resolvedLocation.address),
+      );
+
+      setReportDraft((prev) => ({
+        ...prev,
+        location: resolvedLocation ?? prev.location,
+      }));
+      setReportReadyToSubmit(Boolean(body.readyToSubmit || isReady));
+      setReportMessages((prev) => [...prev, { role: "assistant", text: body.assistantMessage }]);
+    } catch {
+      setReportMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Network error while processing the report. Please retry." },
+      ]);
+    } finally {
+      setIsReportThinking(false);
+    }
+  };
+
+  const submitVerifiedReport = async () => {
+    if (isSubmittingReport) return;
+
+    const resolvedLocation = await resolveReportDraftLocation(reportDraft);
+    const location = resolvedLocation ?? reportDraft.location;
+
+    if (!reportDraft.type || !reportDraft.description || (!location?.address && (typeof location?.lat !== "number" || typeof location?.lng !== "number"))) {
+      setReportStatusMessage("Please provide issue details and location before submitting.");
+      return;
+    }
+
+    if (location?.address && (typeof location.lat !== "number" || typeof location.lng !== "number")) {
+      setReportStatusMessage("I still need a precise map position for that address. Please send one more nearby landmark or coordinates.");
+      return;
+    }
+
+    const finalLocation = location;
+
+    setIsSubmittingReport(true);
+    setReportStatusMessage("");
+
+    try {
+      const payload = {
+        title: reportDraft.title || `${getReportMeta(reportDraft.type).label} Report`,
+        type: reportDraft.type,
+        category: reportDraft.type,
+        description: reportDraft.description,
+        location: finalLocation,
+        impactRadiusKm: reportDraft.impactRadiusKm,
+        aiSummary: reportMessages
+          .filter((item) => item.role === "assistant")
+          .slice(-1)[0]
+          ?.text,
+        verificationQuestions: reportDraft.verificationQuestions,
+        chatHistory: reportMessages,
+      };
+
+      const response = await fetch("/api/citizen-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        setReportStatusMessage("Failed to submit report. Please try again.");
+        return;
+      }
+
+      await loadReports();
+      setReportStatusMessage("Report submitted successfully.");
+      setIsReportChatOpen(false);
+      setReportReadyToSubmit(false);
+      setReportDraft({});
+      setReportMessages([
+        {
+          role: "assistant",
+          text: "Hi, I am your civic report assistant. Describe the issue and I will verify details before submitting it.",
+        },
+      ]);
+    } catch {
+      setReportStatusMessage("Report submission failed due to network issue.");
+    } finally {
+      setIsSubmittingReport(false);
+    }
   };
 
   const fetchPlacePhoto = async (
@@ -1075,6 +1812,17 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    void loadReports();
+  }, []);
+
+  useEffect(() => {
+    reportsRef.current = reports;
+    const map = mapRef.current;
+    if (!map) return;
+    refreshReportsOnMap(map, reports);
+  }, [reports]);
+
+  useEffect(() => {
     if (!mapContainerRef.current) return;
 
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
@@ -1090,6 +1838,10 @@ export default function HomePage() {
     });
 
     mapRef.current = map;
+
+    const refreshZoneLayers = () => {
+      addOrUpdateZoneLayers(map, selectedZoneRef.current, DEFAULT_RADIUS_KM);
+    };
 
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -1111,8 +1863,9 @@ export default function HomePage() {
       if (map.getZoom() < MIN_3D_ZOOM) map.setZoom(15);
 
       ensureSelectedPlaceLayers(map);
-      const center = getActiveRadiusCenter(map);
-      addOrUpdateZoneLayers(map, selectedZoneRef.current, center, radiusKmRef.current);
+      refreshZoneLayers();
+      ensureReportImpactLayers(map, reportsRef.current);
+      refreshReportsOnMap(map, reportsRef.current);
     });
 
     map.on("click", (event) => {
@@ -1123,7 +1876,14 @@ export default function HomePage() {
       }
     });
 
+    map.on("moveend", refreshZoneLayers);
+    map.on("zoomend", refreshZoneLayers);
+
     return () => {
+      map.off("moveend", refreshZoneLayers);
+      map.off("zoomend", refreshZoneLayers);
+      reportMarkersRef.current.forEach((marker) => marker.remove());
+      reportMarkersRef.current = [];
       mapRef.current = null;
       markerRef.current?.remove();
       popupRef.current?.remove();
@@ -1135,25 +1895,15 @@ export default function HomePage() {
     selectedZoneRef.current = selectedZone;
     const map = mapRef.current;
     if (!map) return;
-    const center = getActiveRadiusCenter(map);
-    addOrUpdateZoneLayers(map, selectedZone, center, radiusKmRef.current);
+    addOrUpdateZoneLayers(map, selectedZone, DEFAULT_RADIUS_KM);
   }, [selectedZone]);
 
   useEffect(() => {
     focusPointRef.current = focusPoint;
     const map = mapRef.current;
     if (!map) return;
-    const center = getActiveRadiusCenter(map);
-    addOrUpdateZoneLayers(map, selectedZoneRef.current, center, radiusKmRef.current);
+    addOrUpdateZoneLayers(map, selectedZoneRef.current, DEFAULT_RADIUS_KM);
   }, [focusPoint]);
-
-  useEffect(() => {
-    radiusKmRef.current = radiusKm;
-    const map = mapRef.current;
-    if (!map) return;
-    const center = getActiveRadiusCenter(map);
-    addOrUpdateZoneLayers(map, selectedZoneRef.current, center, radiusKm);
-  }, [radiusKm]);
 
   useEffect(() => {
     const query = searchText.trim();
@@ -1263,6 +2013,21 @@ export default function HomePage() {
     setShowSearchBar(false);
   };
 
+  const openReportChat = () => {
+    setIsReportChatOpen(true);
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      window.location.href = "/auth";
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <>
       <div
@@ -1274,6 +2039,38 @@ export default function HomePage() {
           height: "100vh",
         }}
       />
+
+      <button
+        type="button"
+        onClick={() => {
+          void handleLogout();
+        }}
+        disabled={isLoggingOut}
+        style={{
+          position: "fixed",
+          top: 14,
+          left: 14,
+          zIndex: 32,
+          height: 40,
+          borderRadius: 999,
+          border: "1px solid rgba(251,113,133,0.4)",
+          background:
+            "linear-gradient(145deg, rgba(30,41,59,0.85), rgba(15,23,42,0.78)), radial-gradient(circle at 12% 12%, rgba(251,113,133,0.22), transparent 45%)",
+          color: "#ffe4e6",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: isLoggingOut ? "not-allowed" : "pointer",
+          padding: "0 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 12px 26px rgba(2,6,23,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
+          backdropFilter: "blur(14px) saturate(170%)",
+          opacity: isLoggingOut ? 0.7 : 1,
+        }}
+      >
+        {isLoggingOut ? "Logging out..." : "Logout"}
+      </button>
 
       <div
         className="zone-panel"
@@ -1323,19 +2120,8 @@ export default function HomePage() {
 
         {selectedZone !== "all" ? (
           <>
-            <label style={{ display: "grid", gap: 8, fontSize: 13, marginTop: 12 }}>
-              <span>Radius: {radiusKm.toFixed(2)} km ({(radiusKm * 1000).toFixed(0)}m)</span>
-              <input
-                type="range"
-                min={0.1}
-                max={0.5}
-                step={0.1}
-                value={radiusKm}
-                onChange={(event) => setRadiusKm(Number(event.target.value))}
-              />
-            </label>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, fontStyle: "italic" }}>
-              Click on map to center the radius.
+              Radius is applied automatically to matching buildings based on building size and height.
             </div>
           </>
         ) : null}
@@ -1552,6 +2338,215 @@ export default function HomePage() {
       >
         🔍
       </button>
+
+      <button
+        type="button"
+        aria-label="Open report assistant"
+        onClick={() => {
+          openReportChat();
+        }}
+        style={{
+          position: "fixed",
+          left: 14,
+          bottom: showSearchBar ? 74 : 74,
+          zIndex: 31,
+          minWidth: 112,
+          height: 44,
+          borderRadius: 999,
+          border: "1px solid rgba(254,205,211,0.45)",
+          background:
+            "linear-gradient(145deg, rgba(76,5,25,0.8), rgba(127,29,29,0.72)), radial-gradient(circle at 12% 14%, rgba(251,113,133,0.35), transparent 44%)",
+          color: "#ffe4e6",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          boxShadow: "0 16px 30px rgba(69,10,10,0.45), inset 0 1px 0 rgba(255,255,255,0.1)",
+          backdropFilter: "blur(14px) saturate(170%)",
+          padding: "0 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        <span style={{ fontSize: 16, lineHeight: 1 }}>🚨</span>
+        Report
+      </button>
+
+      {isReportChatOpen ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            background: "rgba(2,6,23,0.45)",
+            display: "grid",
+            placeItems: "center",
+            padding: 14,
+          }}
+        >
+          <div
+            style={{
+              width: "min(96vw, 520px)",
+              maxHeight: "86vh",
+              display: "grid",
+              gridTemplateRows: "auto 1fr auto",
+              gap: 10,
+              borderRadius: 18,
+              border: "1px solid rgba(251,113,133,0.35)",
+              background:
+                "linear-gradient(155deg, rgba(30,41,59,0.96), rgba(15,23,42,0.92)), radial-gradient(circle at 8% 6%, rgba(251,113,133,0.2), transparent 34%)",
+              boxShadow: "0 20px 45px rgba(2,6,23,0.52)",
+              padding: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div>
+                <div style={{ color: "#ffe4e6", fontWeight: 700, fontSize: 15 }}>Citizen Report Assistant</div>
+                <div style={{ color: "#fecdd3", fontSize: 12 }}>
+                  Powered by GitHub GPT-4o. Describe the issue, we'll extract location and verify details.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReportChatOpen(false)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 999,
+                  border: "1px solid rgba(251,113,133,0.35)",
+                  background: "rgba(127,29,29,0.4)",
+                  color: "#ffe4e6",
+                  cursor: "pointer",
+                }}
+              >
+                x
+              </button>
+            </div>
+
+            <div
+              style={{
+                overflowY: "auto",
+                borderRadius: 12,
+                border: "1px solid rgba(148,163,184,0.25)",
+                background: "rgba(15,23,42,0.45)",
+                padding: 10,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              {reportMessages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  style={{
+                    justifySelf: message.role === "user" ? "end" : "start",
+                    maxWidth: "88%",
+                    borderRadius: 12,
+                    padding: "8px 10px",
+                    background:
+                      message.role === "user"
+                        ? "linear-gradient(145deg, rgba(190,24,93,0.28), rgba(190,24,93,0.15))"
+                        : "linear-gradient(145deg, rgba(30,64,175,0.26), rgba(56,189,248,0.14))",
+                    border:
+                      message.role === "user"
+                        ? "1px solid rgba(251,113,133,0.35)"
+                        : "1px solid rgba(125,211,252,0.28)",
+                    color: "#f8fafc",
+                    fontSize: 13,
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {message.text}
+                </div>
+              ))}
+              {isReportThinking ? <div style={{ color: "#cbd5e1", fontSize: 12 }}>Thinking...</div> : null}
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                <input
+                  value={reportInput}
+                  onChange={(event) => setReportInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void sendReportMessage();
+                    }
+                  }}
+                  placeholder="Describe issue, severity, landmark, and area impact..."
+                  style={{
+                    borderRadius: 10,
+                    border: "1px solid rgba(148,163,184,0.35)",
+                    background: "rgba(15,23,42,0.75)",
+                    color: "#f8fafc",
+                    padding: "10px 12px",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isReportThinking}
+                  onClick={() => {
+                    void sendReportMessage();
+                  }}
+                  style={{
+                    borderRadius: 10,
+                    border: "1px solid rgba(251,113,133,0.38)",
+                    background: "linear-gradient(145deg, rgba(190,24,93,0.42), rgba(127,29,29,0.55))",
+                    color: "#ffe4e6",
+                    fontWeight: 700,
+                    padding: "0 14px",
+                    cursor: isReportThinking ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Send
+                </button>
+              </div>
+
+              <div style={{ fontSize: 12, color: "#fecdd3", display: "grid", gap: 4 }}>
+                <div>Detected type: {reportDraft.type ? getReportMeta(reportDraft.type).label : "Not detected yet"}</div>
+                <div>
+                  Location: {typeof reportDraft.location?.lat === "number" && typeof reportDraft.location?.lng === "number"
+                    ? `${reportDraft.location.lat.toFixed(5)}, ${reportDraft.location.lng.toFixed(5)}`
+                    : "Pending"}
+                </div>
+                <div>
+                  Impact Radius: {typeof reportDraft.impactRadiusKm === "number" ? `${reportDraft.impactRadiusKm.toFixed(2)} km` : "Point issue"}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: reportReadyToSubmit ? "#86efac" : "#fcd34d" }}>
+                  {reportReadyToSubmit ? "Verified and ready to submit." : "Share more details so AI can verify the report."}
+                </span>
+                <button
+                  type="button"
+                  disabled={!reportReadyToSubmit || isSubmittingReport}
+                  onClick={() => {
+                    void submitVerifiedReport();
+                  }}
+                  style={{
+                    borderRadius: 10,
+                    border: "1px solid rgba(134,239,172,0.4)",
+                    background: "linear-gradient(145deg, rgba(22,163,74,0.4), rgba(21,128,61,0.55))",
+                    color: "#dcfce7",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    padding: "8px 12px",
+                    cursor: !reportReadyToSubmit || isSubmittingReport ? "not-allowed" : "pointer",
+                    opacity: !reportReadyToSubmit || isSubmittingReport ? 0.55 : 1,
+                  }}
+                >
+                  {isSubmittingReport ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+              {reportStatusMessage ? <div style={{ fontSize: 12, color: "#fcd34d" }}>{reportStatusMessage}</div> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {nearbyInsights.length > 0 ? (
         <div

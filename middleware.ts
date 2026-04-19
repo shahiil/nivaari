@@ -1,19 +1,32 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  // Get the pathname
-  const path = request.nextUrl.pathname;
+const SESSION_COOKIE_NAME = 'nivaari_session';
 
-  // Redirect /login and /signup to /auth
+export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+
+  // Canonical auth route.
   if (path === '/login' || path === '/signup') {
     return NextResponse.redirect(new URL('/auth', request.url));
   }
 
-  // Continue with the request if no redirects needed
+  // Authenticated users should not stay on auth page.
+  if (path === '/auth' && hasSession) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Unauthenticated users must login before seeing home/dashboard.
+  if ((path === '/' || path.startsWith('/citizen-dashboard')) && !hasSession) {
+    const authUrl = new URL('/auth', request.url);
+    authUrl.searchParams.set('from', path);
+    return NextResponse.redirect(authUrl);
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/login', '/signup'],
+  matcher: ['/', '/auth', '/login', '/signup', '/citizen-dashboard/:path*'],
 };

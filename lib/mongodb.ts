@@ -39,6 +39,9 @@ export interface UserDocument {
   name?: string;
   email: string;
   passwordHash: string;
+  authProvider?: "email" | "anonymous";
+  socialId?: string;
+  recoveryKeyHash?: string;
   role: UserRole;
   status?: "online" | "offline";
   phone?: string;
@@ -59,8 +62,15 @@ export interface CitizenReportDocument {
   city?: string;
   status?: 'submitted' | 'withdrawn';
   location?: { lat?: number; lng?: number; address?: string };
+  impactRadiusKm?: number;
+  aiSummary?: string;
+  verificationQuestions?: string[];
+  chatHistory?: Array<{ role: 'user' | 'assistant'; text: string }>;
   imageUrl?: string | null;
+  image?: string;
+  votes?: Array<{ socialId: string; vote: 'upvote' | 'downvote'; votedAt: Date }>;
   createdByUserId?: ObjectId | null;
+  createdBySocialId?: string | null;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -75,15 +85,23 @@ export async function getUsersCollection(): Promise<Collection<UserDocument>> {
   const db = await getDb();
   const collection = db.collection<UserDocument>("users");
   await collection.createIndex({ email: 1 }, { unique: true });
+  await collection.createIndex({ socialId: 1 }, { unique: true, sparse: true });
   return collection;
 }
 
 
 export async function getCitizenReportsCollection(): Promise<Collection<CitizenReportDocument>> {
   const db = await getDb();
-  const collection = db.collection<CitizenReportDocument>('citizenReports');
+  const collection = db.collection<CitizenReportDocument>('reports');
   await collection.createIndex({ createdAt: 1 });
   await collection.createIndex({ city: 1 });
+  await collection.createIndex({ "location.lat": 1, "location.lng": 1 });
+  await collection.createIndex({ type: 1 });
+  await collection.createIndex({ createdBySocialId: 1 });
   return collection;
+}
+
+export async function getReportsCollection(): Promise<Collection<CitizenReportDocument>> {
+  return getCitizenReportsCollection();
 }
 

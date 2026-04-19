@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Key, Shield, Copy, CheckCircle2, ArrowRight, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-const Iridescence = dynamic(() => import('./Iridescence'), { ssr: false });
 import './FlipAuthCard.css';
 
 interface FlipAuthCardProps {
@@ -22,72 +20,155 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
   const { currentUser, userData, loading, refresh } = useAuth();
   const [isFlipped, setIsFlipped] = useState(initialMode === 'signup');
   const [hasGeneratedCredentials, setHasGeneratedCredentials] = useState(false);
-  const [credentials, setCredentials] = useState({ socialId: '', recoveryKey: '', token: '' });
-  
+  const [credentials, setCredentials] = useState({ socialId: '', recoveryKey: '' });
   const [loginData, setLoginData] = useState({
+    socialId: '',
     recoveryKey: '',
-    token: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const isLogin = !isFlipped;
 
   // Redirect if user is already logged in
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      // all users navigate to citizen dashboard by default
-      router.push('/citizen-dashboard');
+      // all users navigate to homepage by default
+      router.push('/');
     }
   }, [currentUser, userData, loading, router]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
-    setLoginData({ recoveryKey: '', token: '' });
+    setLoginData({ socialId: '', recoveryKey: '' });
     setHasGeneratedCredentials(false);
   };
 
-  const generateCredentials = () => {
-    const socialId = 'NIV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    const recoveryKey = Array(4).fill(0).map(() => Math.random().toString(36).substr(2, 4)).join('-').toUpperCase();
-    const token = Math.random().toString(36).substr(2, 16);
-    
-    setCredentials({ socialId, recoveryKey, token });
-    setHasGeneratedCredentials(true);
-    toast.success('Anonymous credentials generated!');
-  };
+  const getPostAuthRedirect = () => {
+    const fallback = '/';
+    const redirectPath = sessionStorage.getItem('postLoginRedirect');
+    if (!redirectPath) {
+      return fallback;
+    }
 
-  const handleCopyCredentials = () => {
-    const textToCopy = `Nivaari Social ID: ${credentials.socialId}\nRecovery Key: ${credentials.recoveryKey}\nToken: ${credentials.token}`;
-    navigator.clipboard.writeText(textToCopy);
-    toast.success('Credentials copied to clipboard!');
-  };
-
-  const continueWithGeneratedAccount = () => {
-    // Mock successful login/creation routing since backend is deferred
-    localStorage.setItem('nivaari_anon_token', credentials.token);
-    toast.success('Account created successfully. Requesting permissions...');
-    requestPermissionsAndProceed();
+    sessionStorage.removeItem('postLoginRedirect');
+    return redirectPath;
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!loginData.recoveryKey || !loginData.token) {
-      toast.error('Please enter your Recovery Key and Token');
+
+    if (!loginData.socialId || !loginData.recoveryKey) {
+      toast.error('Please enter your Social ID and Recovery Key');
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Simulating API call for account recovery
-    setTimeout(() => {
-      setIsSubmitting(false);
-      localStorage.setItem('nivaari_anon_token', loginData.token);
+
+    try {
+      const response = await fetch('/api/auth/anonymous/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          socialId: loginData.socialId.trim().toUpperCase(),
+          recoveryKey: loginData.recoveryKey.trim().toUpperCase(),
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        toast.error(result?.error ?? 'Unable to recover account');
+        return;
+      }
+
+      await refresh();
       toast.success('Account recovered successfully!');
       requestPermissionsAndProceed();
-    }, 1500);
+    } catch (error) {
+      toast.error('Unable to recover account right now. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
+  const generateCredentials = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/auth/anonymous/signup', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        toast.error(result?.error ?? 'Unable to generate credentials');
+        return;
+      }
+
+      const generatedSocialId = result?.credentials?.socialId;
+      const generatedRecoveryKey = result?.credentials?.recoveryKey;
+
+      if (!generatedSocialId || !generatedRecoveryKey) {
+        toast.error('Generated credentials are incomplete. Please try again.');
+        return;
+      }
+
+      setCredentials({ socialId: generatedSocialId, recoveryKey: generatedRecoveryKey });
+      setHasGeneratedCredentials(true);
+      toast.success('Anonymous credentials generated!');
+    } catch (error) {
+      toast.error('Unable to generate credentials right now. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyCredentials = () => {
+    const textToCopy = `Nivaari Social ID: ${credentials.socialId}\nRecovery Key: ${credentials.recoveryKey}`;
+    navigator.clipboard.writeText(textToCopy);
+    toast.success('Credentials copied to clipboard!');
+  };
+
+  const continueWithGeneratedAccount = async () => {
+    if (!credentials.socialId || !credentials.recoveryKey) {
+      toast.error('Missing credentials. Please generate again.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/auth/anonymous/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          socialId: credentials.socialId,
+          recoveryKey: credentials.recoveryKey,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(result?.error ?? 'Unable to finalize account login');
+        return;
+      }
+
+      await refresh();
+      toast.success('Account created successfully. Requesting permissions...');
+      requestPermissionsAndProceed();
+    } catch (error) {
+      toast.error('Unable to finalize login right now. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const requestPermissionsAndProceed = () => {
     if ('Notification' in window) {
       Notification.requestPermission();
@@ -98,7 +179,7 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
         (err) => console.log("Location access denied", err)
       );
     }
-    router.push('/citizen-dashboard');
+    router.push(getPostAuthRedirect());
   };
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,8 +213,25 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
 
               <form onSubmit={handleLoginSubmit} className="flip-card-form">
                 <div className="flip-card-input-group">
-                  <Label htmlFor="login-recovery-key" className="flip-card-label">
+                  <Label htmlFor="login-social-id" className="flip-card-label">
                     <Key className="w-4 h-4" />
+                    Social ID
+                  </Label>
+                  <Input
+                    id="login-social-id"
+                    name="socialId"
+                    type="text"
+                    placeholder="NIV-XXXXXXXXX"
+                    value={loginData.socialId}
+                    onChange={handleLoginChange}
+                    className="flip-card-input font-mono uppercase"
+                    required
+                  />
+                </div>
+                
+                <div className="flip-card-input-group">
+                  <Label htmlFor="login-recovery-key" className="flip-card-label">
+                    <Lock className="w-4 h-4" />
                     Recovery Key
                   </Label>
                   <Input
@@ -144,23 +242,6 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
                     value={loginData.recoveryKey}
                     onChange={handleLoginChange}
                     className="flip-card-input font-mono uppercase"
-                    required
-                  />
-                </div>
-                
-                <div className="flip-card-input-group">
-                  <Label htmlFor="login-token" className="flip-card-label">
-                    <Lock className="w-4 h-4" />
-                    Token
-                  </Label>
-                  <Input
-                    id="login-token"
-                    name="token"
-                    type="password"
-                    placeholder="Enter your private token"
-                    value={loginData.token}
-                    onChange={handleLoginChange}
-                    className="flip-card-input font-mono"
                     required
                   />
                 </div>
@@ -206,13 +287,14 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
               {!hasGeneratedCredentials ? (
                 <div className="flex flex-col items-center justify-center space-y-6">
                   <p className="text-sm text-gray-400 text-center mb-4">
-                    We will generate a unique Social ID, Recovery Key, and Token. No email, phone, or name is required.
+                    We will generate a unique Social ID and Recovery Key. No email, phone, or name is required.
                   </p>
                   <Button 
                     onClick={generateCredentials}
                     className="flip-card-button cursor-target w-full"
+                    disabled={isSubmitting}
                   >
-                    Generate Credentials
+                    {isSubmitting ? 'Generating...' : 'Generate Credentials'}
                     <Key className="w-5 h-5 ml-2" />
                   </Button>
                 </div>
@@ -230,10 +312,6 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
                     <div>
                       <Label className="text-xs text-blue-400 uppercase tracking-wider">Recovery Key</Label>
                       <div className="font-mono text-lg text-red-300 font-medium tracking-wide">{credentials.recoveryKey}</div>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-blue-400 uppercase tracking-wider">Token</Label>
-                      <div className="font-mono text-sm text-green-300 break-all">{credentials.token}</div>
                     </div>
                   </div>
 
@@ -254,8 +332,9 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
                     <Button 
                       onClick={continueWithGeneratedAccount}
                       className="flip-card-button cursor-target w-full"
+                      disabled={isSubmitting}
                     >
-                      I Saved My Credentials
+                      {isSubmitting ? 'Signing in...' : 'I Saved My Credentials'}
                       <CheckCircle2 className="w-5 h-5 ml-2" />
                     </Button>
                   </div>

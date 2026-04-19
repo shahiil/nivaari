@@ -8,7 +8,6 @@ import { useNivaariStore, Tile } from '@/lib/nivaariStore';
 import { useTravelMode } from '@/hooks/useTravelMode';
 import { useTileRealtime } from '@/hooks/useTileRealtime';
 import * as THREE from 'three';
-import AuthModal from '@/components/nivaari/AuthModal';
 import DragPreview from '@/components/nivaari/DragPreview';
 import type { ActiveFilter, ViewMode } from '@/lib/nivaariStore';
 import { getAtlasBlocks, type AtlasBlock } from '@/lib/nivaari/atlas-data';
@@ -328,8 +327,6 @@ export default function NivaariExperience({
   const selectTile = useNivaariStore((s) => s.selectTile);
 
   const user = useNivaariStore((s) => s.user);
-  const generateIdentity = useNivaariStore((s) => s.generateIdentity);
-  const login = useNivaariStore((s) => s.login);
   const activeFilter = useNivaariStore((s) => s.activeFilter);
   const viewMode = useNivaariStore((s) => s.viewMode);
   const currentCountry = useNivaariStore((s) => s.currentCountry);
@@ -347,12 +344,6 @@ export default function NivaariExperience({
 
   const [hoverPos, setHoverPos] = useState<[number, number] | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
-
-  const [authMode, setAuthMode] = useState<'create' | 'recover'>('create');
-  const [savedCheckbox, setSavedCheckbox] = useState(false);
-  const [recoverId, setRecoverId] = useState('');
-  const [recoverKey, setRecoverKey] = useState('');
-  const [authComplete, setAuthComplete] = useState(user.isAuthenticated);
 
   const [statsOpen, setStatsOpen] = useState(initialStatsOpen);
   const [recentUpdates, setRecentUpdates] = useState<Record<string, number>>({});
@@ -488,25 +479,7 @@ export default function NivaariExperience({
 
   return (
     <div className="w-screen h-screen overflow-hidden relative touch-action-none">
-      {/* authentication overlay */}
-      {!authComplete && <AuthModal
-        mode={authMode}
-        setMode={setAuthMode}
-        generateIdentity={generateIdentity}
-        login={login}
-        user={user}
-        savedCheckbox={savedCheckbox}
-        setSavedCheckbox={setSavedCheckbox}
-        recoverId={recoverId}
-        setRecoverId={setRecoverId}
-        recoverKey={recoverKey}
-        setRecoverKey={setRecoverKey}
-        onComplete={() => setAuthComplete(true)}
-      />}
-
-      {authComplete && (
-        <>
-          {!hasCompletedTutorial && <TutorialOverlay onFinish={completeTutorial} />}
+      {!hasCompletedTutorial && <TutorialOverlay onFinish={completeTutorial} />}
         {viewMode === 'city' ? (
         <Canvas shadows dpr={[1,1.5]} frameloop="demand" className="absolute inset-0 z-0 touch-action-none">
         <BakeShadows />
@@ -614,8 +587,6 @@ export default function NivaariExperience({
         routeLabel={routeLabel}
         user={user}
       />
-      </>
-      )}
     </div>
   );
 }

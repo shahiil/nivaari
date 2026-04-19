@@ -10,6 +10,7 @@ export type PublicUser = {
   id: string;
   name?: string;
   email: string;
+  socialId?: string;
   role: UserRole;
   status?: "online" | "offline";
   phone?: string;
@@ -23,6 +24,7 @@ function mapUser(doc: UserDocument): PublicUser {
     id: doc._id ? doc._id.toString() : "",
     name: doc.name,
     email: doc.email,
+    socialId: doc.socialId,
     role: doc.role,
     status: doc.status,
     phone: doc.phone,
@@ -69,6 +71,11 @@ export async function findUserByEmail(email: string): Promise<UserDocument | nul
   return users.findOne({ email: email.toLowerCase() });
 }
 
+export async function findUserBySocialId(socialId: string): Promise<UserDocument | null> {
+  const users = await getUsersCollection();
+  return users.findOne({ socialId: socialId.toUpperCase() });
+}
+
 export async function findUserById(id: string): Promise<UserDocument | null> {
   const users = await getUsersCollection();
   return users.findOne({ _id: new ObjectId(id) });
@@ -91,6 +98,7 @@ export async function createUser(params: CreateUserParams): Promise<PublicUser> 
     name: params.name,
     email: params.email.toLowerCase(),
     passwordHash,
+    authProvider: "email",
     role: params.role,
     status: params.status ?? "offline",
     createdAt: now,
@@ -102,6 +110,7 @@ export async function createUser(params: CreateUserParams): Promise<PublicUser> 
     name: params.name,
     email: params.email.toLowerCase(),
     passwordHash,
+    authProvider: "email",
     role: params.role,
     status: params.status ?? "offline",
     createdAt: now,
@@ -109,6 +118,82 @@ export async function createUser(params: CreateUserParams): Promise<PublicUser> 
   };
 
   return mapUser(createdUser);
+}
+
+function generateSocialId(): string {
+  return `NIV-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
+}
+
+function generateRecoveryKey(): string {
+  return Array.from({ length: 4 })
+    .map(() => Math.random().toString(36).slice(2, 6).toUpperCase())
+    .join("-");
+}
+
+export async function createAnonymousUser(): Promise<{ user: PublicUser; recoveryKey: string }> {
+  const users = await getUsersCollection();
+
+  let socialId = generateSocialId();
+  for (let tries = 0; tries < 5; tries += 1) {
+    const existing = await findUserBySocialId(socialId);
+    if (!existing) break;
+    socialId = generateSocialId();
+  }
+
+  const recoveryKey = generateRecoveryKey();
+  const recoveryKeyHash = await hashPassword(recoveryKey);
+  const passwordHash = await hashPassword(`${socialId}:${Date.now()}`);
+  const syntheticEmail = `${socialId.toLowerCase()}@anonymous.nivaari.local`;
+  const now = new Date();
+
+  const result = await users.insertOne({
+    name: `Anonymous ${socialId.slice(-4)}`,
+    email: syntheticEmail,
+    passwordHash,
+    authProvider: "anonymous",
+    socialId,
+    recoveryKeyHash,
+    role: "citizen",
+    status: "offline",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const createdUser: UserDocument = {
+    _id: result.insertedId,
+    name: `Anonymous ${socialId.slice(-4)}`,
+    email: syntheticEmail,
+    passwordHash,
+    authProvider: "anonymous",
+    socialId,
+    recoveryKeyHash,
+    role: "citizen",
+    status: "offline",
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  return {
+    user: mapUser(createdUser),
+    recoveryKey,
+  };
+}
+
+export async function verifyAnonymousCredentials(
+  socialId: string,
+  recoveryKey: string
+): Promise<UserDocument | null> {
+  const user = await findUserBySocialId(socialId.toUpperCase());
+  if (!user?.recoveryKeyHash) {
+    return null;
+  }
+
+  const isValid = await comparePassword(recoveryKey, user.recoveryKeyHash);
+  if (!isValid) {
+    return null;
+  }
+
+  return user;
 }
 
 export async function verifyUserCredentials(
