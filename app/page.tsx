@@ -1065,6 +1065,9 @@ export default function HomePage() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const reportMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const reportLocationMapContainerRef = useRef<HTMLDivElement | null>(null);
+  const reportLocationMapRef = useRef<mapboxgl.Map | null>(null);
+  const reportLocationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const reportsRef = useRef<ReportItem[]>([]);
   const userLocationRef = useRef<LngLatTuple | null>(null);
   const selectedZoneRef = useRef<ZoneOption>("all");
@@ -1098,6 +1101,7 @@ export default function HomePage() {
   const [isReportThinking, setIsReportThinking] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportStatusMessage, setReportStatusMessage] = useState("");
+  const [isReportLocationPickerOpen, setIsReportLocationPickerOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const voteReport = useCallback(async (reportId: string, vote: "upvote" | "downvote") => {
@@ -1275,59 +1279,28 @@ export default function HomePage() {
     });
   };
 
-    const geocodeReportAddress = async (address: string): Promise<{ lat?: number; lng?: number } | null> => {
-      const query = address.trim();
-      if (!query) return null;
+  const hasExactReportLocation = (location?: ReportDraft["location"]) =>
+    typeof location?.lat === "number" && typeof location?.lng === "number";
 
-      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
-      if (!token) return null;
+  const getReportPickerCenter = (): LngLatTuple => {
+    const location = reportDraft.location;
+    if (hasExactReportLocation(location)) {
+      return [location.lng as number, location.lat as number];
+    }
 
-      try {
-        const params = new URLSearchParams({
-          access_token: token,
-          limit: "1",
-          country: "IN",
-          language: "en",
-        });
+    if (userLocationRef.current) {
+      return userLocationRef.current;
+    }
 
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`;
-        const response = await fetch(url);
-        if (!response.ok) return null;
+    const mapCenter = mapRef.current?.getCenter();
+    if (mapCenter) {
+      return [mapCenter.lng, mapCenter.lat];
+    }
 
-        const body = (await response.json()) as { features?: Array<{ center?: [number, number] }> };
-        const center = body.features?.[0]?.center;
-        if (center && Number.isFinite(center[0]) && Number.isFinite(center[1])) {
-          return { lat: center[1], lng: center[0] };
-        }
-      } catch {
-        return null;
-      }
+    return [77.5946, 12.9716];
+  };
 
-      return null;
-    };
-
-    const resolveReportDraftLocation = async (draft: ReportDraft) => {
-      const existingLat = draft.location?.lat;
-      const existingLng = draft.location?.lng;
-      if (typeof existingLat === "number" && typeof existingLng === "number") {
-        return draft.location;
-      }
-
-      if (!draft.location?.address) {
-        return draft.location;
-      }
-
-      const geocoded = await geocodeReportAddress(draft.location.address);
-      if (!geocoded) {
-        return draft.location;
-      }
-
-      return {
-        ...draft.location,
-        lat: geocoded.lat,
-        lng: geocoded.lng,
-      };
-    };
+  const resolveReportDraftLocation = async (draft: ReportDraft) => draft.location;
 
   const sendReportMessage = async () => {
     const text = reportInput.trim();
@@ -1397,14 +1370,22 @@ export default function HomePage() {
         mergedDraft.type &&
           mergedDraft.description &&
           resolvedLocation &&
-          ((typeof resolvedLocation.lat === "number" && typeof resolvedLocation.lng === "number") || resolvedLocation.address),
+          typeof resolvedLocation.lat === "number" && typeof resolvedLocation.lng === "number",
       );
+
+      const needsLocationPicker =
+        !hasExactReportLocation(resolvedLocation) &&
+        Boolean(
+          (body.verificationQuestions ?? []).some((question) => /location|where|pin/i.test(question)) ||
+            /where exactly|exact location|pin.*map|open the map/i.test(body.assistantMessage),
+        );
 
       setReportDraft((prev) => ({
         ...prev,
         location: resolvedLocation ?? prev.location,
       }));
       setReportReadyToSubmit(Boolean(body.readyToSubmit || isReady));
+      setIsReportLocationPickerOpen(needsLocationPicker);
       setReportMessages((prev) => [...prev, { role: "assistant", text: body.assistantMessage }]);
     } catch {
       setReportMessages((prev) => [
@@ -1422,13 +1403,8 @@ export default function HomePage() {
     const resolvedLocation = await resolveReportDraftLocation(reportDraft);
     const location = resolvedLocation ?? reportDraft.location;
 
-    if (!reportDraft.type || !reportDraft.description || (!location?.address && (typeof location?.lat !== "number" || typeof location?.lng !== "number"))) {
+    if (!reportDraft.type || !reportDraft.description || !hasExactReportLocation(location)) {
       setReportStatusMessage("Please provide issue details and location before submitting.");
-      return;
-    }
-
-    if (location?.address && (typeof location.lat !== "number" || typeof location.lng !== "number")) {
-      setReportStatusMessage("I still need a precise map position for that address. Please send one more nearby landmark or coordinates.");
       return;
     }
 
@@ -1481,6 +1457,69 @@ export default function HomePage() {
       setIsSubmittingReport(false);
     }
   };
+
+  useEffect(() => {
+    if (!isReportLocationPickerOpen) {
+      reportLocationMarkerRef.current?.remove();
+      reportLocationMarkerRef.current = null;
+      reportLocationMapRef.current?.remove();
+      reportLocationMapRef.current = null;
+      return;
+    }
+
+    const container = reportLocationMapContainerRef.current;
+    if (!container) return;
+
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
+    if (!token) return;
+
+    mapboxgl.accessToken = token;
+
+    const map = new mapboxgl.Map({
+      container,
+      style: STREETS_STYLE,
+      center: getReportPickerCenter(),
+      zoom: 16,
+      pitch: 0,
+      bearing: 0,
+      attributionControl: false,
+    });
+
+    reportLocationMapRef.current = map;
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+
+    const syncMarker = (lngLat: LngLatTuple) => {
+      reportLocationMarkerRef.current?.remove();
+      reportLocationMarkerRef.current = new mapboxgl.Marker({ color: "#fb7185" }).setLngLat(lngLat).addTo(map);
+      setReportDraft((previous) => ({
+        ...previous,
+        location: {
+          ...previous.location,
+          lng: lngLat[0],
+          lat: lngLat[1],
+        },
+      }));
+    };
+
+    syncMarker(getReportPickerCenter());
+
+    map.on("click", (event) => {
+      syncMarker([event.lngLat.lng, event.lngLat.lat]);
+      setReportStatusMessage("Exact location pinned on the map.");
+      setReportReadyToSubmit(Boolean(reportDraft.type && reportDraft.description));
+    });
+
+    map.on("load", () => {
+      map.resize();
+    });
+
+    return () => {
+      reportLocationMarkerRef.current?.remove();
+      reportLocationMarkerRef.current = null;
+      map.remove();
+      reportLocationMapRef.current = null;
+    };
+  }, [isReportLocationPickerOpen]);
 
   const fetchPlacePhoto = async (
     name: string,
@@ -2577,13 +2616,30 @@ export default function HomePage() {
               <div style={{ fontSize: 12, color: "#fecdd3", display: "grid", gap: 4 }}>
                 <div>Detected type: {reportDraft.type ? getReportMeta(reportDraft.type).label : "Not detected yet"}</div>
                 <div>
-                  Location: {typeof reportDraft.location?.lat === "number" && typeof reportDraft.location?.lng === "number"
-                    ? `${reportDraft.location.lat.toFixed(5)}, ${reportDraft.location.lng.toFixed(5)}`
-                    : "Pending"}
+                  Location: {hasExactReportLocation(reportDraft.location)
+                    ? `${reportDraft.location?.lat?.toFixed(5)}, ${reportDraft.location?.lng?.toFixed(5)}`
+                    : reportDraft.location?.address ?? "Pending"}
                 </div>
                 <div>
                   Impact Radius: {typeof reportDraft.impactRadiusKm === "number" ? `${reportDraft.impactRadiusKm.toFixed(2)} km` : "Point issue"}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsReportLocationPickerOpen(true)}
+                  style={{
+                    justifySelf: "start",
+                    borderRadius: 999,
+                    border: "1px solid rgba(251,113,133,0.4)",
+                    background: "rgba(190,24,93,0.18)",
+                    color: "#ffe4e6",
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {hasExactReportLocation(reportDraft.location) ? "Adjust pin on map" : "Open map to pin location"}
+                </button>
               </div>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -2612,6 +2668,94 @@ export default function HomePage() {
                 </button>
               </div>
               {reportStatusMessage ? <div style={{ fontSize: 12, color: "#fcd34d" }}>{reportStatusMessage}</div> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isReportLocationPickerOpen ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 81,
+            background: "rgba(2,6,23,0.58)",
+            display: "grid",
+            placeItems: "center",
+            padding: 14,
+          }}
+        >
+          <div
+            style={{
+              width: "min(96vw, 860px)",
+              borderRadius: 18,
+              border: "1px solid rgba(251,113,133,0.35)",
+              background:
+                "linear-gradient(155deg, rgba(30,41,59,0.98), rgba(15,23,42,0.95)), radial-gradient(circle at 8% 6%, rgba(251,113,133,0.2), transparent 34%)",
+              boxShadow: "0 24px 60px rgba(2,6,23,0.6)",
+              padding: 12,
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div>
+                <div style={{ color: "#ffe4e6", fontWeight: 800, fontSize: 16 }}>Pin the exact location</div>
+                <div style={{ color: "#fecdd3", fontSize: 12 }}>
+                  Click on the map where the issue is happening. The pin will be used as the report location.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReportLocationPickerOpen(false)}
+                style={{
+                  borderRadius: 999,
+                  border: "1px solid rgba(251,113,133,0.35)",
+                  background: "rgba(127,29,29,0.4)",
+                  color: "#ffe4e6",
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  fontWeight: 700,
+                }}
+              >
+                Done
+              </button>
+            </div>
+
+            <div
+              style={{
+                minHeight: 420,
+                borderRadius: 14,
+                overflow: "hidden",
+                border: "1px solid rgba(148,163,184,0.25)",
+                background: "rgba(15,23,42,0.5)",
+              }}
+            >
+              <div ref={reportLocationMapContainerRef} style={{ width: "100%", height: "100%", minHeight: 420 }} />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ color: "#cbd5e1", fontSize: 12 }}>
+                {hasExactReportLocation(reportDraft.location)
+                  ? `Selected: ${reportDraft.location?.lat?.toFixed(5)}, ${reportDraft.location?.lng?.toFixed(5)}`
+                  : "No pin yet. Click the map to set one."}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReportLocationPickerOpen(false)}
+                style={{
+                  borderRadius: 10,
+                  border: "1px solid rgba(134,239,172,0.4)",
+                  background: "linear-gradient(145deg, rgba(22,163,74,0.4), rgba(21,128,61,0.55))",
+                  color: "#dcfce7",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                }}
+              >
+                Use this pin
+              </button>
             </div>
           </div>
         </div>

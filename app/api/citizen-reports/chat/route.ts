@@ -72,52 +72,6 @@ function extractCoordinatePair(text: string): { lat: number; lng: number } | nul
   return { lat, lng };
 }
 
-async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const query = address.trim();
-  if (!query) return null;
-
-  const token = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  if (token) {
-    try {
-      const params = new URLSearchParams({
-        access_token: token,
-        limit: "1",
-        country: "IN",
-        language: "en",
-      });
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const body = (await response.json()) as { features?: Array<{ center?: [number, number] }> };
-        const center = body.features?.[0]?.center;
-        if (center && Number.isFinite(center[0]) && Number.isFinite(center[1])) {
-          return { lng: center[0], lat: center[1] };
-        }
-      }
-    } catch {
-      // Fall back to OSM geocoder below.
-    }
-  }
-
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      format: "jsonv2",
-      limit: "1",
-    });
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-    if (!response.ok) return null;
-    const body = (await response.json()) as Array<{ lat?: string; lon?: string }>;
-    const first = body[0];
-    const lat = Number(first?.lat);
-    const lng = Number(first?.lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    return { lat, lng };
-  } catch {
-    return null;
-  }
-}
-
 function fallbackAssistant(history: Array<{ role: "user" | "assistant"; text: string }>) {
   const latest = [...history].reverse().find((m) => m.role === "user")?.text || "";
   const coordinateFromText = extractCoordinatePair(latest);
@@ -137,14 +91,14 @@ function fallbackAssistant(history: Array<{ role: "user" | "assistant"; text: st
   if (!hasType) {
     assistantMessage = "I understand there's an issue. Could you tell me more specifically what type of problem it is? For example, is it a pothole, garbage dumping, flooding, or something else?";
   } else if (!hasLocation) {
-    assistantMessage = `Thanks for reporting this ${type} issue. To help you better, could you share where this is happening? Just give me a landmark, address, or the exact area coordinates.`;
+    assistantMessage = `Thanks for reporting this ${type} issue. Please open the map and pin the exact spot, or share the coordinates if you already have them.`;
   } else {
     assistantMessage = `Got it! I've noted the ${type} at the location you mentioned. Is this affecting just one spot, or a larger area? And how serious would you say it is?`;
   }
 
   const verificationQuestions: string[] = [];
   if (!hasType) verificationQuestions.push("What type of issue is this?");
-  if (!hasLocation) verificationQuestions.push("Where exactly is this problem?");
+  if (!hasLocation) verificationQuestions.push("Could you pin the exact location on the map?");
   if (!draft.description) verificationQuestions.push("Can you describe it in more detail?");
 
   return {
@@ -222,18 +176,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Geocode address if we have it but no coordinates
-    if (preExtracted.location?.address && !preExtracted.location?.lat) {
-      const geocoded = await geocodeAddress(preExtracted.location.address);
-      if (geocoded) {
-        preExtracted.location = {
-          ...preExtracted.location,
-          lat: geocoded.lat,
-          lng: geocoded.lng,
-        };
-      }
-    }
-
     // Extract radius/area impact if not already set
     if (!preExtracted.impactRadiusKm) {
       const radiusMatch = fullText.match(/(\d+)\s*(?:meter|meters|m|km|kilometer|kilometres?|radius|area)/i);
@@ -252,7 +194,7 @@ export async function POST(req: Request) {
 
     // Determine what's still missing
     const hasType = Boolean(preExtracted.type && preExtracted.type !== "other");
-    const hasLocation = Boolean(preExtracted.location?.lat && preExtracted.location?.lng) || Boolean(preExtracted.location?.address);
+    const hasLocation = Boolean(preExtracted.location?.lat && preExtracted.location?.lng);
     const needsType = !hasType;
     const needsLocation = !hasLocation;
 
@@ -267,7 +209,7 @@ Your role: Help citizens report infrastructure and civic issues (potholes, garba
 
 CURRENT EXTRACTED DATA:
 - Type: ${preExtracted.type || "(not yet specified)"}
-- Location: ${preExtracted.location?.address || preExtracted.location?.lat ? `${preExtracted.location?.address || ""}(${preExtracted.location?.lat}, ${preExtracted.location?.lng})` : "(not yet specified)"}
+- Location: ${preExtracted.location?.lat && preExtracted.location?.lng ? `${preExtracted.location?.address || ""}(${preExtracted.location?.lat}, ${preExtracted.location?.lng})` : preExtracted.location?.address ? `${preExtracted.location.address} (not pinned yet)` : "(not yet specified)"}
 - Description: ${preExtracted.description || ""}
 - Area Impact: ${preExtracted.impactRadiusKm ? `${preExtracted.impactRadiusKm} km` : "point issue"}
 
@@ -275,6 +217,7 @@ IMPORTANT:
 - DO NOT ask about information already provided
 - If type is set, don't ask "what type of issue is this?"
 - If location is set, don't ask "where is this happening?"
+- If only a landmark/address is provided without coordinates, ask the user to pin it on the map rather than treating it as exact.
 - Ask ONLY about missing critical information (max 1 question)
 - Be natural, friendly, and responsive like ChatGPT
 - Acknowledge what the user has already told you
@@ -330,7 +273,7 @@ Continue the conversation naturally.`;
       // Build smart verification questions
       const verificationQuestions: string[] = [];
       if (needsType) verificationQuestions.push("What type of civic issue is this?");
-      if (needsLocation) verificationQuestions.push("Could you share the exact location or landmark?");
+      if (needsLocation) verificationQuestions.push("Could you pin the exact location on the map?");
 
       return NextResponse.json({
         assistantMessage,
@@ -365,7 +308,7 @@ function generateSmartResponse(
   } else if (needsType) {
     assistantMessage = `Thanks for mentioning the location. Could you specify what type of issue this is? (pothole, garbage, flooding, streetlight, traffic, etc.)`;
   } else if (needsLocation) {
-    assistantMessage = `I noted this is a ${draft.type || "civic"} issue. Could you tell me the exact location or landmark where this is happening?`;
+    assistantMessage = `I noted this is a ${draft.type || "civic"} issue. Please open the map and pin the exact location where this is happening.`;
   } else {
     assistantMessage = `Perfect! I have the details: ${draft.type || "issue"} at ${draft.location?.address || "the location"}. Is this affecting a large area or just a point? Any other details you'd like to add?`;
   }
@@ -374,7 +317,7 @@ function generateSmartResponse(
 
   const verificationQuestions: string[] = [];
   if (needsType) verificationQuestions.push("What type of issue is this?");
-  if (needsLocation) verificationQuestions.push("Where exactly is this?");
+  if (needsLocation) verificationQuestions.push("Could you pin the exact location on the map?");
 
   return {
     assistantMessage,
