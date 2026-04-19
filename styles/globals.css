@@ -280,26 +280,6 @@
   }
 }
 
-/* Iridescence Component Styles */
-.iridescence-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.iridescence-container canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  opacity: 0.9;
-  mix-blend-mode: screen;
-}
-
 /* Hero Headline with Rotating Text */
 .hero-headline-container {
   display: flex;

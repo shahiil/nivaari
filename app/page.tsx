@@ -154,6 +154,8 @@ const ZONE_CONFIG: Array<{
 
 const BUILDING_LAYER_ID = "3d-buildings";
 const ZONE_POI_LABEL_LAYER_ID = "zone-poi-labels";
+const HIGHWAY_3D_LAYER_ID = "3d-highways";
+const RAILWAY_3D_LAYER_ID = "3d-railways";
 const RADIUS_SOURCE_ID = "zone-radius-source";
 const RADIUS_FILL_LAYER_ID = "zone-radius-fill";
 const RADIUS_OUTLINE_LAYER_ID = "zone-radius-outline";
@@ -702,6 +704,72 @@ const buildPoiLabelFilterExpression = (selectedZone: ZoneOption): mapboxgl.Filte
 
   const keywords = ZONE_CONFIG.find((zone) => zone.key === selectedZone)?.poiKeywords ?? [];
   return ["all", buildKeywordMatchExpression(getPoiSearchTextExpression(), keywords)] as mapboxgl.FilterSpecification;
+};
+
+const getLabelAnchorLayerId = (map: mapboxgl.Map): string | undefined =>
+  map
+    .getStyle()
+    ?.layers?.find((layer) => layer.type === "symbol" && layer.layout?.["text-field"])
+    ?.id;
+
+const ensureTransport3DLayers = (map: mapboxgl.Map) => {
+  const labelLayerId = getLabelAnchorLayerId(map);
+
+  if (!map.getLayer(HIGHWAY_3D_LAYER_ID)) {
+    map.addLayer(
+      {
+        id: HIGHWAY_3D_LAYER_ID,
+        type: "line",
+        source: "composite",
+        "source-layer": "road",
+        filter: [
+          "match",
+          ["get", "class"],
+          ["motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link"],
+          true,
+          false,
+        ],
+        minzoom: 9,
+        paint: {
+          "line-color": [
+            "match",
+            ["get", "class"],
+            ["motorway", "motorway_link"],
+            "#f59e0b",
+            ["trunk", "trunk_link"],
+            "#fb7185",
+            ["primary", "primary_link"],
+            "#f97316",
+            "#f59e0b",
+          ],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.5, 13, 3, 16, 6, 18, 10],
+          "line-opacity": 0.95,
+          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 9, 0.15, 13, 0.35, 16, 0.7, 18, 1.2],
+        },
+      },
+      labelLayerId,
+    );
+  }
+
+  if (!map.getLayer(RAILWAY_3D_LAYER_ID)) {
+    map.addLayer(
+      {
+        id: RAILWAY_3D_LAYER_ID,
+        type: "line",
+        source: "composite",
+        "source-layer": "road",
+        filter: ["match", ["get", "class"], ["rail", "transit"], true, false],
+        minzoom: 8,
+        paint: {
+          "line-color": "#a855f7",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2.5, 16, 4.5, 18, 7],
+          "line-opacity": 0.92,
+          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 8, 0.1, 13, 0.25, 16, 0.5, 18, 0.9],
+        },
+      },
+      labelLayerId,
+    );
+  }
 };
 
 const getBuildingColorExpression = (selectedZone: ZoneOption): mapboxgl.ExpressionSpecification => {
@@ -1862,6 +1930,7 @@ export default function HomePage() {
       if (map.getBearing() !== DEFAULT_MAP_BEARING) map.setBearing(DEFAULT_MAP_BEARING);
       if (map.getZoom() < MIN_3D_ZOOM) map.setZoom(15);
 
+      ensureTransport3DLayers(map);
       ensureSelectedPlaceLayers(map);
       refreshZoneLayers();
       ensureReportImpactLayers(map, reportsRef.current);
