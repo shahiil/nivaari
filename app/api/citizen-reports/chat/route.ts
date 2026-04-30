@@ -33,21 +33,25 @@ const requestSchema = z.object({
     .optional(),
 });
 
+const draftSchema = z.object({
+  title: z.string().optional(),
+  type: z.string().optional(),
+  description: z.string().optional(),
+  impactRadiusKm: z.number().optional(),
+  location: z
+    .object({
+      lat: z.number().optional(),
+      lng: z.number().optional(),
+      address: z.string().optional(),
+    })
+    .optional(),
+});
+
+type DraftType = z.infer<typeof draftSchema>;
+
 const responseSchema = z.object({
   assistantMessage: z.string(),
-  draft: z.object({
-    title: z.string().optional(),
-    type: z.string().optional(),
-    description: z.string().optional(),
-    impactRadiusKm: z.number().optional(),
-    location: z
-      .object({
-        lat: z.number().optional(),
-        lng: z.number().optional(),
-        address: z.string().optional(),
-      })
-      .optional(),
-  }),
+  draft: draftSchema,
   verificationQuestions: z.array(z.string()).default([]),
   readyToSubmit: z.boolean(),
 });
