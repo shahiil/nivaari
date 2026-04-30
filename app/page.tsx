@@ -83,71 +83,166 @@ const ZONE_CONFIG: Array<{
   {
     key: "commercial",
     label: "Commercial",
-    buildingKeywords: ["commercial", "retail", "office", "business", "mall", "store"],
-    poiKeywords: ["commercial", "retail", "shop", "office", "mall", "store", "business", "market"],
+    buildingKeywords: [
+      "commercial",
+      "retail",
+      "office",
+      "business",
+      "mall",
+      "store",
+      "shop",
+      "supermarket",
+      "marketplace",
+      "bank",
+      "atm",
+      "showroom",
+    ],
+    poiKeywords: ["commercial", "retail", "shop", "office", "mall", "store", "business", "market", "bank", "atm"],
     color: "#2563eb",
   },
   {
     key: "agriculture",
     label: "Agriculture",
-    buildingKeywords: ["farm", "farmland", "agricultural", "greenhouse", "barn", "agri"],
-    poiKeywords: ["farm", "farmland", "agriculture", "agri", "greenhouse", "barn"],
+    buildingKeywords: ["farm", "farmland", "agricultural", "greenhouse", "barn", "agri", "farm_auxiliary", "stable"],
+    poiKeywords: ["farm", "farmland", "agriculture", "agri", "greenhouse", "barn", "stable"],
     color: "#facc15",
   },
   {
     key: "educational",
     label: "Educational",
-    buildingKeywords: ["school", "college", "university", "kindergarten", "education", "library", "campus"],
-    poiKeywords: ["school", "college", "university", "kindergarten", "education", "library", "campus"],
+    buildingKeywords: [
+      "school",
+      "college",
+      "university",
+      "kindergarten",
+      "education",
+      "library",
+      "campus",
+      "institute",
+      "academy",
+      "hostel",
+      "dormitory",
+    ],
+    poiKeywords: ["school", "college", "university", "kindergarten", "education", "library", "campus", "institute", "academy"],
     color: "#92400e",
   },
   {
     key: "residential",
     label: "Residential",
-    buildingKeywords: ["residential", "apartment", "house", "housing", "home", "villa", "residence"],
-    poiKeywords: ["residential", "housing", "apartment", "home", "residence", "neighborhood"],
+    buildingKeywords: [
+      "residential",
+      "apartment",
+      "apartments",
+      "house",
+      "detached",
+      "semidetached_house",
+      "terrace",
+      "bungalow",
+      "housing",
+      "home",
+      "villa",
+      "residence",
+      "dormitory",
+      "yes",
+      "building",
+    ],
+    poiKeywords: ["residential", "housing", "apartment", "home", "residence", "neighborhood", "society"],
     color: "#22c55e",
   },
   {
     key: "industrial",
     label: "Industrial",
-    buildingKeywords: ["industrial", "factory", "manufacture", "warehouse", "plant", "workshop"],
-    poiKeywords: ["industrial", "factory", "warehouse", "plant", "workshop"],
+    buildingKeywords: ["industrial", "factory", "manufacture", "manufacturing", "warehouse", "plant", "workshop", "depot", "works"],
+    poiKeywords: ["industrial", "factory", "warehouse", "plant", "workshop", "depot", "works"],
     color: "#111827",
   },
   {
     key: "health",
     label: "Health",
-    buildingKeywords: ["hospital", "clinic", "doctors", "healthcare", "medical", "emergency"],
-    poiKeywords: ["hospital", "clinic", "doctor", "health", "medical", "pharmacy", "emergency"],
+    buildingKeywords: [
+      "hospital",
+      "clinic",
+      "doctors",
+      "doctor",
+      "healthcare",
+      "medical",
+      "emergency",
+      "pharmacy",
+      "nursing",
+      "dispensary",
+    ],
+    poiKeywords: ["hospital", "clinic", "doctor", "health", "medical", "pharmacy", "emergency", "nursing", "dispensary"],
     color: "#dc2626",
   },
   {
     key: "railway_station",
     label: "Railway Station",
-    buildingKeywords: ["railway", "station", "train", "platform", "rail", "transit"],
-    poiKeywords: ["railway", "train", "station", "platform", "transit", "train_station"],
+    buildingKeywords: ["railway", "station", "train", "platform", "rail", "transit", "metro", "subway"],
+    poiKeywords: ["railway", "train", "station", "platform", "transit", "train_station", "metro", "subway"],
     color: "#8b5cf6",
   },
   {
     key: "food",
     label: "Food",
-    buildingKeywords: ["food", "restaurant", "fast_food", "cafe", "bar", "pub", "eatery", "bakery"],
-    poiKeywords: ["food_and_drink", "restaurant", "fast_food", "cafe", "coffee", "bakery", "bar", "pub"],
+    buildingKeywords: [
+      "food",
+      "restaurant",
+      "fast_food",
+      "cafe",
+      "coffee",
+      "bar",
+      "pub",
+      "eatery",
+      "bakery",
+      "canteen",
+      "pizza",
+      "burger",
+      "domino",
+      "dominos",
+      "domino's",
+      "mcdonald",
+      "mcdonalds",
+      "mc donald",
+      "starbucks",
+      "kfc",
+      "subway",
+    ],
+    poiKeywords: [
+      "food_and_drink",
+      "restaurant",
+      "fast_food",
+      "cafe",
+      "coffee",
+      "bakery",
+      "bar",
+      "pub",
+      "canteen",
+      "pizza",
+      "burger",
+      "domino",
+      "dominos",
+      "domino's",
+      "mcdonald",
+      "mcdonalds",
+      "mc donald",
+      "starbucks",
+      "kfc",
+      "subway",
+    ],
     color: "#f97316",
   },
   {
     key: "hotel",
     label: "Hotel",
-    buildingKeywords: ["hotel", "hostel", "guest_house", "motel", "resort", "lodging"],
-    poiKeywords: ["hotel", "hostel", "guest_house", "motel", "resort", "lodging"],
+    buildingKeywords: ["hotel", "hostel", "guest_house", "guesthouse", "motel", "resort", "lodging", "lodge", "inn"],
+    poiKeywords: ["hotel", "hostel", "guest_house", "guesthouse", "motel", "resort", "lodging", "lodge", "inn"],
     color: "#3b82f6",
   },
   {
     key: "entertainment",
     label: "Entertainment",
-    buildingKeywords: ["entertainment", "cinema", "theatre", "stadium", "museum", "park"],
-    poiKeywords: ["entertainment", "cinema", "theatre", "stadium", "museum", "park", "attraction"],
+    buildingKeywords: ["entertainment", "cinema", "theatre", "theater", "stadium", "museum", "park", "arts_centre", "auditorium"],
+    poiKeywords: ["entertainment", "cinema", "theatre", "theater", "stadium", "museum", "park", "attraction", "auditorium"],
     color: "#ec4899",
   },
 ];
@@ -159,9 +254,13 @@ const RAILWAY_3D_LAYER_ID = "3d-railways";
 const RADIUS_SOURCE_ID = "zone-radius-source";
 const RADIUS_FILL_LAYER_ID = "zone-radius-fill";
 const RADIUS_OUTLINE_LAYER_ID = "zone-radius-outline";
+const CLASSIFIED_BUILDINGS_SOURCE_ID = "classified-buildings-source";
+const CLASSIFIED_BUILDINGS_LAYER_ID = "classified-buildings-layer";
 const SELECTED_PLACE_SOURCE_ID = "selected-place-source";
 const SELECTED_PLACE_FILL_LAYER_ID = "selected-place-fill";
 const SELECTED_PLACE_LINE_LAYER_ID = "selected-place-line";
+const POI_CATEGORIZED_BUILDING_SOURCE_ID = "poi-categorized-building-source";
+const POI_CATEGORIZED_BUILDING_LAYER_ID = "poi-categorized-buildings";
 const REPORT_IMPACT_SOURCE_ID = "report-impact-source";
 const REPORT_IMPACT_FILL_LAYER_ID = "report-impact-fill";
 const REPORT_IMPACT_OUTLINE_LAYER_ID = "report-impact-outline";
@@ -169,6 +268,11 @@ const DEFAULT_MAP_PITCH = 60;
 const DEFAULT_MAP_BEARING = -17.6;
 const MIN_3D_ZOOM = 14;
 const STREETS_STYLE = "mapbox://styles/mapbox/streets-v12";
+const SATELLITE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
+const MAP_STYLE_LABELS = {
+  streets: "Civic",
+  satellite: "Satellite",
+} as const;
 const DEFAULT_RADIUS_KM = 0.2;
 const RADIUS_VISIBILITY_MIN_ZOOM = 9;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -198,6 +302,8 @@ const SERVICE_BUILDING_KEYWORDS = [
   "factory",
 ];
 const RESIDENTIAL_EXCLUDE_KEYWORDS = ["residential", "apartment", "house", "housing", "home", "villa"];
+const BUILDING_CLASSIFICATION_MAX_FEATURES = 650;
+const POI_TO_BUILDING_MATCH_KM = 0.16;
 
 type ReportType = "potholes" | "garbage" | "flooding" | "streetlight" | "traffic" | "water" | "danger" | "trees" | "other";
 
@@ -254,6 +360,14 @@ const normalizeReportType = (input?: string): ReportType => {
 };
 
 const getReportMeta = (type?: string) => REPORT_TYPE_META[normalizeReportType(type)] ?? REPORT_TYPE_META.other;
+const getReportMarkerLabel = (type?: string) => {
+  const normalized = normalizeReportType(type);
+  if (normalized === "potholes" || normalized === "danger") return "!";
+  if (normalized === "trees") return "TR";
+  return getReportMeta(normalized).label.slice(0, 1).toUpperCase();
+};
+
+const QUICK_REPORT_TYPES: ReportType[] = ["potholes", "garbage", "flooding", "streetlight", "traffic", "danger"];
 
 const buildReportImpactFeatureCollection = (reports: ReportItem[]): GeoJSON.FeatureCollection => {
   const impactFeatures = reports.flatMap((report) => {
@@ -356,16 +470,61 @@ const detectTypeLabel = (name: string, fullName: string): string => {
   return "Place";
 };
 
+const getZoneConfig = (zone: ZoneOption) => ZONE_CONFIG.find((item) => item.key === zone);
+
+const getZoneSearchText = (properties: Record<string, unknown> | null | undefined) =>
+  normalizeText(
+    [
+      properties?.class,
+      properties?.type,
+      properties?.subclass,
+      properties?.category,
+      properties?.maki,
+      properties?.name,
+      properties?.name_en,
+      properties?.brand,
+      properties?.operator,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+const classifyZoneFromText = (text: string): ZoneKey | null => {
+  if (!text) return null;
+
+  const priority: ZoneKey[] = [
+    "health",
+    "educational",
+    "industrial",
+    "agriculture",
+    "food",
+    "railway_station",
+    "hotel",
+    "entertainment",
+    "commercial",
+    "residential",
+  ];
+
+  return (
+    priority.find((zoneKey) => {
+      const config = getZoneConfig(zoneKey);
+      const keywords = [...(config?.buildingKeywords ?? []), ...(config?.poiKeywords ?? [])];
+      return keywords.some((keyword) => text.includes(normalizeText(keyword)));
+    }) ?? null
+  );
+};
+
+const getPointFromGeometry = (geometry: GeoJSON.Geometry | null | undefined): LngLatTuple | null => {
+  if (!geometry) return null;
+  if (geometry.type === "Point") return geometry.coordinates as LngLatTuple;
+  if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") return deriveBuildingCenter(geometry);
+  return null;
+};
+
 const buildStaticPreviewImage = (center: LngLatTuple, token: string) =>
   token
     ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+2563eb(${center[0]},${center[1]})/${center[0]},${center[1]},15/280x160?access_token=${token}`
     : undefined;
-
-const getMapClassExpression = (): mapboxgl.ExpressionSpecification =>
-  [
-    "downcase",
-    ["coalesce", ["get", "class"], ["get", "type"], ["get", "subclass"], ["get", "category"], ""],
-  ] as mapboxgl.ExpressionSpecification;
 
 const getBuildingSearchTextExpression = (): mapboxgl.ExpressionSpecification =>
   [
@@ -376,11 +535,21 @@ const getBuildingSearchTextExpression = (): mapboxgl.ExpressionSpecification =>
       " ",
       ["coalesce", ["get", "type"], ""],
       " ",
+      ["coalesce", ["get", "building"], ""],
+      " ",
+      ["coalesce", ["get", "building:type"], ""],
+      " ",
+      ["coalesce", ["get", "amenity"], ""],
+      " ",
+      ["coalesce", ["get", "landuse"], ""],
+      " ",
       ["coalesce", ["get", "subclass"], ""],
       " ",
       ["coalesce", ["get", "category"], ""],
       " ",
       ["coalesce", ["get", "name"], ""],
+      " ",
+      ["coalesce", ["get", "name_en"], ""],
     ],
   ] as mapboxgl.ExpressionSpecification;
 
@@ -416,6 +585,59 @@ const buildKeywordMatchExpression = (
   }
 
   return ["any", ...conditions] as mapboxgl.ExpressionSpecification;
+};
+
+const getZoneByKey = (key: ZoneKey) => ZONE_CONFIG.find((zone) => zone.key === key);
+
+const CATEGORY_PRIORITY: ZoneKey[] = [
+  "health",
+  "educational",
+  "railway_station",
+  "food",
+  "hotel",
+  "entertainment",
+  "industrial",
+  "agriculture",
+  "commercial",
+  "residential",
+];
+
+const buildBuildingCategoryColorExpression = (): mapboxgl.ExpressionSpecification => {
+  const searchExpression = getBuildingSearchTextExpression();
+
+  const cases = CATEGORY_PRIORITY.flatMap((zoneKey) => {
+    const zone = getZoneByKey(zoneKey);
+    if (!zone) return [];
+    return [buildKeywordMatchExpression(searchExpression, zone.buildingKeywords), zone.color];
+  });
+
+  return ["case", ...cases, getZoneByKey("residential")?.color ?? "#22c55e"] as mapboxgl.ExpressionSpecification;
+};
+
+const getFeatureText = (properties: Record<string, unknown> | null | undefined, keys: string[]): string =>
+  normalizeText(keys.map((key) => String(properties?.[key] ?? "")).join(" "));
+
+const getPoiText = (properties: Record<string, unknown> | null | undefined): string =>
+  getFeatureText(properties, ["class", "type", "subclass", "category", "maki", "name", "name_en", "brand"]);
+
+const detectPoiZone = (properties: Record<string, unknown> | null | undefined): ZoneKey | null => {
+  const text = getPoiText(properties);
+  if (!text) return null;
+
+  for (const zoneKey of CATEGORY_PRIORITY) {
+    const zone = getZoneByKey(zoneKey);
+    if (!zone) continue;
+    if (zone.poiKeywords.some((keyword) => text.includes(normalizeText(keyword)))) return zoneKey;
+  }
+
+  return null;
+};
+
+const buildPoiCategoryFilterExpression = (selectedZone: ZoneOption): mapboxgl.FilterSpecification => {
+  if (selectedZone !== "all") return buildPoiLabelFilterExpression(selectedZone);
+
+  const allPoiKeywords = Array.from(new Set(ZONE_CONFIG.flatMap((zone) => zone.poiKeywords)));
+  return buildKeywordMatchExpression(getPoiSearchTextExpression(), allPoiKeywords) as mapboxgl.FilterSpecification;
 };
 
 const buildRadiusFeature = (
@@ -502,6 +724,41 @@ const deriveBuildingCenter = (geometry: GeoJSON.Geometry): LngLatTuple | null =>
   );
 
   return [sums.lng / vertices.length, sums.lat / vertices.length];
+};
+
+const pointInRing = (point: LngLatTuple, ring: Array<[number, number]>): boolean => {
+  const [lng, lat] = point;
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [lngI, latI] = ring[i];
+    const [lngJ, latJ] = ring[j];
+    const intersects = latI > lat !== latJ > lat && lng < ((lngJ - lngI) * (lat - latI)) / (latJ - latI) + lngI;
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+};
+
+const pointInBuildingGeometry = (point: LngLatTuple, geometry: GeoJSON.Geometry): boolean => {
+  if (geometry.type === "Polygon") {
+    const [outerRing, ...holes] = geometry.coordinates as Array<Array<[number, number]>>;
+    return pointInRing(point, outerRing) && !holes.some((hole) => pointInRing(point, hole));
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return (geometry.coordinates as Array<Array<Array<[number, number]>>>).some(([outerRing, ...holes]) => {
+      return pointInRing(point, outerRing) && !holes.some((hole) => pointInRing(point, hole));
+    });
+  }
+
+  return false;
+};
+
+const derivePointFeatureCenter = (geometry: GeoJSON.Geometry | null | undefined): LngLatTuple | null => {
+  if (!geometry || geometry.type !== "Point") return null;
+  const [lng, lat] = geometry.coordinates;
+  return [lng, lat];
 };
 
 const deriveBuildingRadiusKm = (
@@ -595,6 +852,91 @@ const mergeOverlappingCircles = (circles: RadiusCircle[]): RadiusCircle[] => {
   }
 
   return merged;
+};
+
+type ClassifiedPoi = {
+  center: LngLatTuple;
+  zone: ZoneKey;
+  confidence: number;
+};
+
+const collectClassifiedPois = (map: mapboxgl.Map): ClassifiedPoi[] => {
+  const poiFeatures = map.querySourceFeatures("composite", { sourceLayer: "poi_label" });
+
+  return poiFeatures.flatMap((feature) => {
+    const center = getPointFromGeometry(feature.geometry as GeoJSON.Geometry | null);
+    if (!center) return [];
+
+    const properties = (feature.properties as Record<string, unknown>) ?? {};
+    const zone = classifyZoneFromText(getZoneSearchText(properties));
+    if (!zone) return [];
+
+    const confidence = Number(properties?.filterrank ?? properties?.sizerank ?? 8);
+    return [{ center, zone, confidence: Number.isFinite(confidence) ? confidence : 8 }];
+  });
+};
+
+const findNearestClassifiedPoiZone = (center: LngLatTuple, pois: ClassifiedPoi[]): ZoneKey | null => {
+  let nearest: { zone: ZoneKey; score: number } | null = null;
+
+  pois.forEach((poi) => {
+    const distanceKm = calculateDistance(center[0], center[1], poi.center[0], poi.center[1]);
+    if (distanceKm > POI_TO_BUILDING_MATCH_KM) return;
+    const score = distanceKm + poi.confidence * 0.002;
+    if (!nearest || score < nearest.score) nearest = { zone: poi.zone, score };
+  });
+
+  return nearest?.zone ?? null;
+};
+
+const buildClassifiedBuildingFeatureCollection = (
+  map: mapboxgl.Map,
+  selectedZone: ZoneOption,
+): GeoJSON.FeatureCollection => {
+  const buildingFeatures = map.querySourceFeatures("composite", {
+    sourceLayer: "building",
+    filter: buildZoneFilterExpression("all"),
+  });
+  const pois = collectClassifiedPois(map);
+  const dedupe = new Set<string>();
+  const features: GeoJSON.Feature[] = [];
+
+  for (const feature of buildingFeatures) {
+    if (features.length >= BUILDING_CLASSIFICATION_MAX_FEATURES) break;
+
+    const geometry = feature.geometry as GeoJSON.Geometry | null;
+    if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon")) continue;
+
+    const center = deriveBuildingCenter(geometry);
+    if (!center) continue;
+
+    const dedupeKey = `${center[0].toFixed(6)}:${center[1].toFixed(6)}`;
+    if (dedupe.has(dedupeKey)) continue;
+    dedupe.add(dedupeKey);
+
+    const properties = (feature.properties as Record<string, unknown>) ?? {};
+    const directZone = classifyZoneFromText(getZoneSearchText(properties));
+    const zone = directZone ?? findNearestClassifiedPoiZone(center, pois) ?? "residential";
+    if (selectedZone !== "all" && zone !== selectedZone) continue;
+
+    const config = getZoneConfig(zone);
+    features.push({
+      type: "Feature",
+      geometry,
+      properties: {
+        zone,
+        zoneLabel: config?.label ?? "Residential",
+        zoneColor: config?.color ?? "#22c55e",
+        height: parseNumericValue(properties.height) ?? parseNumericValue(properties.render_height) ?? 18,
+        minHeight: parseNumericValue(properties.min_height) ?? 0,
+      },
+    });
+  }
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
 };
 
 const buildGradientRadiusFeatures = (
@@ -706,6 +1048,115 @@ const buildPoiLabelFilterExpression = (selectedZone: ZoneOption): mapboxgl.Filte
   return ["all", buildKeywordMatchExpression(getPoiSearchTextExpression(), keywords)] as mapboxgl.FilterSpecification;
 };
 
+const findBuildingForPoi = (
+  poiCenter: LngLatTuple,
+  buildings: mapboxgl.MapboxGeoJSONFeature[],
+): mapboxgl.MapboxGeoJSONFeature | null => {
+  let nearest: { feature: mapboxgl.MapboxGeoJSONFeature; distanceKm: number } | null = null;
+
+  for (const building of buildings) {
+    const geometry = building.geometry as GeoJSON.Geometry | null;
+    if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon")) continue;
+
+    if (pointInBuildingGeometry(poiCenter, geometry)) return building;
+
+    const center = deriveBuildingCenter(geometry);
+    if (!center) continue;
+
+    const distanceKm = calculateDistance(poiCenter[0], poiCenter[1], center[0], center[1]);
+    if (!nearest || distanceKm < nearest.distanceKm) {
+      nearest = { feature: building, distanceKm };
+    }
+  }
+
+  return nearest && nearest.distanceKm <= 0.045 ? nearest.feature : null;
+};
+
+const buildPoiCategorizedBuildingFeatureCollection = (
+  map: mapboxgl.Map,
+  selectedZone: ZoneOption,
+): GeoJSON.FeatureCollection => {
+  const buildings = map.querySourceFeatures("composite", {
+    sourceLayer: "building",
+    filter: buildZoneFilterExpression("all"),
+  });
+  if (buildings.length === 0) return emptyFeatureCollection();
+
+  const pois = map.querySourceFeatures("composite", {
+    sourceLayer: "poi_label",
+    filter: buildPoiCategoryFilterExpression(selectedZone),
+  });
+  if (pois.length === 0) return emptyFeatureCollection();
+
+  const dedupe = new Set<string>();
+  const features: GeoJSON.Feature[] = [];
+
+  pois.forEach((poi) => {
+    const poiCenter = derivePointFeatureCenter(poi.geometry as GeoJSON.Geometry | null);
+    if (!poiCenter) return;
+
+    const zoneKey = detectPoiZone((poi.properties as Record<string, unknown>) ?? null);
+    if (!zoneKey || (selectedZone !== "all" && zoneKey !== selectedZone)) return;
+
+    const building = findBuildingForPoi(poiCenter, buildings);
+    const buildingGeometry = building?.geometry as GeoJSON.Geometry | null;
+    if (!building || !buildingGeometry) return;
+
+    const buildingCenter = deriveBuildingCenter(buildingGeometry);
+    const dedupeKey = `${zoneKey}:${building.id ?? ""}:${buildingCenter?.[0].toFixed(6) ?? poiCenter[0].toFixed(6)}:${buildingCenter?.[1].toFixed(6) ?? poiCenter[1].toFixed(6)}`;
+    if (dedupe.has(dedupeKey)) return;
+    dedupe.add(dedupeKey);
+
+    const zone = getZoneByKey(zoneKey);
+    const buildingProperties = (building.properties as Record<string, unknown>) ?? {};
+    features.push({
+      type: "Feature",
+      geometry: buildingGeometry,
+      properties: {
+        ...buildingProperties,
+        inferredZone: zoneKey,
+        inferredZoneColor: zone?.color ?? "#22d3ee",
+        inferredFromPoi: poi.properties?.name_en ?? poi.properties?.name ?? zone?.label,
+      },
+    });
+  });
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+};
+
+const updatePoiCategorizedBuildingLayer = (map: mapboxgl.Map, selectedZone: ZoneOption, labelLayerId?: string) => {
+  const data = buildPoiCategorizedBuildingFeatureCollection(map, selectedZone);
+
+  let source = map.getSource(POI_CATEGORIZED_BUILDING_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  if (!source) {
+    map.addSource(POI_CATEGORIZED_BUILDING_SOURCE_ID, { type: "geojson", data });
+    source = map.getSource(POI_CATEGORIZED_BUILDING_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  } else {
+    source.setData(data);
+  }
+
+  if (map.getLayer(POI_CATEGORIZED_BUILDING_LAYER_ID)) return;
+
+  map.addLayer(
+    {
+      id: POI_CATEGORIZED_BUILDING_LAYER_ID,
+      source: POI_CATEGORIZED_BUILDING_SOURCE_ID,
+      type: "fill-extrusion",
+      minzoom: 14,
+      paint: {
+        "fill-extrusion-color": ["coalesce", ["get", "inferredZoneColor"], "#22d3ee"],
+        "fill-extrusion-height": ["+", ["coalesce", ["get", "height"], ["get", "render_height"], 10], 0.35],
+        "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
+        "fill-extrusion-opacity": 0.96,
+      },
+    },
+    labelLayerId,
+  );
+};
+
 const getLabelAnchorLayerId = (map: mapboxgl.Map): string | undefined =>
   map
     .getStyle()
@@ -717,7 +1168,7 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
 
   if (!map.getLayer(HIGHWAY_3D_LAYER_ID)) {
     map.addLayer(
-      {
+      ({
         id: HIGHWAY_3D_LAYER_ID,
         type: "line",
         source: "composite",
@@ -730,6 +1181,9 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
           false,
         ],
         minzoom: 9,
+        layout: {
+          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 9, 0.15, 13, 0.35, 16, 0.7, 18, 1.2],
+        },
         paint: {
           "line-color": [
             "match",
@@ -753,48 +1207,87 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
 
   if (!map.getLayer(RAILWAY_3D_LAYER_ID)) {
     map.addLayer(
-      {
+      ({
         id: RAILWAY_3D_LAYER_ID,
         type: "line",
         source: "composite",
         "source-layer": "road",
         filter: ["match", ["get", "class"], ["rail", "transit"], true, false],
         minzoom: 8,
+        layout: {
+          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 8, 0.1, 13, 0.25, 16, 0.5, 18, 0.9],
+        },
         paint: {
           "line-color": "#a855f7",
           "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2.5, 16, 4.5, 18, 7],
           "line-opacity": 0.92,
-          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 8, 0.1, 13, 0.25, 16, 0.5, 18, 0.9],
-        } as any,
-      } as any,
+        },
+      } as mapboxgl.AnyLayer),
       labelLayerId,
     );
   }
 };
 
+const enableMapTerrain = (map: mapboxgl.Map) => {
+  if (!map.getSource("mapbox-dem")) {
+    map.addSource("mapbox-dem", {
+      type: "raster-dem",
+      url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+      tileSize: 512,
+      maxzoom: 14,
+    });
+  }
+
+  map.setTerrain({ source: "mapbox-dem", exaggeration: 1.15 });
+  if (!map.getLayer("sky")) {
+    map.addLayer({
+      id: "sky",
+      type: "sky",
+      paint: {
+        "sky-type": "atmosphere",
+        "sky-atmosphere-sun": [0, 0],
+        "sky-atmosphere-sun-intensity": 7,
+      },
+    } as mapboxgl.AnyLayer);
+  }
+};
+
+const disableMapTerrain = (map: mapboxgl.Map) => {
+  map.setTerrain(null);
+  if (map.getLayer("sky")) map.removeLayer("sky");
+};
+
+const applyMapTheme = (map: mapboxgl.Map) => {
+  map.setFog({
+    range: [0.7, 11.5],
+    color: "hsl(217 43% 8%)",
+    "high-color": "hsl(205 55% 12%)",
+    "space-color": "hsl(223 47% 4%)",
+    "horizon-blend": 0.14,
+  });
+
+  if (map.getLayer("background")) {
+    map.setPaintProperty("background", "background-color", "#07111f");
+  }
+
+  if (map.getLayer("water")) {
+    map.setPaintProperty("water", "fill-color", "#0c2239");
+    map.setPaintProperty("water", "fill-opacity", 0.92);
+  }
+
+  if (map.getLayer("land")) {
+    map.setPaintProperty("land", "fill-color", "#0d1628");
+  }
+
+  if (map.getLayer("landcover")) {
+    map.setPaintProperty("landcover", "fill-color", "#0d1a2b");
+    map.setPaintProperty("landcover", "fill-opacity", 0.5);
+  }
+};
+
 const getBuildingColorExpression = (selectedZone: ZoneOption): mapboxgl.ExpressionSpecification => {
   if (selectedZone === "all") {
-    return [
-      "match",
-      getMapClassExpression(),
-      ["residential", "apartments", "house", "housing"],
-      "#22c55e",
-      ["commercial", "retail", "office"],
-      "#2563eb",
-      ["entertainment", "cinema", "theatre", "stadium", "arts_centre"],
-      "#ec4899",
-      ["restaurant", "fast_food", "cafe", "food_court", "bar", "pub"],
-      "#f97316",
-      ["hospital", "clinic", "fire_station", "police", "emergency"],
-      "#dc2626",
-      ["industrial", "factory", "manufacture", "warehouse"],
-      "#111827",
-      ["school", "college", "university", "kindergarten", "education", "library"],
-      "#92400e",
-      ["farm", "farmland", "agricultural", "greenhouse", "barn"],
-      "#facc15",
-      "#9ca3af",
-    ] as mapboxgl.ExpressionSpecification;
+    return buildBuildingCategoryColorExpression();
   }
 
   const selectedConfig = ZONE_CONFIG.find((zone) => zone.key === selectedZone);
@@ -863,6 +1356,41 @@ const setSelectedPlaceGeometry = (map: mapboxgl.Map, geometry: GeoJSON.Geometry 
   });
 };
 
+const refreshClassifiedBuildingLayer = (map: mapboxgl.Map, selectedZone: ZoneOption) => {
+  if (!map.isStyleLoaded()) return;
+
+  const data = buildClassifiedBuildingFeatureCollection(map, selectedZone);
+  let source = map.getSource(CLASSIFIED_BUILDINGS_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+
+  if (!source) {
+    map.addSource(CLASSIFIED_BUILDINGS_SOURCE_ID, { type: "geojson", data });
+    source = map.getSource(CLASSIFIED_BUILDINGS_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  } else {
+    source.setData(data);
+  }
+
+  if (!map.getLayer(CLASSIFIED_BUILDINGS_LAYER_ID)) {
+    const labelLayer = getLabelAnchorLayerId(map);
+    map.addLayer(
+      {
+        id: CLASSIFIED_BUILDINGS_LAYER_ID,
+        source: CLASSIFIED_BUILDINGS_SOURCE_ID,
+        type: "fill-extrusion",
+        minzoom: 14,
+        paint: {
+          "fill-extrusion-color": ["coalesce", ["get", "zoneColor"], "#22d3ee"],
+          "fill-extrusion-height": ["coalesce", ["get", "height"], 18],
+          "fill-extrusion-base": ["coalesce", ["get", "minHeight"], 0],
+          "fill-extrusion-opacity": selectedZone === "all" ? 0.92 : 0.96,
+        },
+      },
+      labelLayer,
+    );
+  } else {
+    map.setPaintProperty(CLASSIFIED_BUILDINGS_LAYER_ID, "fill-extrusion-opacity", selectedZone === "all" ? 0.92 : 0.96);
+  }
+};
+
 const addOrUpdateZoneLayers = (
   map: mapboxgl.Map,
   selectedZone: ZoneOption,
@@ -925,9 +1453,9 @@ const addOrUpdateZoneLayers = (
   const labelLayer = layers.find((layer) => layer.type === "symbol" && layer.layout?.["text-field"])?.id;
 
   if (map.getLayer(BUILDING_LAYER_ID)) {
-    map.setFilter(BUILDING_LAYER_ID, buildZoneFilterExpression(selectedZone));
-    map.setPaintProperty(BUILDING_LAYER_ID, "fill-extrusion-color", getBuildingColorExpression(selectedZone));
-    map.setPaintProperty(BUILDING_LAYER_ID, "fill-extrusion-opacity", 0.88);
+    map.setFilter(BUILDING_LAYER_ID, buildZoneFilterExpression("all"));
+    map.setPaintProperty(BUILDING_LAYER_ID, "fill-extrusion-color", "#334155");
+    map.setPaintProperty(BUILDING_LAYER_ID, "fill-extrusion-opacity", selectedZone === "all" ? 0.26 : 0.16);
     map.setPaintProperty(BUILDING_LAYER_ID, "fill-extrusion-height", [
       "coalesce",
       ["get", "height"],
@@ -941,19 +1469,22 @@ const addOrUpdateZoneLayers = (
         id: BUILDING_LAYER_ID,
         source: "composite",
         "source-layer": "building",
-        filter: buildZoneFilterExpression(selectedZone),
+        filter: buildZoneFilterExpression("all"),
         type: "fill-extrusion",
         minzoom: 14,
         paint: {
-          "fill-extrusion-color": getBuildingColorExpression(selectedZone),
+          "fill-extrusion-color": "#334155",
           "fill-extrusion-height": ["coalesce", ["get", "height"], ["get", "render_height"], 10],
           "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
-          "fill-extrusion-opacity": 0.88,
+          "fill-extrusion-opacity": selectedZone === "all" ? 0.26 : 0.16,
         },
       },
       labelLayer,
     );
   }
+
+  updatePoiCategorizedBuildingLayer(map, selectedZone, labelLayer);
+  refreshClassifiedBuildingLayer(map, selectedZone);
 
   if (selectedZone === "all") {
     if (map.getLayer(ZONE_POI_LABEL_LAYER_ID)) map.removeLayer(ZONE_POI_LABEL_LAYER_ID);
@@ -1071,11 +1602,16 @@ export default function HomePage() {
   const reportsRef = useRef<ReportItem[]>([]);
   const userLocationRef = useRef<LngLatTuple | null>(null);
   const selectedZoneRef = useRef<ZoneOption>("all");
+  const is3DEnabledRef = useRef(true);
+  const mapStyleModeRef = useRef<keyof typeof MAP_STYLE_LABELS>("streets");
   const focusPointRef = useRef<LngLatTuple | null>(null);
   const cacheRef = useRef<Map<string, { ts: number; items: UniversalSuggestion[] }>>(new Map());
 
   const [selectedZone, setSelectedZone] = useState<ZoneOption>("all");
   const [focusPoint, setFocusPoint] = useState<LngLatTuple | null>(null);
+  const [mapStyleMode, setMapStyleMode] = useState<keyof typeof MAP_STYLE_LABELS>("streets");
+  const [is3DEnabled, setIs3DEnabled] = useState(true);
+  const [mapStatus, setMapStatus] = useState("Loading civic map...");
 
   const [searchText, setSearchText] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
@@ -1198,9 +1734,12 @@ export default function HomePage() {
       markerEl.style.display = "grid";
       markerEl.style.placeItems = "center";
       markerEl.style.cursor = "pointer";
-      markerEl.style.fontSize = "16px";
+      markerEl.style.fontSize = "12px";
+      markerEl.style.fontWeight = "900";
+      markerEl.style.color = "#fff";
+      markerEl.style.letterSpacing = "0";
       markerEl.style.boxShadow = "0 8px 16px rgba(2,6,23,0.4)";
-      markerEl.textContent = meta.icon;
+      markerEl.textContent = getReportMarkerLabel(report.type);
       markerEl.title = `${meta.label}: ${report.title}`;
 
       const popupHtml = `
@@ -1216,14 +1755,14 @@ export default function HomePage() {
               type="button"
               onclick="window.nivaariVoteReport && window.nivaariVoteReport('${report.id}', 'upvote')"
               style="border:1px solid rgba(22,163,74,0.4);background:${report.myVote === "upvote" ? "rgba(22,163,74,0.2)" : "rgba(241,245,249,0.95)"};color:#166534;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;"
-            >▲ ${report.upvotes ?? 0}</button>
+            >Up ${report.upvotes ?? 0}</button>
             <button
               type="button"
               onclick="window.nivaariVoteReport && window.nivaariVoteReport('${report.id}', 'downvote')"
               style="border:1px solid rgba(220,38,38,0.35);background:${report.myVote === "downvote" ? "rgba(220,38,38,0.2)" : "rgba(241,245,249,0.95)"};color:#991b1b;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;"
-            >▼ ${report.downvotes ?? 0}</button>
+            >Down ${report.downvotes ?? 0}</button>
           </div>
-          <div style="font-size:11px;color:#475569;margin-top:8px;">📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+          <div style="font-size:11px;color:#475569;margin-top:8px;">Pin ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
         </div>
       `;
 
@@ -1608,7 +2147,6 @@ export default function HomePage() {
       reportLocationMarkerRef.current?.remove();
       reportLocationMarkerRef.current = null;
       map.remove();
-      reportLocationMapRef.current = null;
     };
   }, [isReportLocationPickerOpen]);
 
@@ -2023,7 +2561,13 @@ export default function HomePage() {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
+    if (!token) {
+      setMapStatus("Mapbox token missing. Add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to enable the map.");
+      return;
+    }
+
+    mapboxgl.accessToken = token;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -2033,9 +2577,27 @@ export default function HomePage() {
       pitch: DEFAULT_MAP_PITCH,
       bearing: DEFAULT_MAP_BEARING,
       antialias: true,
+      attributionControl: false,
     });
 
     mapRef.current = map;
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
+    map.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+        showUserHeading: true,
+      }),
+      "top-right",
+    );
+    map.addControl(new mapboxgl.FullscreenControl(), "top-right");
+    map.addControl(new mapboxgl.ScaleControl({ maxWidth: 140, unit: "metric" }), "bottom-right");
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
+
+    map.on("load", () => {
+      applyMapTheme(map);
+      map.resize();
+    });
 
     const refreshZoneLayers = () => {
       addOrUpdateZoneLayers(map, selectedZoneRef.current, DEFAULT_RADIUS_KM);
@@ -2056,15 +2618,22 @@ export default function HomePage() {
     }
 
     map.on("style.load", () => {
-      if (map.getPitch() < DEFAULT_MAP_PITCH) map.setPitch(DEFAULT_MAP_PITCH);
-      if (map.getBearing() !== DEFAULT_MAP_BEARING) map.setBearing(DEFAULT_MAP_BEARING);
-      if (map.getZoom() < MIN_3D_ZOOM) map.setZoom(15);
+      if (is3DEnabledRef.current) {
+        if (map.getPitch() < DEFAULT_MAP_PITCH) map.setPitch(DEFAULT_MAP_PITCH);
+        if (map.getBearing() !== DEFAULT_MAP_BEARING) map.setBearing(DEFAULT_MAP_BEARING);
+        enableMapTerrain(map);
+      } else {
+        disableMapTerrain(map);
+      }
+      applyMapTheme(map);
+      if (map.getZoom() < MIN_3D_ZOOM) map.setZoom(MIN_3D_ZOOM);
 
       ensureTransport3DLayers(map);
       ensureSelectedPlaceLayers(map);
       refreshZoneLayers();
       ensureReportImpactLayers(map, reportsRef.current);
       refreshReportsOnMap(map, reportsRef.current);
+      setMapStatus(`${MAP_STYLE_LABELS[mapStyleModeRef.current]} map ready`);
     });
 
     map.on("click", (event) => {
@@ -2075,12 +2644,23 @@ export default function HomePage() {
       }
     });
 
-    map.on("moveend", refreshZoneLayers);
+    const handleMoveEnd = () => {
+      refreshZoneLayers();
+      const center = map.getCenter();
+      setMapStatus(`Center ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)} | Zoom ${map.getZoom().toFixed(1)}`);
+    };
+    const handleMapError = () => {
+      setMapStatus("Map service error. Check the token, network, or style access.");
+    };
+
+    map.on("moveend", handleMoveEnd);
     map.on("zoomend", refreshZoneLayers);
+    map.on("error", handleMapError);
 
     return () => {
-      map.off("moveend", refreshZoneLayers);
+      map.off("moveend", handleMoveEnd);
       map.off("zoomend", refreshZoneLayers);
+      map.off("error", handleMapError);
       reportMarkersRef.current.forEach((marker) => marker.remove());
       reportMarkersRef.current = [];
       mapRef.current = null;
@@ -2096,6 +2676,30 @@ export default function HomePage() {
     if (!map) return;
     addOrUpdateZoneLayers(map, selectedZone, DEFAULT_RADIUS_KM);
   }, [selectedZone]);
+
+  useEffect(() => {
+    mapStyleModeRef.current = mapStyleMode;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const styleUrl = mapStyleMode === "satellite" ? SATELLITE_STYLE : STREETS_STYLE;
+    setMapStatus(`Switching to ${MAP_STYLE_LABELS[mapStyleMode]} view...`);
+    map.setStyle(styleUrl);
+  }, [mapStyleMode]);
+
+  useEffect(() => {
+    is3DEnabledRef.current = is3DEnabled;
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    if (is3DEnabled) {
+      map.easeTo({ pitch: DEFAULT_MAP_PITCH, bearing: DEFAULT_MAP_BEARING, duration: 650 });
+      enableMapTerrain(map);
+    } else {
+      disableMapTerrain(map);
+      map.easeTo({ pitch: 0, bearing: 0, duration: 650 });
+    }
+  }, [is3DEnabled]);
 
   useEffect(() => {
     focusPointRef.current = focusPoint;
@@ -2212,7 +2816,13 @@ export default function HomePage() {
     setShowSearchBar(false);
   };
 
-  const openReportChat = () => {
+  const openReportChat = (type?: ReportType) => {
+    if (type) {
+      const meta = getReportMeta(type);
+      setReportDraft((previous) => ({ ...previous, type, title: previous.title ?? `${meta.label} Report` }));
+      setReportInput((previous) => previous || `${meta.label} issue near `);
+      setReportStatusMessage(`Started a ${meta.label.toLowerCase()} report. Add location and severity.`);
+    }
     setIsReportChatOpen(true);
   };
 
@@ -2236,6 +2846,19 @@ export default function HomePage() {
           inset: 0,
           width: "100vw",
           height: "100vh",
+        }}
+      />
+
+      <div
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: "none",
+          background:
+            "radial-gradient(circle at 50% 0%, rgba(56,189,248,0.14), transparent 32%), radial-gradient(circle at 14% 18%, rgba(244,114,182,0.12), transparent 28%), radial-gradient(circle at 88% 10%, rgba(34,197,94,0.08), transparent 30%), linear-gradient(180deg, rgba(2,6,23,0.1), rgba(2,6,23,0.38) 62%, rgba(2,6,23,0.56))",
+          mixBlendMode: "screen",
         }}
       />
 
@@ -2272,6 +2895,63 @@ export default function HomePage() {
       </button>
 
       <div
+        className="map-command-bar"
+        style={{
+          position: "fixed",
+          top: 14,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 24,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          borderRadius: 999,
+          border: "1px solid rgba(186,230,253,0.24)",
+          background: "linear-gradient(145deg, rgba(2,6,23,0.72), rgba(15,23,42,0.58))",
+          color: "#dbeafe",
+          padding: "7px 9px",
+          boxShadow: "0 14px 34px rgba(2,6,23,0.44), inset 0 1px 0 rgba(255,255,255,0.08)",
+          backdropFilter: "blur(18px) saturate(170%)",
+        }}
+      >
+        {(["streets", "satellite"] as Array<keyof typeof MAP_STYLE_LABELS>).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setMapStyleMode(mode)}
+            style={{
+              border: "1px solid rgba(186,230,253,0.22)",
+              borderRadius: 999,
+              background: mapStyleMode === mode ? "rgba(14,165,233,0.34)" : "rgba(15,23,42,0.36)",
+              color: mapStyleMode === mode ? "#ecfeff" : "#bfdbfe",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "7px 11px",
+              cursor: "pointer",
+            }}
+          >
+            {MAP_STYLE_LABELS[mode]}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setIs3DEnabled((value) => !value)}
+          style={{
+            border: "1px solid rgba(186,230,253,0.22)",
+            borderRadius: 999,
+            background: is3DEnabled ? "rgba(34,197,94,0.22)" : "rgba(71,85,105,0.36)",
+            color: is3DEnabled ? "#dcfce7" : "#cbd5e1",
+            fontSize: 12,
+            fontWeight: 800,
+            padding: "7px 11px",
+            cursor: "pointer",
+          }}
+        >
+          {is3DEnabled ? "3D On" : "2D View"}
+        </button>
+      </div>
+
+      <div
         className="zone-panel"
         style={{
           position: "fixed",
@@ -2291,7 +2971,26 @@ export default function HomePage() {
           boxShadow: "0 10px 26px rgba(2,6,23,0.45)",
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Zone Filters</div>
+        <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>Civic Layers</div>
+            <div style={{ color: "#94a3b8", fontSize: 11, marginTop: 2 }}>{mapStatus}</div>
+          </div>
+          <div
+            style={{
+              borderRadius: 999,
+              border: "1px solid rgba(34,211,238,0.28)",
+              background: "rgba(8,47,73,0.42)",
+              color: "#a5f3fc",
+              padding: "5px 8px",
+              fontSize: 11,
+              fontWeight: 800,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {reports.length} reports
+          </div>
+        </div>
 
         <label style={{ display: "grid", gap: 8, fontSize: 13 }}>
           <span>Select one zone at a time</span>
@@ -2325,7 +3024,88 @@ export default function HomePage() {
           </>
         ) : null}
 
-        <div style={{ marginTop: 10, fontSize: 12, color: "#93c5fd" }}>Showing: {zoneLabelMap[selectedZone]}</div>
+        <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 12, color: "#93c5fd" }}>Showing: {zoneLabelMap[selectedZone]}</div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 6,
+              padding: 8,
+              borderRadius: 10,
+              border: "1px solid rgba(148,163,184,0.18)",
+              background: "rgba(2,6,23,0.28)",
+            }}
+          >
+            {ZONE_CONFIG.filter((zone) => selectedZone === "all" || zone.key === selectedZone).map((zone) => (
+              <div key={zone.key} style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    background: zone.color,
+                    boxShadow: `0 0 12px ${zone.color}66`,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ color: "#cbd5e1", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {zone.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const current = userLocationRef.current;
+                if (!current || !mapRef.current) {
+                  setMapStatus("Allow location access to center on you.");
+                  return;
+                }
+                mapRef.current.flyTo({ center: current, zoom: 16.4, pitch: is3DEnabled ? DEFAULT_MAP_PITCH : 0, essential: true });
+                setFocusPoint(current);
+              }}
+              style={{
+                border: "1px solid rgba(125,211,252,0.28)",
+                background: "rgba(14,165,233,0.14)",
+                color: "#dbeafe",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              My area
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                focusPointRef.current = null;
+                setFocusPoint(null);
+                setSelectedZone("all");
+                setNearbyInsights([]);
+                if (mapRef.current) setSelectedPlaceGeometry(mapRef.current, null, "");
+                markerRef.current?.remove();
+                popupRef.current?.remove();
+              }}
+              style={{
+                border: "1px solid rgba(148,163,184,0.28)",
+                background: "rgba(15,23,42,0.5)",
+                color: "#cbd5e1",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
       </div>
 
       <div
@@ -2353,7 +3133,7 @@ export default function HomePage() {
       >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#cbd5e1", letterSpacing: 0.45, textTransform: "uppercase" }}>
-              Universal Intelligent Search
+              Smart Civic Search
             </div>
             <button
               type="button"
@@ -2425,8 +3205,33 @@ export default function HomePage() {
 
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ fontSize: 12, color: "#a5f3fc", padding: "0 2px" }}>
-              Dynamic query understanding, multi-source validation, and confidence-ranked results.
+              Ranked results from Mapbox and OSM with nearby context and building highlighting.
             </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {["hospitals near me", "schools nearby", "police station", "railway station", "garbage reports"].map((query) => (
+              <button
+                key={query}
+                type="button"
+                onClick={() => {
+                  setSearchText(query);
+                  setSearchMessage("");
+                }}
+                style={{
+                  border: "1px solid rgba(186,230,253,0.18)",
+                  background: "rgba(8,47,73,0.36)",
+                  color: "#bae6fd",
+                  borderRadius: 999,
+                  padding: "6px 9px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {query}
+              </button>
+            ))}
           </div>
 
           {dropdownOpen ? (
@@ -2518,14 +3323,15 @@ export default function HomePage() {
           left: 14,
           bottom: 14,
           zIndex: 31,
-          width: 48,
+          minWidth: 74,
           height: 48,
           borderRadius: 999,
           border: "1px solid rgba(186,230,253,0.3)",
           background:
             "linear-gradient(145deg, rgba(10,18,38,0.8), rgba(15,23,42,0.66)), radial-gradient(circle at 18% 12%, rgba(56,189,248,0.22), transparent 45%), radial-gradient(circle at 82% 88%, rgba(244,114,182,0.2), transparent 40%)",
           color: "#e2e8f0",
-          fontSize: 21,
+          fontSize: 13,
+          fontWeight: 800,
           cursor: "pointer",
           boxShadow: "0 16px 30px rgba(2,6,23,0.44), inset 0 1px 0 rgba(255,255,255,0.08)",
           backdropFilter: "blur(16px) saturate(180%)",
@@ -2535,7 +3341,7 @@ export default function HomePage() {
           transition: "opacity 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
-        🔍
+        Search
       </button>
 
       <button
@@ -2568,9 +3374,48 @@ export default function HomePage() {
           gap: 8,
         }}
       >
-        <span style={{ fontSize: 16, lineHeight: 1 }}>🚨</span>
+        <span style={{ fontSize: 12, lineHeight: 1, fontWeight: 900 }}>!</span>
         Report
       </button>
+
+      <div
+        className="quick-report-rail"
+        style={{
+          position: "fixed",
+          left: 14,
+          bottom: showSearchBar ? 126 : 126,
+          zIndex: 31,
+          display: "grid",
+          gap: 7,
+        }}
+      >
+        {QUICK_REPORT_TYPES.slice(0, 4).map((type) => {
+          const meta = getReportMeta(type);
+          return (
+            <button
+              key={type}
+              type="button"
+              title={`Report ${meta.label}`}
+              onClick={() => openReportChat(type)}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 999,
+                border: `1px solid ${meta.color}88`,
+                background: `linear-gradient(145deg, ${meta.color}66, rgba(15,23,42,0.72))`,
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 900,
+                cursor: "pointer",
+                boxShadow: "0 12px 26px rgba(2,6,23,0.42)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              {getReportMarkerLabel(type)}
+            </button>
+          );
+        })}
+      </div>
 
       {isReportChatOpen ? (
         <div
@@ -2649,6 +3494,36 @@ export default function HomePage() {
               >
                 ×
               </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {QUICK_REPORT_TYPES.map((type) => {
+                const meta = getReportMeta(type);
+                const isActive = reportDraft.type === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setReportDraft((previous) => ({ ...previous, type, title: previous.title ?? `${meta.label} Report` }));
+                      setReportInput((previous) => previous || `${meta.label} issue near `);
+                      setReportReadyToSubmit(false);
+                    }}
+                    style={{
+                      borderRadius: 999,
+                      border: `1px solid ${isActive ? meta.color : "rgba(251,113,133,0.28)"}`,
+                      background: isActive ? `${meta.color}33` : "rgba(127,29,29,0.18)",
+                      color: isActive ? "#fff" : "#fecdd3",
+                      padding: "6px 9px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {meta.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div
@@ -3176,6 +4051,60 @@ export default function HomePage() {
           margin-bottom: 106px;
         }
 
+        .map-command-bar {
+          border-radius: 999px !important;
+          border: 1px solid rgba(125,211,252,0.18) !important;
+          background: linear-gradient(135deg, rgba(6,11,23,0.74), rgba(15,23,42,0.58)) !important;
+          box-shadow: 0 18px 44px rgba(2,6,23,0.46), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+          backdrop-filter: blur(22px) saturate(180%) !important;
+        }
+
+        .mapboxgl-ctrl-group {
+          overflow: hidden;
+          border: 1px solid rgba(125,211,252,0.18) !important;
+          border-radius: 14px !important;
+          background: rgba(8,15,31,0.74) !important;
+          box-shadow: 0 18px 38px rgba(2,6,23,0.45) !important;
+          backdrop-filter: blur(18px) saturate(175%);
+        }
+
+        .mapboxgl-ctrl-group button {
+          filter: invert(1) hue-rotate(175deg) saturate(0.85);
+        }
+
+        .mapboxgl-popup-content {
+          border-radius: 16px;
+          border: 1px solid rgba(125,211,252,0.15);
+          box-shadow: 0 22px 52px rgba(2,6,23,0.38);
+          background: rgba(10,18,38,0.94);
+          color: #e2e8f0;
+        }
+
+        .zone-panel {
+          border-radius: 18px !important;
+          border: 1px solid rgba(125,211,252,0.16) !important;
+          background: linear-gradient(155deg, rgba(7,15,28,0.88), rgba(15,23,42,0.78)) !important;
+          box-shadow: 0 22px 54px rgba(2,6,23,0.5), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+          backdrop-filter: blur(20px) saturate(170%) !important;
+        }
+
+        .search-shell {
+          border-radius: 24px !important;
+          border: 1px solid rgba(125,211,252,0.18) !important;
+          box-shadow: 0 30px 64px rgba(2,6,23,0.52), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+        }
+
+        .quick-report-rail button {
+          box-shadow: 0 12px 28px rgba(2,6,23,0.42);
+          transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        }
+
+        .quick-report-rail button:hover,
+        .quick-report-rail button:focus-visible {
+          transform: translateY(-1px) scale(1.03);
+          box-shadow: 0 16px 32px rgba(2,6,23,0.5);
+        }
+
         @media (max-width: 1024px) {
           .zone-panel {
             width: 244px;
@@ -3186,6 +4115,10 @@ export default function HomePage() {
           .search-shell {
             width: min(96vw, 760px);
           }
+
+          .map-command-bar {
+            top: 60px;
+          }
         }
 
         @media (max-width: 768px) {
@@ -3193,13 +4126,25 @@ export default function HomePage() {
             left: 10px;
             right: 10px;
             width: auto;
-            top: 10px;
+            top: 108px;
+            max-height: 34vh;
           }
 
           .search-shell {
             width: calc(100vw - 20px);
             bottom: 10px;
             padding: 10px;
+          }
+
+          .map-command-bar {
+            top: 58px;
+            width: calc(100vw - 20px);
+            justify-content: center;
+            border-radius: 12px;
+          }
+
+          .quick-report-rail {
+            display: none !important;
           }
 
           .search-input-row {

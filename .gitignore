@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 pnpm-lock.yaml
+*.tsbuildinfo
 
 # Local Netlify folder
 .netlify
@@ -30,3 +31,4 @@ pnpm-lock.yaml
 .env
 
 .cache
+bun.lock
