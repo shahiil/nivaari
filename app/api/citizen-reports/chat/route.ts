@@ -56,6 +56,7 @@ type ReportDraft = NonNullable<z.infer<typeof requestSchema>["draft"]>;
 function hasPinnedLocation(draft: ReportDraft): boolean {
   return typeof draft.location?.lat === "number" && typeof draft.location?.lng === "number";
 }
+type ChatHistory = z.infer<typeof requestSchema>["history"];
 
 function fallbackType(text: string): string {
   const t = text.toLowerCase();
@@ -309,7 +310,8 @@ Continue the conversation naturally.`;
 function generateSmartResponse(
   draft: ReportDraft,
   needsType: boolean,
-  needsLocation: boolean
+  needsLocation: boolean,
+  history: ChatHistory,
 ) {
   let assistantMessage = "";
 

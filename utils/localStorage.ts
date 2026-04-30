@@ -47,7 +47,6 @@ export const saveUser = (userData: UserData): void => {
     }
     
     localStorage.setItem('users', JSON.stringify(users));
-    console.log('User saved successfully:', userData);
   } catch (error) {
     console.error('Error saving user to localStorage:', error);
   }
@@ -67,7 +66,6 @@ export const updateUserLastLogin = (id: string): void => {
         lastLogin: new Date().toISOString() 
       };
       localStorage.setItem('users', JSON.stringify(users));
-      console.log('User last login updated successfully for ID:', id);
     }
   } catch (error) {
     console.error('Error updating user last login:', error);
@@ -82,7 +80,6 @@ export const removeUser = (id: string): void => {
     const users = getAllUsers();
     const filteredUsers = users.filter(user => user.id !== id);
     localStorage.setItem('users', JSON.stringify(filteredUsers));
-    console.log('User removed successfully for ID:', id);
   } catch (error) {
     console.error('Error removing user from localStorage:', error);
   }
