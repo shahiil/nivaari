@@ -9,24 +9,62 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
+function isSrvLookupError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const maybeError = error as { code?: unknown; syscall?: unknown };
+  return maybeError.code === "ECONNREFUSED" && maybeError.syscall === "querySrv";
+}
+
+function createClientPromise(uri: string): Promise<MongoClient> {
+  const nextClient = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 10_000,
+    connectTimeoutMS: 10_000,
+  });
+
+  client = nextClient;
+  return nextClient.connect();
+}
+
 function getMongoClient(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI;
+  const fallbackUri = process.env.MONGODB_URI_FALLBACK;
 
   if (!uri) {
     throw new Error("MONGODB_URI environment variable is not set.");
   }
 
+  const connectWithFallback = async (): Promise<MongoClient> => {
+    try {
+      return await createClientPromise(uri);
+    } catch (error) {
+      if (fallbackUri && isSrvLookupError(error)) {
+        console.warn("MongoDB SRV DNS lookup failed, retrying with MONGODB_URI_FALLBACK.");
+        return createClientPromise(fallbackUri);
+      }
+      throw error;
+    }
+  };
+
   if (process.env.NODE_ENV === "development") {
     if (!global._mongoClientPromise) {
-      client = new MongoClient(uri);
-      global._mongoClientPromise = client.connect();
+      global._mongoClientPromise = connectWithFallback().catch((error) => {
+        global._mongoClientPromise = undefined;
+        client = null;
+        throw error;
+      });
     }
     return global._mongoClientPromise;
   }
 
   if (!clientPromise) {
-    client = new MongoClient(uri);
-    clientPromise = client.connect();
+    clientPromise = connectWithFallback().catch((error) => {
+      clientPromise = null;
+      client = null;
+      throw error;
+    });
   }
 
   return clientPromise;

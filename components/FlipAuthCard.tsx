@@ -175,8 +175,8 @@ export default function FlipAuthCard({ initialMode = 'login' }: FlipAuthCardProp
     }
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        () => console.log("Location access granted"), 
-        (err) => console.log("Location access denied", err)
+        () => undefined,
+        () => undefined,
       );
     }
     router.push(getPostAuthRedirect());
