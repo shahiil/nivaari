@@ -24,6 +24,7 @@ Create a `.env.local` file and add the following keys:
 | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | Base URL of the deployed app (e.g. `https://nivaari.vercel.app`) |
 | `MONGODB_URI` | Connection string for your MongoDB cluster |
+| `MONGODB_URI_FALLBACK` | Optional non-SRV `mongodb://...` URI used when `mongodb+srv` DNS lookup is blocked |
 | `MONGODB_DB` | Database name (defaults to `nivaari` if omitted) |
 | `JWT_SECRET` | Secret string used to sign session tokens |
 | `SMTP_HOST` | SMTP host used for transactional email |

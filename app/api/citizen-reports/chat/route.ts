@@ -52,6 +52,9 @@ const responseSchema = z.object({
   readyToSubmit: z.boolean(),
 });
 
+type ReportDraft = z.infer<typeof responseSchema>["draft"];
+type ChatHistory = z.infer<typeof requestSchema>["history"];
+
 function fallbackType(text: string): string {
   const t = text.toLowerCase();
   if (/(pothole|road damage|crack)/.test(t)) return "potholes";
@@ -122,7 +125,7 @@ export async function POST(req: Request) {
     const fullText = conversationText + `\nUser: ${latestUserText}`;
 
     // ===== PRE-EXTRACT DATA FROM CONVERSATION =====
-    const preExtracted = { ...body.draft } as any;
+    const preExtracted: ReportDraft = { ...body.draft };
 
     // Extract issue type if not already set
     if (!preExtracted.type) {
@@ -296,10 +299,10 @@ Continue the conversation naturally.`;
 
 // Helper function to generate smart responses
 function generateSmartResponse(
-  draft: any,
+  draft: ReportDraft,
   needsType: boolean,
   needsLocation: boolean,
-  history: Array<{ role: "user" | "assistant"; text: string }>
+  history: ChatHistory,
 ) {
   let assistantMessage = "";
 
