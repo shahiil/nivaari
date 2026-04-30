@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     detectionFormData.append('image', blob, imageFile.name);
 
     const modelResponse = await fetch(
-      'http://127.0.0.1:8000/predict?confidence=0.3',
+      'https://deception-resonant-deserving.ngrok-free.dev/predict?confidence=0.3',
       {
         method: 'POST',
         body: detectionFormData,
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     // Check if it's a connection error to the local service
     if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
       return NextResponse.json(
-        { error: 'Local model service not running. Please start it on http://127.0.0.1:8000' },
+        { error: 'Local model service not running. Please start it on https://deception-resonant-deserving.ngrok-free.dev' },
         { status: 503 }
       );
     }

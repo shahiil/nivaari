@@ -1168,7 +1168,7 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
 
   if (!map.getLayer(HIGHWAY_3D_LAYER_ID)) {
     map.addLayer(
-      ({
+      {
         id: HIGHWAY_3D_LAYER_ID,
         type: "line",
         source: "composite",
@@ -1207,7 +1207,7 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
 
   if (!map.getLayer(RAILWAY_3D_LAYER_ID)) {
     map.addLayer(
-      ({
+      {
         id: RAILWAY_3D_LAYER_ID,
         type: "line",
         source: "composite",
@@ -1222,7 +1222,7 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
           "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2.5, 16, 4.5, 18, 7],
           "line-opacity": 0.92,
         },
-      } as mapboxgl.AnyLayer),
+      } as mapboxgl.AnyLayer,
       labelLayerId,
     );
   }
@@ -1260,9 +1260,9 @@ const disableMapTerrain = (map: mapboxgl.Map) => {
 const applyMapTheme = (map: mapboxgl.Map) => {
   map.setFog({
     range: [0.7, 11.5],
-    color: "hsl(217 43% 8%)",
-    "high-color": "hsl(205 55% 12%)",
-    "space-color": "hsl(223 47% 4%)",
+    color: "hsl(217, 43%, 8%)",
+    "high-color": "hsl(205, 55%, 12%)",
+    "space-color": "hsl(223, 47%, 4%)",
     "horizon-blend": 0.14,
   });
 
@@ -2081,7 +2081,7 @@ export default function HomePage() {
     } catch (error) {
       console.error("Detection error:", error);
       setDetectionMessage(
-        "Connection error. Please ensure the local model service is running on http://127.0.0.1:8000"
+        "Connection error. Please ensure the local model service is running on https://deception-resonant-deserving.ngrok-free.dev"
       );
     } finally {
       setIsDetectingIssue(false);
@@ -2092,9 +2092,11 @@ export default function HomePage() {
     if (!isReportLocationPickerOpen) {
       reportLocationMarkerRef.current?.remove();
       reportLocationMarkerRef.current = null;
+    try {
       reportLocationMapRef.current?.remove();
-      reportLocationMapRef.current = null;
-      return;
+    } catch (error) {
+      console.warn("Failed to remove report location map during cleanup:", error);
+    }
     }
 
     const container = reportLocationMapContainerRef.current;
@@ -2146,7 +2148,12 @@ export default function HomePage() {
     return () => {
       reportLocationMarkerRef.current?.remove();
       reportLocationMarkerRef.current = null;
-      map.remove();
+      try {
+        map.remove();
+      } catch (error) {
+        console.warn("Failed to remove report location map during effect cleanup:", error);
+      }
+      reportLocationMapRef.current = null;
     };
   }, [isReportLocationPickerOpen]);
 
