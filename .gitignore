@@ -28,5 +28,7 @@ pnpm-lock.yaml
 # Local Netlify folder
 .netlify
 .next
-.cache
 .env
+
+bun.lock
+.cache

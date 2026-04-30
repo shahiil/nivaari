@@ -52,7 +52,10 @@ const responseSchema = z.object({
   readyToSubmit: z.boolean(),
 });
 
-type ReportDraft = z.infer<typeof responseSchema>["draft"];
+type ReportDraft = NonNullable<z.infer<typeof requestSchema>["draft"]>;
+function hasPinnedLocation(draft: ReportDraft): boolean {
+  return typeof draft.location?.lat === "number" && typeof draft.location?.lng === "number";
+}
 type ChatHistory = z.infer<typeof requestSchema>["history"];
 
 function fallbackType(text: string): string {
@@ -108,7 +111,7 @@ function fallbackAssistant(history: Array<{ role: "user" | "assistant"; text: st
     assistantMessage,
     draft,
     verificationQuestions,
-    readyToSubmit: Boolean(draft.type && draft.description && draft.location?.lat && draft.location?.lng),
+    readyToSubmit: Boolean(draft.type && draft.description && hasPinnedLocation(draft)),
   };
 }
 
@@ -125,7 +128,7 @@ export async function POST(req: Request) {
     const fullText = conversationText + `\nUser: ${latestUserText}`;
 
     // ===== PRE-EXTRACT DATA FROM CONVERSATION =====
-    const preExtracted: ReportDraft = { ...body.draft };
+    const preExtracted: ReportDraft = { ...(body.draft ?? {}) };
 
     // Extract issue type if not already set
     if (!preExtracted.type) {
@@ -149,12 +152,12 @@ export async function POST(req: Request) {
     }
 
     // Extract location/coordinates if not already set
-    if (!preExtracted.location?.lat || !preExtracted.location?.lng) {
-      const coordMatch = fullText.match(/(\d{1,2}\.\d+)\s*,\s*(\d{1,3}\.\d+)/);
-      if (coordMatch) {
+    if (!hasPinnedLocation(preExtracted)) {
+      const coordinateFromText = extractCoordinatePair(fullText);
+      if (coordinateFromText) {
         preExtracted.location = {
-          lat: parseFloat(coordMatch[1]),
-          lng: parseFloat(coordMatch[2]),
+          lat: coordinateFromText.lat,
+          lng: coordinateFromText.lng,
           address: preExtracted.location?.address,
         };
       }
@@ -197,14 +200,20 @@ export async function POST(req: Request) {
 
     // Determine what's still missing
     const hasType = Boolean(preExtracted.type && preExtracted.type !== "other");
-    const hasLocation = Boolean(preExtracted.location?.lat && preExtracted.location?.lng);
+    const hasLocation = hasPinnedLocation(preExtracted);
     const needsType = !hasType;
     const needsLocation = !hasLocation;
 
     // ===== CALL GROQ WITH CONTEXT ABOUT WHAT'S ALREADY EXTRACTED =====
     if (!key) {
-      return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation, body.history));
+      return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation));
     }
+
+    const locationSummary = hasPinnedLocation(preExtracted)
+      ? `${preExtracted.location?.address || ""}(${preExtracted.location?.lat}, ${preExtracted.location?.lng})`
+      : preExtracted.location?.address
+        ? `${preExtracted.location.address} (not pinned yet)`
+        : "(not yet specified)";
 
     const systemPrompt = `You are Nivaari, an intelligent and friendly civic report assistant for Bangalore.
 
@@ -212,7 +221,7 @@ Your role: Help citizens report infrastructure and civic issues (potholes, garba
 
 CURRENT EXTRACTED DATA:
 - Type: ${preExtracted.type || "(not yet specified)"}
-- Location: ${preExtracted.location?.lat && preExtracted.location?.lng ? `${preExtracted.location?.address || ""}(${preExtracted.location?.lat}, ${preExtracted.location?.lng})` : preExtracted.location?.address ? `${preExtracted.location.address} (not pinned yet)` : "(not yet specified)"}
+- Location: ${locationSummary}
 - Description: ${preExtracted.description || ""}
 - Area Impact: ${preExtracted.impactRadiusKm ? `${preExtracted.impactRadiusKm} km` : "point issue"}
 
@@ -252,7 +261,7 @@ Continue the conversation naturally.`;
 
       if (!resp.ok) {
         console.warn(`GitHub Model API error: ${resp.status}`);
-        return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation, body.history));
+        return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation));
       }
 
       const raw = (await resp.json()) as {
@@ -262,16 +271,16 @@ Continue the conversation naturally.`;
 
       if (raw.error) {
         console.warn(`GitHub Model error: ${raw.error.message}`);
-        return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation, body.history));
+        return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation));
       }
 
       const assistantMessage = raw.choices?.[0]?.message?.content || "";
       if (!assistantMessage) {
-        return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation, body.history));
+        return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation));
       }
 
       // Check readiness
-      const readyToSubmit = Boolean(preExtracted.type && preExtracted.location?.lat && preExtracted.location?.lng && preExtracted.description);
+      const readyToSubmit = Boolean(preExtracted.type && hasPinnedLocation(preExtracted) && preExtracted.description);
 
       // Build smart verification questions
       const verificationQuestions: string[] = [];
@@ -286,7 +295,7 @@ Continue the conversation naturally.`;
       });
     } catch (githubError) {
       console.error("GitHub Model API fetch error:", githubError);
-      return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation, body.history));
+      return NextResponse.json(generateSmartResponse(preExtracted, needsType, needsLocation));
     }
   } catch (error) {
     console.error("Citizen report chat error", error);
@@ -316,7 +325,7 @@ function generateSmartResponse(
     assistantMessage = `Perfect! I have the details: ${draft.type || "issue"} at ${draft.location?.address || "the location"}. Is this affecting a large area or just a point? Any other details you'd like to add?`;
   }
 
-  const readyToSubmit = Boolean(draft.type && draft.location?.lat && draft.location?.lng && draft.description);
+  const readyToSubmit = Boolean(draft.type && hasPinnedLocation(draft) && draft.description);
 
   const verificationQuestions: string[] = [];
   if (needsType) verificationQuestions.push("What type of issue is this?");

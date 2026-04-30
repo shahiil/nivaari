@@ -82,71 +82,166 @@ const ZONE_CONFIG: Array<{
   {
     key: "commercial",
     label: "Commercial",
-    buildingKeywords: ["commercial", "retail", "office", "business", "mall", "store"],
-    poiKeywords: ["commercial", "retail", "shop", "office", "mall", "store", "business", "market"],
+    buildingKeywords: [
+      "commercial",
+      "retail",
+      "office",
+      "business",
+      "mall",
+      "store",
+      "shop",
+      "supermarket",
+      "marketplace",
+      "bank",
+      "atm",
+      "showroom",
+    ],
+    poiKeywords: ["commercial", "retail", "shop", "office", "mall", "store", "business", "market", "bank", "atm"],
     color: "#2563eb",
   },
   {
     key: "agriculture",
     label: "Agriculture",
-    buildingKeywords: ["farm", "farmland", "agricultural", "greenhouse", "barn", "agri"],
-    poiKeywords: ["farm", "farmland", "agriculture", "agri", "greenhouse", "barn"],
+    buildingKeywords: ["farm", "farmland", "agricultural", "greenhouse", "barn", "agri", "farm_auxiliary", "stable"],
+    poiKeywords: ["farm", "farmland", "agriculture", "agri", "greenhouse", "barn", "stable"],
     color: "#facc15",
   },
   {
     key: "educational",
     label: "Educational",
-    buildingKeywords: ["school", "college", "university", "kindergarten", "education", "library", "campus"],
-    poiKeywords: ["school", "college", "university", "kindergarten", "education", "library", "campus"],
+    buildingKeywords: [
+      "school",
+      "college",
+      "university",
+      "kindergarten",
+      "education",
+      "library",
+      "campus",
+      "institute",
+      "academy",
+      "hostel",
+      "dormitory",
+    ],
+    poiKeywords: ["school", "college", "university", "kindergarten", "education", "library", "campus", "institute", "academy"],
     color: "#92400e",
   },
   {
     key: "residential",
     label: "Residential",
-    buildingKeywords: ["residential", "apartment", "house", "housing", "home", "villa", "residence"],
-    poiKeywords: ["residential", "housing", "apartment", "home", "residence", "neighborhood"],
+    buildingKeywords: [
+      "residential",
+      "apartment",
+      "apartments",
+      "house",
+      "detached",
+      "semidetached_house",
+      "terrace",
+      "bungalow",
+      "housing",
+      "home",
+      "villa",
+      "residence",
+      "dormitory",
+      "yes",
+      "building",
+    ],
+    poiKeywords: ["residential", "housing", "apartment", "home", "residence", "neighborhood", "society"],
     color: "#22c55e",
   },
   {
     key: "industrial",
     label: "Industrial",
-    buildingKeywords: ["industrial", "factory", "manufacture", "warehouse", "plant", "workshop"],
-    poiKeywords: ["industrial", "factory", "warehouse", "plant", "workshop"],
+    buildingKeywords: ["industrial", "factory", "manufacture", "manufacturing", "warehouse", "plant", "workshop", "depot", "works"],
+    poiKeywords: ["industrial", "factory", "warehouse", "plant", "workshop", "depot", "works"],
     color: "#111827",
   },
   {
     key: "health",
     label: "Health",
-    buildingKeywords: ["hospital", "clinic", "doctors", "healthcare", "medical", "emergency"],
-    poiKeywords: ["hospital", "clinic", "doctor", "health", "medical", "pharmacy", "emergency"],
+    buildingKeywords: [
+      "hospital",
+      "clinic",
+      "doctors",
+      "doctor",
+      "healthcare",
+      "medical",
+      "emergency",
+      "pharmacy",
+      "nursing",
+      "dispensary",
+    ],
+    poiKeywords: ["hospital", "clinic", "doctor", "health", "medical", "pharmacy", "emergency", "nursing", "dispensary"],
     color: "#dc2626",
   },
   {
     key: "railway_station",
     label: "Railway Station",
-    buildingKeywords: ["railway", "station", "train", "platform", "rail", "transit"],
-    poiKeywords: ["railway", "train", "station", "platform", "transit", "train_station"],
+    buildingKeywords: ["railway", "station", "train", "platform", "rail", "transit", "metro", "subway"],
+    poiKeywords: ["railway", "train", "station", "platform", "transit", "train_station", "metro", "subway"],
     color: "#8b5cf6",
   },
   {
     key: "food",
     label: "Food",
-    buildingKeywords: ["food", "restaurant", "fast_food", "cafe", "bar", "pub", "eatery", "bakery"],
-    poiKeywords: ["food_and_drink", "restaurant", "fast_food", "cafe", "coffee", "bakery", "bar", "pub"],
+    buildingKeywords: [
+      "food",
+      "restaurant",
+      "fast_food",
+      "cafe",
+      "coffee",
+      "bar",
+      "pub",
+      "eatery",
+      "bakery",
+      "canteen",
+      "pizza",
+      "burger",
+      "domino",
+      "dominos",
+      "domino's",
+      "mcdonald",
+      "mcdonalds",
+      "mc donald",
+      "starbucks",
+      "kfc",
+      "subway",
+    ],
+    poiKeywords: [
+      "food_and_drink",
+      "restaurant",
+      "fast_food",
+      "cafe",
+      "coffee",
+      "bakery",
+      "bar",
+      "pub",
+      "canteen",
+      "pizza",
+      "burger",
+      "domino",
+      "dominos",
+      "domino's",
+      "mcdonald",
+      "mcdonalds",
+      "mc donald",
+      "starbucks",
+      "kfc",
+      "subway",
+    ],
     color: "#f97316",
   },
   {
     key: "hotel",
     label: "Hotel",
-    buildingKeywords: ["hotel", "hostel", "guest_house", "motel", "resort", "lodging"],
-    poiKeywords: ["hotel", "hostel", "guest_house", "motel", "resort", "lodging"],
+    buildingKeywords: ["hotel", "hostel", "guest_house", "guesthouse", "motel", "resort", "lodging", "lodge", "inn"],
+    poiKeywords: ["hotel", "hostel", "guest_house", "guesthouse", "motel", "resort", "lodging", "lodge", "inn"],
     color: "#3b82f6",
   },
   {
     key: "entertainment",
     label: "Entertainment",
-    buildingKeywords: ["entertainment", "cinema", "theatre", "stadium", "museum", "park"],
-    poiKeywords: ["entertainment", "cinema", "theatre", "stadium", "museum", "park", "attraction"],
+    buildingKeywords: ["entertainment", "cinema", "theatre", "theater", "stadium", "museum", "park", "arts_centre", "auditorium"],
+    poiKeywords: ["entertainment", "cinema", "theatre", "theater", "stadium", "museum", "park", "attraction", "auditorium"],
     color: "#ec4899",
   },
 ];
@@ -163,6 +258,8 @@ const CLASSIFIED_BUILDINGS_LAYER_ID = "classified-buildings-layer";
 const SELECTED_PLACE_SOURCE_ID = "selected-place-source";
 const SELECTED_PLACE_FILL_LAYER_ID = "selected-place-fill";
 const SELECTED_PLACE_LINE_LAYER_ID = "selected-place-line";
+const POI_CATEGORIZED_BUILDING_SOURCE_ID = "poi-categorized-building-source";
+const POI_CATEGORIZED_BUILDING_LAYER_ID = "poi-categorized-buildings";
 const REPORT_IMPACT_SOURCE_ID = "report-impact-source";
 const REPORT_IMPACT_FILL_LAYER_ID = "report-impact-fill";
 const REPORT_IMPACT_OUTLINE_LAYER_ID = "report-impact-outline";
@@ -428,12 +525,6 @@ const buildStaticPreviewImage = (center: LngLatTuple, token: string) =>
     ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+2563eb(${center[0]},${center[1]})/${center[0]},${center[1]},15/280x160?access_token=${token}`
     : undefined;
 
-const getMapClassExpression = (): mapboxgl.ExpressionSpecification =>
-  [
-    "downcase",
-    ["coalesce", ["get", "class"], ["get", "type"], ["get", "subclass"], ["get", "category"], ""],
-  ] as mapboxgl.ExpressionSpecification;
-
 const getBuildingSearchTextExpression = (): mapboxgl.ExpressionSpecification =>
   [
     "downcase",
@@ -443,11 +534,21 @@ const getBuildingSearchTextExpression = (): mapboxgl.ExpressionSpecification =>
       " ",
       ["coalesce", ["get", "type"], ""],
       " ",
+      ["coalesce", ["get", "building"], ""],
+      " ",
+      ["coalesce", ["get", "building:type"], ""],
+      " ",
+      ["coalesce", ["get", "amenity"], ""],
+      " ",
+      ["coalesce", ["get", "landuse"], ""],
+      " ",
       ["coalesce", ["get", "subclass"], ""],
       " ",
       ["coalesce", ["get", "category"], ""],
       " ",
       ["coalesce", ["get", "name"], ""],
+      " ",
+      ["coalesce", ["get", "name_en"], ""],
     ],
   ] as mapboxgl.ExpressionSpecification;
 
@@ -483,6 +584,59 @@ const buildKeywordMatchExpression = (
   }
 
   return ["any", ...conditions] as mapboxgl.ExpressionSpecification;
+};
+
+const getZoneByKey = (key: ZoneKey) => ZONE_CONFIG.find((zone) => zone.key === key);
+
+const CATEGORY_PRIORITY: ZoneKey[] = [
+  "health",
+  "educational",
+  "railway_station",
+  "food",
+  "hotel",
+  "entertainment",
+  "industrial",
+  "agriculture",
+  "commercial",
+  "residential",
+];
+
+const buildBuildingCategoryColorExpression = (): mapboxgl.ExpressionSpecification => {
+  const searchExpression = getBuildingSearchTextExpression();
+
+  const cases = CATEGORY_PRIORITY.flatMap((zoneKey) => {
+    const zone = getZoneByKey(zoneKey);
+    if (!zone) return [];
+    return [buildKeywordMatchExpression(searchExpression, zone.buildingKeywords), zone.color];
+  });
+
+  return ["case", ...cases, getZoneByKey("residential")?.color ?? "#22c55e"] as mapboxgl.ExpressionSpecification;
+};
+
+const getFeatureText = (properties: Record<string, unknown> | null | undefined, keys: string[]): string =>
+  normalizeText(keys.map((key) => String(properties?.[key] ?? "")).join(" "));
+
+const getPoiText = (properties: Record<string, unknown> | null | undefined): string =>
+  getFeatureText(properties, ["class", "type", "subclass", "category", "maki", "name", "name_en", "brand"]);
+
+const detectPoiZone = (properties: Record<string, unknown> | null | undefined): ZoneKey | null => {
+  const text = getPoiText(properties);
+  if (!text) return null;
+
+  for (const zoneKey of CATEGORY_PRIORITY) {
+    const zone = getZoneByKey(zoneKey);
+    if (!zone) continue;
+    if (zone.poiKeywords.some((keyword) => text.includes(normalizeText(keyword)))) return zoneKey;
+  }
+
+  return null;
+};
+
+const buildPoiCategoryFilterExpression = (selectedZone: ZoneOption): mapboxgl.FilterSpecification => {
+  if (selectedZone !== "all") return buildPoiLabelFilterExpression(selectedZone);
+
+  const allPoiKeywords = Array.from(new Set(ZONE_CONFIG.flatMap((zone) => zone.poiKeywords)));
+  return buildKeywordMatchExpression(getPoiSearchTextExpression(), allPoiKeywords) as mapboxgl.FilterSpecification;
 };
 
 const buildRadiusFeature = (
@@ -569,6 +723,41 @@ const deriveBuildingCenter = (geometry: GeoJSON.Geometry): LngLatTuple | null =>
   );
 
   return [sums.lng / vertices.length, sums.lat / vertices.length];
+};
+
+const pointInRing = (point: LngLatTuple, ring: Array<[number, number]>): boolean => {
+  const [lng, lat] = point;
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [lngI, latI] = ring[i];
+    const [lngJ, latJ] = ring[j];
+    const intersects = latI > lat !== latJ > lat && lng < ((lngJ - lngI) * (lat - latI)) / (latJ - latI) + lngI;
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+};
+
+const pointInBuildingGeometry = (point: LngLatTuple, geometry: GeoJSON.Geometry): boolean => {
+  if (geometry.type === "Polygon") {
+    const [outerRing, ...holes] = geometry.coordinates as Array<Array<[number, number]>>;
+    return pointInRing(point, outerRing) && !holes.some((hole) => pointInRing(point, hole));
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return (geometry.coordinates as Array<Array<Array<[number, number]>>>).some(([outerRing, ...holes]) => {
+      return pointInRing(point, outerRing) && !holes.some((hole) => pointInRing(point, hole));
+    });
+  }
+
+  return false;
+};
+
+const derivePointFeatureCenter = (geometry: GeoJSON.Geometry | null | undefined): LngLatTuple | null => {
+  if (!geometry || geometry.type !== "Point") return null;
+  const [lng, lat] = geometry.coordinates;
+  return [lng, lat];
 };
 
 const deriveBuildingRadiusKm = (
@@ -858,6 +1047,115 @@ const buildPoiLabelFilterExpression = (selectedZone: ZoneOption): mapboxgl.Filte
   return ["all", buildKeywordMatchExpression(getPoiSearchTextExpression(), keywords)] as mapboxgl.FilterSpecification;
 };
 
+const findBuildingForPoi = (
+  poiCenter: LngLatTuple,
+  buildings: mapboxgl.MapboxGeoJSONFeature[],
+): mapboxgl.MapboxGeoJSONFeature | null => {
+  let nearest: { feature: mapboxgl.MapboxGeoJSONFeature; distanceKm: number } | null = null;
+
+  for (const building of buildings) {
+    const geometry = building.geometry as GeoJSON.Geometry | null;
+    if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon")) continue;
+
+    if (pointInBuildingGeometry(poiCenter, geometry)) return building;
+
+    const center = deriveBuildingCenter(geometry);
+    if (!center) continue;
+
+    const distanceKm = calculateDistance(poiCenter[0], poiCenter[1], center[0], center[1]);
+    if (!nearest || distanceKm < nearest.distanceKm) {
+      nearest = { feature: building, distanceKm };
+    }
+  }
+
+  return nearest && nearest.distanceKm <= 0.045 ? nearest.feature : null;
+};
+
+const buildPoiCategorizedBuildingFeatureCollection = (
+  map: mapboxgl.Map,
+  selectedZone: ZoneOption,
+): GeoJSON.FeatureCollection => {
+  const buildings = map.querySourceFeatures("composite", {
+    sourceLayer: "building",
+    filter: buildZoneFilterExpression("all"),
+  });
+  if (buildings.length === 0) return emptyFeatureCollection();
+
+  const pois = map.querySourceFeatures("composite", {
+    sourceLayer: "poi_label",
+    filter: buildPoiCategoryFilterExpression(selectedZone),
+  });
+  if (pois.length === 0) return emptyFeatureCollection();
+
+  const dedupe = new Set<string>();
+  const features: GeoJSON.Feature[] = [];
+
+  pois.forEach((poi) => {
+    const poiCenter = derivePointFeatureCenter(poi.geometry as GeoJSON.Geometry | null);
+    if (!poiCenter) return;
+
+    const zoneKey = detectPoiZone((poi.properties as Record<string, unknown>) ?? null);
+    if (!zoneKey || (selectedZone !== "all" && zoneKey !== selectedZone)) return;
+
+    const building = findBuildingForPoi(poiCenter, buildings);
+    const buildingGeometry = building?.geometry as GeoJSON.Geometry | null;
+    if (!building || !buildingGeometry) return;
+
+    const buildingCenter = deriveBuildingCenter(buildingGeometry);
+    const dedupeKey = `${zoneKey}:${building.id ?? ""}:${buildingCenter?.[0].toFixed(6) ?? poiCenter[0].toFixed(6)}:${buildingCenter?.[1].toFixed(6) ?? poiCenter[1].toFixed(6)}`;
+    if (dedupe.has(dedupeKey)) return;
+    dedupe.add(dedupeKey);
+
+    const zone = getZoneByKey(zoneKey);
+    const buildingProperties = (building.properties as Record<string, unknown>) ?? {};
+    features.push({
+      type: "Feature",
+      geometry: buildingGeometry,
+      properties: {
+        ...buildingProperties,
+        inferredZone: zoneKey,
+        inferredZoneColor: zone?.color ?? "#22d3ee",
+        inferredFromPoi: poi.properties?.name_en ?? poi.properties?.name ?? zone?.label,
+      },
+    });
+  });
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+};
+
+const updatePoiCategorizedBuildingLayer = (map: mapboxgl.Map, selectedZone: ZoneOption, labelLayerId?: string) => {
+  const data = buildPoiCategorizedBuildingFeatureCollection(map, selectedZone);
+
+  let source = map.getSource(POI_CATEGORIZED_BUILDING_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  if (!source) {
+    map.addSource(POI_CATEGORIZED_BUILDING_SOURCE_ID, { type: "geojson", data });
+    source = map.getSource(POI_CATEGORIZED_BUILDING_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+  } else {
+    source.setData(data);
+  }
+
+  if (map.getLayer(POI_CATEGORIZED_BUILDING_LAYER_ID)) return;
+
+  map.addLayer(
+    {
+      id: POI_CATEGORIZED_BUILDING_LAYER_ID,
+      source: POI_CATEGORIZED_BUILDING_SOURCE_ID,
+      type: "fill-extrusion",
+      minzoom: 14,
+      paint: {
+        "fill-extrusion-color": ["coalesce", ["get", "inferredZoneColor"], "#22d3ee"],
+        "fill-extrusion-height": ["+", ["coalesce", ["get", "height"], ["get", "render_height"], 10], 0.35],
+        "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
+        "fill-extrusion-opacity": 0.96,
+      },
+    },
+    labelLayerId,
+  );
+};
+
 const getLabelAnchorLayerId = (map: mapboxgl.Map): string | undefined =>
   map
     .getStyle()
@@ -882,6 +1180,9 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
           false,
         ],
         minzoom: 9,
+        layout: {
+          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 9, 0.15, 13, 0.35, 16, 0.7, 18, 1.2],
+        },
         paint: {
           "line-color": [
             "match",
@@ -896,7 +1197,6 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
           ],
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.5, 13, 3, 16, 6, 18, 10],
           "line-opacity": 0.95,
-          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 9, 0.15, 13, 0.35, 16, 0.7, 18, 1.2],
         },
       } as mapboxgl.AnyLayer),
       labelLayerId,
@@ -912,11 +1212,13 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
         "source-layer": "road",
         filter: ["match", ["get", "class"], ["rail", "transit"], true, false],
         minzoom: 8,
+        layout: {
+          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 8, 0.1, 13, 0.25, 16, 0.5, 18, 0.9],
+        },
         paint: {
           "line-color": "#a855f7",
           "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2.5, 16, 4.5, 18, 7],
           "line-opacity": 0.92,
-          "line-z-offset": ["interpolate", ["linear"], ["zoom"], 8, 0.1, 13, 0.25, 16, 0.5, 18, 0.9],
         },
       } as mapboxgl.AnyLayer),
       labelLayerId,
@@ -983,27 +1285,7 @@ const applyMapTheme = (map: mapboxgl.Map) => {
 
 const getBuildingColorExpression = (selectedZone: ZoneOption): mapboxgl.ExpressionSpecification => {
   if (selectedZone === "all") {
-    return [
-      "match",
-      getMapClassExpression(),
-      ["residential", "apartments", "house", "housing"],
-      "#22c55e",
-      ["commercial", "retail", "office"],
-      "#2563eb",
-      ["entertainment", "cinema", "theatre", "stadium", "arts_centre"],
-      "#ec4899",
-      ["restaurant", "fast_food", "cafe", "food_court", "bar", "pub"],
-      "#f97316",
-      ["hospital", "clinic", "fire_station", "police", "emergency"],
-      "#dc2626",
-      ["industrial", "factory", "manufacture", "warehouse"],
-      "#111827",
-      ["school", "college", "university", "kindergarten", "education", "library"],
-      "#92400e",
-      ["farm", "farmland", "agricultural", "greenhouse", "barn"],
-      "#facc15",
-      "#9ca3af",
-    ] as mapboxgl.ExpressionSpecification;
+    return buildBuildingCategoryColorExpression();
   }
 
   const selectedConfig = ZONE_CONFIG.find((zone) => zone.key === selectedZone);
@@ -1199,6 +1481,7 @@ const addOrUpdateZoneLayers = (
     );
   }
 
+  updatePoiCategorizedBuildingLayer(map, selectedZone, labelLayer);
   refreshClassifiedBuildingLayer(map, selectedZone);
 
   if (selectedZone === "all") {
