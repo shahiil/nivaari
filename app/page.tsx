@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import mapboxgl from "mapbox-gl";
 import { useAuth } from "@/contexts/AuthContext";
+import { ImageUpload } from "@/components/ImageUpload";
 import toast from "react-hot-toast";
-// @ts-ignore
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type ZoneKey =
@@ -745,8 +745,8 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.5, 13, 3, 16, 6, 18, 10],
           "line-opacity": 0.95,
           "line-z-offset": ["interpolate", ["linear"], ["zoom"], 9, 0.15, 13, 0.35, 16, 0.7, 18, 1.2],
-        },
-      },
+        } as any,
+      } as any,
       labelLayerId,
     );
   }
@@ -765,8 +765,8 @@ const ensureTransport3DLayers = (map: mapboxgl.Map) => {
           "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2.5, 16, 4.5, 18, 7],
           "line-opacity": 0.92,
           "line-z-offset": ["interpolate", ["linear"], ["zoom"], 8, 0.1, 13, 0.25, 16, 0.5, 18, 0.9],
-        },
-      },
+        } as any,
+      } as any,
       labelLayerId,
     );
   }
@@ -1103,6 +1103,9 @@ export default function HomePage() {
   const [reportStatusMessage, setReportStatusMessage] = useState("");
   const [isReportLocationPickerOpen, setIsReportLocationPickerOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [reportImagePreview, setReportImagePreview] = useState<string | null>(null);
+  const [isDetectingIssue, setIsDetectingIssue] = useState(false);
+  const [detectionMessage, setDetectionMessage] = useState<string | null>(null);
 
   const voteReport = useCallback(async (reportId: string, vote: "upvote" | "downvote") => {
     try {
@@ -1455,6 +1458,94 @@ export default function HomePage() {
       setReportStatusMessage("Report submission failed due to network issue.");
     } finally {
       setIsSubmittingReport(false);
+    }
+  };
+
+  const handleDetectIssueFromImage = async (imageFile: File, preview: string) => {
+    setReportImagePreview(preview);
+    setIsDetectingIssue(true);
+    setDetectionMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", imageFile);
+
+      const response = await fetch("/api/detect-issue", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        setDetectionMessage(
+          error.error || "Failed to detect issue from image. Please try again."
+        );
+        setIsDetectingIssue(false);
+        return;
+      }
+
+      const result = await response.json();
+      const { reportType, category, confidence } = result;
+
+      // Auto-populate report draft with detected information
+      setReportDraft((prev) => ({
+        ...prev,
+        type: reportType as ReportType,
+        description: `Detected: ${category} (Confidence: ${(confidence * 100).toFixed(1)}%)`,
+        impactRadiusKm: 0.1, // Default small impact radius for point issues
+      }));
+
+      // Send detection result to AI for verification
+      const detectionSummary = `I detected a ${category} issue in the uploaded image with ${(confidence * 100).toFixed(1)}% confidence. The system has automatically classified this as a "${getReportMeta(reportType).label}" issue. Please confirm if this is correct and provide additional details about the location and severity.`;
+
+      setReportMessages((prev) => [...prev, { role: "user", text: detectionSummary }]);
+      setDetectionMessage(
+        `✓ Detected: ${category} (${(confidence * 100).toFixed(1)}% confidence)`
+      );
+
+      // Trigger AI verification
+      setIsReportThinking(true);
+      try {
+        const verificationResponse = await fetch("/api/citizen-reports/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            history: [
+              ...reportMessages,
+              { role: "user", text: detectionSummary },
+            ],
+          }),
+        });
+
+        if (verificationResponse.ok) {
+          const verificationBody = await verificationResponse.json();
+          setReportMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: verificationBody.assistantMessage },
+          ]);
+
+          if (verificationBody.draft) {
+            setReportDraft((prev) => ({
+              ...prev,
+              ...verificationBody.draft,
+            }));
+          }
+
+          if (verificationBody.readyToSubmit) {
+            setReportReadyToSubmit(true);
+          }
+        }
+      } finally {
+        setIsReportThinking(false);
+      }
+    } catch (error) {
+      console.error("Detection error:", error);
+      setDetectionMessage(
+        "Connection error. Please ensure the local model service is running on http://127.0.0.1:8000"
+      );
+    } finally {
+      setIsDetectingIssue(false);
     }
   };
 
@@ -2487,141 +2578,293 @@ export default function HomePage() {
             position: "fixed",
             inset: 0,
             zIndex: 80,
-            background: "rgba(2,6,23,0.45)",
+            background: "rgba(2,6,23,0.66)",
+            backdropFilter: "blur(12px)",
             display: "grid",
             placeItems: "center",
             padding: 14,
           }}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Citizen Report Assistant"
             style={{
-              width: "min(96vw, 520px)",
-              maxHeight: "86vh",
+              width: "min(96vw, 720px)",
+              maxHeight: "88vh",
+              overflow: "hidden",
               display: "grid",
-              gridTemplateRows: "auto 1fr auto",
-              gap: 10,
-              borderRadius: 18,
-              border: "1px solid rgba(251,113,133,0.35)",
+              gridTemplateRows: "auto auto 1fr auto",
+              gap: 12,
+              borderRadius: 22,
+              border: "1px solid rgba(251,113,133,0.28)",
               background:
-                "linear-gradient(155deg, rgba(30,41,59,0.96), rgba(15,23,42,0.92)), radial-gradient(circle at 8% 6%, rgba(251,113,133,0.2), transparent 34%)",
-              boxShadow: "0 20px 45px rgba(2,6,23,0.52)",
-              padding: 12,
+                "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.92)), radial-gradient(circle at 12% 8%, rgba(251,113,133,0.16), transparent 34%), radial-gradient(circle at 88% 0%, rgba(56,189,248,0.12), transparent 26%)",
+              boxShadow: "0 30px 80px rgba(2,6,23,0.68)",
+              padding: 16,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-              <div>
-                <div style={{ color: "#ffe4e6", fontWeight: 700, fontSize: 15 }}>Citizen Report Assistant</div>
-                <div style={{ color: "#fecdd3", fontSize: 12 }}>
-                  Powered by GitHub GPT-4o. Describe the issue, we'll extract location and verify details.
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ color: "#ffe4e6", fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>
+                    Citizen Report Assistant
+                  </div>
+                  <span
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      border: "1px solid rgba(125,211,252,0.25)",
+                      background: "rgba(14,165,233,0.12)",
+                      color: "#bae6fd",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    AI verified
+                  </span>
+                </div>
+                <div style={{ color: "#cbd5e1", fontSize: 13, lineHeight: 1.5, maxWidth: 540 }}>
+                  Describe the issue, upload a photo if you have one, and we&apos;ll detect the problem, confirm the details, and help you pin the exact location.
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsReportChatOpen(false)}
+                aria-label="Close report assistant"
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 34,
+                  height: 34,
                   borderRadius: 999,
-                  border: "1px solid rgba(251,113,133,0.35)",
-                  background: "rgba(127,29,29,0.4)",
+                  border: "1px solid rgba(251,113,133,0.28)",
+                  background: "rgba(127,29,29,0.42)",
                   color: "#ffe4e6",
                   cursor: "pointer",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  lineHeight: 1,
                 }}
               >
-                x
+                ×
               </button>
             </div>
 
             <div
               style={{
-                overflowY: "auto",
-                borderRadius: 12,
-                border: "1px solid rgba(148,163,184,0.25)",
-                background: "rgba(15,23,42,0.45)",
-                padding: 10,
                 display: "grid",
-                gap: 8,
+                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                gap: 10,
               }}
             >
-              {reportMessages.map((message, index) => (
+              {[
+                { label: "Capture", value: reportImagePreview ? "Photo attached" : "Add evidence" },
+                { label: "Review", value: reportMessages.length > 1 ? `${reportMessages.length} messages` : "Starting draft" },
+                {
+                  label: "Status",
+                  value: reportReadyToSubmit ? "Ready to submit" : "Needs verification",
+                },
+              ].map((item) => (
                 <div
-                  key={`${message.role}-${index}`}
+                  key={item.label}
                   style={{
-                    justifySelf: message.role === "user" ? "end" : "start",
-                    maxWidth: "88%",
-                    borderRadius: 12,
-                    padding: "8px 10px",
-                    background:
-                      message.role === "user"
-                        ? "linear-gradient(145deg, rgba(190,24,93,0.28), rgba(190,24,93,0.15))"
-                        : "linear-gradient(145deg, rgba(30,64,175,0.26), rgba(56,189,248,0.14))",
-                    border:
-                      message.role === "user"
-                        ? "1px solid rgba(251,113,133,0.35)"
-                        : "1px solid rgba(125,211,252,0.28)",
-                    color: "#f8fafc",
-                    fontSize: 13,
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.45,
+                    borderRadius: 16,
+                    border: "1px solid rgba(148,163,184,0.16)",
+                    background: "rgba(15,23,42,0.65)",
+                    padding: "10px 12px",
+                    display: "grid",
+                    gap: 4,
                   }}
                 >
-                  {message.text}
+                  <div style={{ color: "#94a3b8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    {item.label}
+                  </div>
+                  <div style={{ color: "#f8fafc", fontSize: 13, fontWeight: 700 }}>{item.value}</div>
                 </div>
               ))}
-              {isReportThinking ? <div style={{ color: "#cbd5e1", fontSize: 12 }}>Thinking...</div> : null}
             </div>
 
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                <input
-                  value={reportInput}
-                  onChange={(event) => setReportInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void sendReportMessage();
-                    }
-                  }}
-                  placeholder="Describe issue, severity, landmark, and area impact..."
+            <div
+              style={{
+                overflowY: "auto",
+                borderRadius: 18,
+                border: "1px solid rgba(148,163,184,0.2)",
+                background: "rgba(2,6,23,0.28)",
+                padding: 14,
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ color: "#cbd5e1", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Conversation
+                </div>
+                <div
                   style={{
-                    borderRadius: 10,
-                    border: "1px solid rgba(148,163,184,0.35)",
-                    background: "rgba(15,23,42,0.75)",
-                    color: "#f8fafc",
-                    padding: "10px 12px",
-                    fontSize: 13,
-                    outline: "none",
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={isReportThinking}
-                  onClick={() => {
-                    void sendReportMessage();
-                  }}
-                  style={{
-                    borderRadius: 10,
-                    border: "1px solid rgba(251,113,133,0.38)",
-                    background: "linear-gradient(145deg, rgba(190,24,93,0.42), rgba(127,29,29,0.55))",
-                    color: "#ffe4e6",
-                    fontWeight: 700,
-                    padding: "0 14px",
-                    cursor: isReportThinking ? "not-allowed" : "pointer",
+                    display: "grid",
+                    gap: 10,
+                    alignContent: "start",
                   }}
                 >
-                  Send
-                </button>
+                  {reportMessages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      style={{
+                        justifySelf: message.role === "user" ? "end" : "start",
+                        maxWidth: "92%",
+                        borderRadius: message.role === "user" ? "16px 16px 6px 16px" : "16px 16px 16px 6px",
+                        padding: "10px 12px",
+                        background:
+                          message.role === "user"
+                            ? "linear-gradient(145deg, rgba(190,24,93,0.3), rgba(190,24,93,0.18))"
+                            : "linear-gradient(145deg, rgba(30,64,175,0.24), rgba(56,189,248,0.14))",
+                        border:
+                          message.role === "user"
+                            ? "1px solid rgba(251,113,133,0.22)"
+                            : "1px solid rgba(125,211,252,0.22)",
+                        color: "#f8fafc",
+                        fontSize: 13,
+                        whiteSpace: "pre-wrap",
+                        lineHeight: 1.55,
+                        boxShadow: "0 10px 18px rgba(2,6,23,0.2)",
+                      }}
+                    >
+                      {message.text}
+                    </div>
+                  ))}
+                  {isReportThinking ? (
+                    <div style={{ color: "#94a3b8", fontSize: 12, paddingLeft: 4 }}>Thinking about the report...</div>
+                  ) : null}
+                </div>
               </div>
 
-              <div style={{ fontSize: 12, color: "#fecdd3", display: "grid", gap: 4 }}>
-                <div>Detected type: {reportDraft.type ? getReportMeta(reportDraft.type).label : "Not detected yet"}</div>
-                <div>
-                  Location: {hasExactReportLocation(reportDraft.location)
-                    ? `${reportDraft.location?.lat?.toFixed(5)}, ${reportDraft.location?.lng?.toFixed(5)}`
-                    : reportDraft.location?.address ?? "Pending"}
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div>
+                    <div style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>Evidence</div>
+                    <div style={{ color: "#94a3b8", fontSize: 12 }}>Photo detection fills in the report automatically.</div>
+                  </div>
+                  {reportImagePreview ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReportImagePreview(null);
+                        setDetectionMessage(null);
+                      }}
+                      style={{
+                        borderRadius: 999,
+                        border: "1px solid rgba(248,113,113,0.3)",
+                        background: "rgba(239,68,68,0.16)",
+                        color: "#fecaca",
+                        padding: "7px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Clear photo
+                    </button>
+                  ) : null}
                 </div>
-                <div>
-                  Impact Radius: {typeof reportDraft.impactRadiusKm === "number" ? `${reportDraft.impactRadiusKm.toFixed(2)} km` : "Point issue"}
+
+                {reportImagePreview ? (
+                  <div
+                    style={{
+                      borderRadius: 18,
+                      overflow: "hidden",
+                      border: "1px solid rgba(251,113,133,0.24)",
+                      background: "rgba(15,23,42,0.7)",
+                    }}
+                  >
+                    <img
+                      src={reportImagePreview}
+                      alt="Selected"
+                      style={{ width: "100%", height: "auto", display: "block", maxHeight: 260, objectFit: "cover" }}
+                    />
+                    <div style={{ display: "grid", gap: 8, padding: 12 }}>
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          width: "fit-content",
+                          borderRadius: 999,
+                          border: "1px solid rgba(251,113,133,0.24)",
+                          background: "rgba(190,24,93,0.12)",
+                          color: "#ffe4e6",
+                          padding: "5px 10px",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {isDetectingIssue ? "Detecting issue..." : detectionMessage || "Issue detected"}
+                      </div>
+                      <div style={{ color: "#cbd5e1", fontSize: 12, lineHeight: 1.5 }}>
+                        If the category looks wrong, remove the image and try another photo. The report details will update after detection.
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      borderRadius: 18,
+                      border: "1px solid rgba(148,163,184,0.2)",
+                      background: "rgba(15,23,42,0.7)",
+                      padding: 12,
+                    }}
+                  >
+                    <ImageUpload
+                      onImageSelected={handleDetectIssueFromImage}
+                      onDetecting={setIsDetectingIssue}
+                      disabled={isReportThinking || isDetectingIssue}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>Report details</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {[
+                    { label: "Detected type", value: reportDraft.type ? getReportMeta(reportDraft.type).label : "Not detected yet" },
+                    {
+                      label: "Location",
+                      value: hasExactReportLocation(reportDraft.location)
+                        ? `${reportDraft.location?.lat?.toFixed(5)}, ${reportDraft.location?.lng?.toFixed(5)}`
+                        : reportDraft.location?.address ?? "Pending",
+                    },
+                    {
+                      label: "Impact radius",
+                      value:
+                        typeof reportDraft.impactRadiusKm === "number"
+                          ? `${reportDraft.impactRadiusKm.toFixed(2)} km`
+                          : "Point issue",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid rgba(148,163,184,0.18)",
+                        background: "rgba(15,23,42,0.72)",
+                        padding: "12px 13px",
+                        display: "grid",
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {item.label}
+                      </div>
+                      <div style={{ color: "#f8fafc", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{item.value}</div>
+                    </div>
+                  ))}
                 </div>
                 <button
                   type="button"
@@ -2629,45 +2872,107 @@ export default function HomePage() {
                   style={{
                     justifySelf: "start",
                     borderRadius: 999,
-                    border: "1px solid rgba(251,113,133,0.4)",
-                    background: "rgba(190,24,93,0.18)",
+                    border: "1px solid rgba(251,113,133,0.32)",
+                    background: "rgba(190,24,93,0.16)",
                     color: "#ffe4e6",
-                    padding: "6px 10px",
-                    fontSize: 12,
+                    padding: "10px 14px",
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: "pointer",
+                    boxShadow: "0 10px 18px rgba(190,24,93,0.12)",
                   }}
                 >
                   {hasExactReportLocation(reportDraft.location) ? "Adjust pin on map" : "Open map to pin location"}
                 </button>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: reportReadyToSubmit ? "#86efac" : "#fcd34d" }}>
-                  {reportReadyToSubmit ? "Verified and ready to submit." : "Share more details so AI can verify the report."}
-                </span>
-                <button
-                  type="button"
-                  disabled={!reportReadyToSubmit || isSubmittingReport}
-                  onClick={() => {
-                    void submitVerifiedReport();
-                  }}
-                  style={{
-                    borderRadius: 10,
-                    border: "1px solid rgba(134,239,172,0.4)",
-                    background: "linear-gradient(145deg, rgba(22,163,74,0.4), rgba(21,128,61,0.55))",
-                    color: "#dcfce7",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    padding: "8px 12px",
-                    cursor: !reportReadyToSubmit || isSubmittingReport ? "not-allowed" : "pointer",
-                    opacity: !reportReadyToSubmit || isSubmittingReport ? 0.55 : 1,
-                  }}
-                >
-                  {isSubmittingReport ? "Submitting..." : "Submit Report"}
-                </button>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>Add context</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "stretch" }}>
+                  <input
+                    value={reportInput}
+                    onChange={(event) => setReportInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void sendReportMessage();
+                      }
+                    }}
+                    placeholder="Describe severity, landmark, and how far the damage spreads..."
+                    style={{
+                      borderRadius: 14,
+                      border: "1px solid rgba(148,163,184,0.24)",
+                      background: "rgba(2,6,23,0.62)",
+                      color: "#f8fafc",
+                      padding: "12px 14px",
+                      fontSize: 13,
+                      outline: "none",
+                      minWidth: 0,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={isReportThinking}
+                    onClick={() => {
+                      void sendReportMessage();
+                    }}
+                    style={{
+                      borderRadius: 14,
+                      border: "1px solid rgba(251,113,133,0.3)",
+                      background: "linear-gradient(145deg, rgba(190,24,93,0.5), rgba(127,29,29,0.65))",
+                      color: "#ffe4e6",
+                      fontWeight: 800,
+                      fontSize: 13,
+                      padding: "0 18px",
+                      cursor: isReportThinking ? "not-allowed" : "pointer",
+                      opacity: isReportThinking ? 0.72 : 1,
+                      minHeight: 46,
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
               </div>
-              {reportStatusMessage ? <div style={{ fontSize: 12, color: "#fcd34d" }}>{reportStatusMessage}</div> : null}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                borderTop: "1px solid rgba(148,163,184,0.16)",
+                paddingTop: 4,
+              }}
+            >
+              <div style={{ display: "grid", gap: 3 }}>
+                <span style={{ fontSize: 12, color: reportReadyToSubmit ? "#86efac" : "#fcd34d", fontWeight: 700 }}>
+                  {reportReadyToSubmit ? "Verified and ready to submit." : "Share enough detail for AI verification."}
+                </span>
+                {reportStatusMessage ? <span style={{ fontSize: 12, color: "#fcd34d" }}>{reportStatusMessage}</span> : null}
+              </div>
+              <button
+                type="button"
+                disabled={!reportReadyToSubmit || isSubmittingReport}
+                onClick={() => {
+                  void submitVerifiedReport();
+                }}
+                style={{
+                  borderRadius: 14,
+                  border: "1px solid rgba(134,239,172,0.34)",
+                  background: "linear-gradient(145deg, rgba(22,163,74,0.44), rgba(21,128,61,0.58))",
+                  color: "#dcfce7",
+                  fontWeight: 800,
+                  fontSize: 13,
+                  padding: "12px 16px",
+                  cursor: !reportReadyToSubmit || isSubmittingReport ? "not-allowed" : "pointer",
+                  opacity: !reportReadyToSubmit || isSubmittingReport ? 0.6 : 1,
+                  minWidth: 160,
+                }}
+              >
+                {isSubmittingReport ? "Submitting..." : "Submit Report"}
+              </button>
             </div>
           </div>
         </div>
@@ -2679,7 +2984,8 @@ export default function HomePage() {
             position: "fixed",
             inset: 0,
             zIndex: 81,
-            background: "rgba(2,6,23,0.58)",
+            background: "rgba(2,6,23,0.68)",
+            backdropFilter: "blur(12px)",
             display: "grid",
             placeItems: "center",
             padding: 14,
@@ -2687,70 +2993,87 @@ export default function HomePage() {
         >
           <div
             style={{
-              width: "min(96vw, 860px)",
-              borderRadius: 18,
-              border: "1px solid rgba(251,113,133,0.35)",
+              width: "min(96vw, 920px)",
+              maxHeight: "90vh",
+              overflow: "hidden",
+              borderRadius: 22,
+              border: "1px solid rgba(251,113,133,0.28)",
               background:
-                "linear-gradient(155deg, rgba(30,41,59,0.98), rgba(15,23,42,0.95)), radial-gradient(circle at 8% 6%, rgba(251,113,133,0.2), transparent 34%)",
-              boxShadow: "0 24px 60px rgba(2,6,23,0.6)",
-              padding: 12,
+                "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.94)), radial-gradient(circle at 10% 8%, rgba(251,113,133,0.16), transparent 34%)",
+              boxShadow: "0 30px 80px rgba(2,6,23,0.68)",
+              padding: 16,
               display: "grid",
-              gap: 10,
+              gridTemplateRows: "auto 1fr auto",
+              gap: 12,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-              <div>
-                <div style={{ color: "#ffe4e6", fontWeight: 800, fontSize: 16 }}>Pin the exact location</div>
-                <div style={{ color: "#fecdd3", fontSize: 12 }}>
-                  Click on the map where the issue is happening. The pin will be used as the report location.
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ color: "#ffe4e6", fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>
+                  Pin the exact location
+                </div>
+                <div style={{ color: "#cbd5e1", fontSize: 13, lineHeight: 1.5, maxWidth: 560 }}>
+                  Tap the map where the issue is happening. We&apos;ll use this pin to anchor the report and its impact radius.
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsReportLocationPickerOpen(false)}
+                aria-label="Close location picker"
                 style={{
                   borderRadius: 999,
-                  border: "1px solid rgba(251,113,133,0.35)",
-                  background: "rgba(127,29,29,0.4)",
+                  border: "1px solid rgba(251,113,133,0.28)",
+                  background: "rgba(127,29,29,0.42)",
                   color: "#ffe4e6",
                   cursor: "pointer",
                   padding: "8px 12px",
                   fontWeight: 700,
                 }}
               >
-                Done
+                ×
               </button>
             </div>
 
             <div
               style={{
-                minHeight: 420,
-                borderRadius: 14,
+                display: "grid",
+                gap: 10,
+                borderRadius: 18,
                 overflow: "hidden",
-                border: "1px solid rgba(148,163,184,0.25)",
-                background: "rgba(15,23,42,0.5)",
+                border: "1px solid rgba(148,163,184,0.18)",
+                background: "rgba(15,23,42,0.66)",
               }}
             >
-              <div ref={reportLocationMapContainerRef} style={{ width: "100%", height: "100%", minHeight: 420 }} />
+              <div style={{ padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ color: "#cbd5e1", fontSize: 12 }}>Click once to drop the pin, then fine-tune the report below.</div>
+                <div style={{ color: "#94a3b8", fontSize: 12 }}>
+                  {hasExactReportLocation(reportDraft.location)
+                    ? `Selected: ${reportDraft.location?.lat?.toFixed(5)}, ${reportDraft.location?.lng?.toFixed(5)}`
+                    : "No pin yet"}
+                </div>
+              </div>
+              <div style={{ minHeight: 420 }}>
+                <div ref={reportLocationMapContainerRef} style={{ width: "100%", height: "100%", minHeight: 420 }} />
+              </div>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ color: "#cbd5e1", fontSize: 12 }}>
                 {hasExactReportLocation(reportDraft.location)
-                  ? `Selected: ${reportDraft.location?.lat?.toFixed(5)}, ${reportDraft.location?.lng?.toFixed(5)}`
-                  : "No pin yet. Click the map to set one."}
+                  ? "Use this location to keep the report precise."
+                  : "Zoom or pan the map if needed, then set the pin."}
               </div>
               <button
                 type="button"
                 onClick={() => setIsReportLocationPickerOpen(false)}
                 style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(134,239,172,0.4)",
-                  background: "linear-gradient(145deg, rgba(22,163,74,0.4), rgba(21,128,61,0.55))",
+                  borderRadius: 14,
+                  border: "1px solid rgba(134,239,172,0.34)",
+                  background: "linear-gradient(145deg, rgba(22,163,74,0.44), rgba(21,128,61,0.58))",
                   color: "#dcfce7",
-                  fontWeight: 700,
+                  fontWeight: 800,
                   fontSize: 13,
-                  padding: "8px 12px",
+                  padding: "10px 14px",
                   cursor: "pointer",
                 }}
               >

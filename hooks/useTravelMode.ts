@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNivaariStore } from '@/lib/nivaariStore';
-import { toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 // simplistic throttling
 let lastSync = 0;

@@ -33,21 +33,25 @@ const requestSchema = z.object({
     .optional(),
 });
 
+const draftSchema = z.object({
+  title: z.string().optional(),
+  type: z.string().optional(),
+  description: z.string().optional(),
+  impactRadiusKm: z.number().optional(),
+  location: z
+    .object({
+      lat: z.number().optional(),
+      lng: z.number().optional(),
+      address: z.string().optional(),
+    })
+    .optional(),
+});
+
+type DraftType = z.infer<typeof draftSchema>;
+
 const responseSchema = z.object({
   assistantMessage: z.string(),
-  draft: z.object({
-    title: z.string().optional(),
-    type: z.string().optional(),
-    description: z.string().optional(),
-    impactRadiusKm: z.number().optional(),
-    location: z
-      .object({
-        lat: z.number().optional(),
-        lng: z.number().optional(),
-        address: z.string().optional(),
-      })
-      .optional(),
-  }),
+  draft: draftSchema,
   verificationQuestions: z.array(z.string()).default([]),
   readyToSubmit: z.boolean(),
 });
@@ -122,7 +126,7 @@ export async function POST(req: Request) {
     const fullText = conversationText + `\nUser: ${latestUserText}`;
 
     // ===== PRE-EXTRACT DATA FROM CONVERSATION =====
-    const preExtracted = { ...body.draft } as any;
+    const preExtracted: DraftType = body.draft || {};
 
     // Extract issue type if not already set
     if (!preExtracted.type) {
@@ -296,7 +300,7 @@ Continue the conversation naturally.`;
 
 // Helper function to generate smart responses
 function generateSmartResponse(
-  draft: any,
+  draft: DraftType,
   needsType: boolean,
   needsLocation: boolean,
   history: Array<{ role: "user" | "assistant"; text: string }>
